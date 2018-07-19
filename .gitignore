@@ -1,0 +1,5 @@
+data/pfam/
+test/
+*.pyc
+*.DS_Store
+*__pycache__
