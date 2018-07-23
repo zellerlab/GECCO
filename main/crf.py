@@ -33,9 +33,6 @@ class ClusterCRF(object):
             all_possible_states = True,
             **kwargs)
 
-        self.trans_features = self.model.transition_features_
-        self.state_features = self.model.state_features_
-
     def fit(self, X=None, Y=None, **kwargs):
         if X and Y:
             self.model.fit(X, Y, **kwargs)
@@ -53,13 +50,13 @@ class ClusterCRF(object):
             X = np.array([x for x, _ in samples])
             return self.model.predict(X, **kwargs)
 
-    def predict(self, X=None, **kwargs):
+    def predict_marginals(self, X=None, **kwargs):
         if X:
             return self.model.predict_marginals(X, **kwargs)
         else:
             samples = [self._extract_features(s) for s in self.data]
             X = np.array([x for x, _ in samples])
-            return self.model.predict(X, **kwargs)
+            return self.model.predict_marginals(X, **kwargs)
 
     def cv(self, k=10, threads=1, e_filter=1, truncate=None, strat_col=None):
 
@@ -98,6 +95,10 @@ class ClusterCRF(object):
                 truncate=truncate) for train_idx, test_idx in cv_split.split())
 
         return results
+
+    def truncate(self, length):
+        """Truncate all samples in self.data to length"""
+        self.data = [self._truncate(df, length) for df in self.data]
 
     def _single_fold_cv(self, train_idx, test_idx, round_id=None, e_filter=1,
         truncate=None):
