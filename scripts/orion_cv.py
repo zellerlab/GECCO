@@ -1,13 +1,17 @@
+import sys
+import os
+MAIN = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..") + "/"
+sys.path.append(MAIN)
 import random
 import argparse
 import pandas as pd
 import numpy as np
 import multiprocessing
 from itertools import product
-from crf import ClusterCRF
+from main.crf import ClusterCRF
 
 ### TEST ###
-# python /home/fleck/scripts/clust/main/crf_cvpy /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/crf_cvpy /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
 
 # FUNC
@@ -129,8 +133,8 @@ if __name__ == "__main__":
                         "p_pred", "c1", "c2", "feature_type", "e_filter", "overlap",
                         "weight", "truncate", "cv_type", "cv_round", "in_file"] ])
 
-        # print(result_df)
+    # print(result_df)
 
-        # Write results
-        ext = "_cv" + ".pred.tsv"
-        result_df.to_csv(out_file + ext, sep="\t", index=False, header=False)
+    # Write results
+    ext = "_cv" + ".pred.tsv"
+    result_df.to_csv(out_file + ext, sep="\t", index=False, header=False)

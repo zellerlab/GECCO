@@ -1,3 +1,7 @@
+import sys
+import os
+MAIN = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..") + "/"
+sys.path.append(MAIN)
 import random
 import argparse
 import pickle
@@ -5,10 +9,10 @@ import pandas as pd
 import numpy as np
 import multiprocessing
 from itertools import product
-from crf import ClusterCRF
+from main.crf import ClusterCRF
 
 ### TEST ###
-# python /home/fleck/scripts/clust/main/crf_train.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_train.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
 
 # FUNC
@@ -29,7 +33,7 @@ def interface():
 
     parser.add_argument("-w", "--weight-col",
                         dest="w",
-                        default="pseudo_norm_prot",
+                        default="pseudo_norm",
                         type=str,
                         help="Column to be used as local weights on pfam domains.")
 
@@ -88,8 +92,6 @@ if __name__ == "__main__":
         feature_type = feature_type,
         overlap = overlap,
         algorithm = "lbfgs",
-        keep_tempfiles = True,
-        model_filename = out_file + ".crf.model",
         c1 = C1,
         c2 = C2)
 
@@ -97,6 +99,9 @@ if __name__ == "__main__":
         crf.truncate(trunc)
 
     crf.fit()
+
+    with open(out_file + ".crf.model", "wb") as f:
+        pickle.dump(crf.model, f, protocol=2)
 
     with open(out_file + ".trans.tsv", "wt") as f:
         f.write("from\tto\tweight\n")
