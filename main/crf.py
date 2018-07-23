@@ -4,11 +4,11 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
-from cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
-from preprocessing import extract_overlapping_features
-from preprocessing import extract_protein_features
-from preprocessing import extract_features, flatten
 from itertools import zip_longest
+from .cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
+from .preprocessing import extract_overlapping_features
+from .preprocessing import extract_protein_features
+from .preprocessing import extract_features, flatten
 
 # CLASS
 class ClusterCRF(object):
