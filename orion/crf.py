@@ -33,30 +33,33 @@ class ClusterCRF(object):
             all_possible_states = True,
             **kwargs)
 
-    def fit(self, X=None, Y=None, **kwargs):
+    def fit(self, X=None, Y=None):
         if X and Y:
-            self.model.fit(X, Y, **kwargs)
+            self.model.fit(X, Y)
         else:
             samples = [self._extract_features(s) for s in self.data]
             X = np.array([x for x, _ in samples])
             Y = np.array([y for _, y in samples])
             self.model.fit(X, Y, **kwargs)
 
-    def predict(self, X=None, **kwargs):
+    def predict_marginals(self, X=None):
         if X:
-            return self.model.predict(X, **kwargs)
+            return self.model.predict_marginals(X)
         else:
             samples = [self._extract_features(s) for s in self.data]
             X = np.array([x for x, _ in samples])
-            return self.model.predict(X, **kwargs)
+            marginal_probs = self.model.predict_marginals(X)
+            marginal_probs = np.concatenate(
+                np.array([np.array(_) for _ in marginal_probs]))
+            cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
-    def predict_marginals(self, X=None, **kwargs):
-        if X:
-            return self.model.predict_marginals(X, **kwargs)
-        else:
-            samples = [self._extract_features(s) for s in self.data]
-            X = np.array([x for x, _ in samples])
-            return self.model.predict_marginals(X, **kwargs)
+            if self.feature_type == "group":
+                test_data = [self._distinct(s) for s in test_data]
+
+            result_df = pd.concat(self.data)
+            result_df = result_df.assign(p_pred=cluster_probs)
+
+            return result_df
 
     def cv(self, k=10, threads=1, e_filter=1, truncate=None, strat_col=None):
 
@@ -122,7 +125,7 @@ class ClusterCRF(object):
         X_test = np.array([x for x, _ in test_samples])
         Y_test = np.array([y for _, y in test_samples])
 
-        self.model.fit(X_train, Y_train)
+        self.fit(X_train, Y_train)
 
         marginal_probs = self.model.predict_marginals(X_test)
         marginal_probs = np.concatenate(np.array([np.array(_) for _ in marginal_probs]))
