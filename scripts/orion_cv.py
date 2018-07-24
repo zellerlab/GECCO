@@ -1,7 +1,7 @@
 import sys
 import os
-MAIN = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..") + "/"
-sys.path.append(MAIN)
+ORION = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..")
+sys.path.append(ORION)
 import random
 import argparse
 import pandas as pd
@@ -11,7 +11,7 @@ from itertools import product
 from main.crf import ClusterCRF
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/crf_cvpy /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_cv.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
 
 # FUNC
