@@ -10,60 +10,17 @@ import numpy as np
 import multiprocessing
 from itertools import product
 from orion.crf import ClusterCRF
+from orion.interface import crf_interface
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv /home/fleck/bin/orion/data/model/f5_eval_s_t50.crf.model  -o /home/fleck/scripts/clust/test/test
-
-
-# FUNC
-def interface():
-    parser = argparse.ArgumentParser(description="Trains a model on a given set of samples and writes the model file and the formatted features to file.")
-
-    parser.add_argument("DATA",
-                        type=str,
-                        metavar="<DATA>",
-                        help="Pfam tables with training instances.")
-
-    parser.add_argument("MODEL",
-                        type=str,
-                        metavar="<MODEL>",
-                        help="Path to model.")
-
-    parser.add_argument("-o", "--output-basename",
-                        dest="out",
-                        type=str,
-                        default="CRF",
-                        metavar="<basename>",
-                        help="Basename for predictions.")
-
-    parser.add_argument("-w", "--weight-col",
-                        dest="w",
-                        default="rev_i_Evalue",
-                        type=str,
-                        help="Column to be used as local weights on pfam domains.")
-
-    parser.add_argument("--feature-type",
-                        dest="feature_type",
-                        type=str,
-                        default="single",
-                        help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
-
-    parser.add_argument("--overlap",
-                        dest="overlap",
-                        type=int,
-                        default="2",
-                        help="If overlapping features: How much overlap.")
-
-    args = parser.parse_args()
-    return args
-
+# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv --model /home/fleck/bin/orion/data/model/f5_eval_s_t50.crf.model  -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
-    args = interface()
+    args = crf_interface()
 
     data = args.DATA
-    model_file = args.MODEL
+    model_file = args.model
     out_file = args.out
 
     C1 = 0.15
@@ -95,4 +52,4 @@ if __name__ == "__main__":
 
     print(pred_df)
 
-    pred_df.to_csv(out_file + ".pred.tsv", sep="\t", index=False, header=False)
+    pred_df.to_csv(out_file + ".pred.tsv", sep="\t", index=False, header=True)

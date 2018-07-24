@@ -9,74 +9,14 @@ import numpy as np
 import multiprocessing
 from itertools import product
 from orion.crf import ClusterCRF
+from orion.interface import crf_interface
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_loto.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
-
-# FUNC
-def interface():
-    parser = argparse.ArgumentParser(description="Takes a set of training and cross- validation samples and writes the CV results as tsv to file.")
-
-    parser.add_argument("DATA",
-                        type=str,
-                        metavar="<DATA>",
-                        help="Pfam tables with training instances.")
-
-    parser.add_argument("-o", "--output-basename",
-                        dest="out",
-                        type=str,
-                        default="CRF",
-                        metavar="<basename>",
-                        help="Basename for the output table with the CV results.")
-
-    parser.add_argument("-t", "--threads",
-                        dest="threads",
-                        type=int,
-                        metavar="<threads>",
-                        help="Number of CPUs.")
-
-    parser.add_argument("-e", "--evalue",
-                        dest="e_filter",
-                        type=float,
-                        default="1",
-                        help="E-value threshold for the test set.")
-
-    parser.add_argument("-w", "--weight-col",
-                        dest="w",
-                        default="rev_i_Evalue",
-                        type=str,
-                        help="Column to be used as local weights on pfam domains.")
-
-    parser.add_argument("--feature-type",
-                        dest="feature_type",
-                        type=str,
-                        default="single",
-                        help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
-
-    parser.add_argument("--truncate",
-                        dest="truncate",
-                        type=int,
-                        help="Training set will be truncated to this length.")
-
-    parser.add_argument("--overlap",
-                        dest="overlap",
-                        type=int,
-                        default="2",
-                        help="If overlapping features: How much overlap.")
-
-    parser.add_argument("--no-shuffle",
-                        dest="shuffle",
-                        action="store_false",
-                        help="Switch to turn of shuffling of the data before doing CV.")
-
-    args = parser.parse_args()
-    return args
-
-
 # MAIN
 if __name__ == "__main__":
-    args = interface()
+    args = crf_interface()
 
     data = args.DATA
     data_base = data.split("/")[-1].split(".")[0]
