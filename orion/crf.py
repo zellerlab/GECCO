@@ -34,16 +34,16 @@ class ClusterCRF(object):
             **kwargs)
 
     def fit(self, X=None, Y=None):
-        if X and Y:
+        if (X is not None) and (Y is not None):
             self.model.fit(X, Y)
         else:
             samples = [self._extract_features(s) for s in self.data]
             X = np.array([x for x, _ in samples])
             Y = np.array([y for _, y in samples])
-            self.model.fit(X, Y, **kwargs)
+            self.model.fit(X, Y)
 
     def predict_marginals(self, X=None):
-        if X:
+        if X is not None:
             return self.model.predict_marginals(X)
         else:
             samples = [self._extract_features(s) for s in self.data]
