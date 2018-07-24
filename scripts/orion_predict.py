@@ -12,7 +12,7 @@ from itertools import product
 from orion.crf import ClusterCRF
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_train.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv /home/fleck/bin/orion/data/model/f5_eval_s_t50.crf.model  -o /home/fleck/scripts/clust/test/test
 
 
 # FUNC
@@ -24,12 +24,17 @@ def interface():
                         metavar="<DATA>",
                         help="Pfam tables with training instances.")
 
+    parser.add_argument("MODEL",
+                        type=str,
+                        metavar="<MODEL>",
+                        help="Path to model.")
+
     parser.add_argument("-o", "--output-basename",
                         dest="out",
                         type=str,
                         default="CRF",
                         metavar="<basename>",
-                        help="Basename for model binary and tsv.")
+                        help="Basename for predictions.")
 
     parser.add_argument("-w", "--weight-col",
                         dest="w",
@@ -43,21 +48,11 @@ def interface():
                         default="single",
                         help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
 
-    parser.add_argument("--truncate",
-                        dest="truncate",
-                        type=int,
-                        help="Training set will be truncated to this length.")
-
     parser.add_argument("--overlap",
                         dest="overlap",
                         type=int,
                         default="2",
                         help="If overlapping features: How much overlap.")
-
-    parser.add_argument("--no-shuffle",
-                        dest="shuffle",
-                        action="store_false",
-                        help="Switch to turn of shuffling of the data before doing CV.")
 
     args = parser.parse_args()
     return args
@@ -68,13 +63,12 @@ if __name__ == "__main__":
     args = interface()
 
     data = args.DATA
+    model_file = args.MODEL
     out_file = args.out
 
     C1 = 0.15
     C2 = 1.75
 
-    trunc = args.truncate
-    shuffle = args.shuffle
     weight_col = args.w
     feature_type = args.feature_type
     overlap = args.overlap
@@ -83,8 +77,6 @@ if __name__ == "__main__":
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
     data_tbl = [s for _, s in data_tbl.groupby("BGC_id")]
-    if shuffle:
-        random.shuffle(data_tbl)
 
     crf = ClusterCRF(data_tbl, "BGC",
         feature_cols = ["pfam"],
@@ -95,20 +87,12 @@ if __name__ == "__main__":
         c1 = C1,
         c2 = C2)
 
-    if trunc:
-        crf.truncate(trunc)
+    with open(model_file, "rb") as f:
+        model = pickle.load(f)
+        crf.model = model
 
-    crf.fit()
+    pred_df = crf.predict_marginals()
 
-    with open(out_file + ".crf.model", "wb") as f:
-        pickle.dump(crf.model, f, protocol=2)
+    print(pred_df)
 
-    with open(out_file + ".trans.tsv", "wt") as f:
-        f.write("from\tto\tweight\n")
-        for (label_from, label_to), weight in crf.model.transition_features_.items():
-            f.write("{0}\t{1}\t{2}\n".format(label_from, label_to, weight))
-
-    with open(out_file + ".state.tsv", "wt") as f:
-        f.write("attr\tlabel\tweight\n")
-        for (attr, label), weight in crf.model.state_features_.items():
-            f.write("{0}\t{1}\t{2}\n".format(attr, label, weight))
+    pred_df.to_csv(out_file + ".pred.tsv", sep="\t", index=False, header=False)

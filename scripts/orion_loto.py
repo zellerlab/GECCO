@@ -44,7 +44,7 @@ def interface():
 
     parser.add_argument("-w", "--weight-col",
                         dest="w",
-                        default="pseudo_norm",
+                        default="rev_i_Evalue",
                         type=str,
                         help="Column to be used as local weights on pfam domains.")
 
