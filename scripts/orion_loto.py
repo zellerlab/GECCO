@@ -1,6 +1,6 @@
 import sys
 import os
-ORION = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..") + "/"
+ORION = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..")
 sys.path.append(ORION)
 import random
 import argparse
@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import multiprocessing
 from itertools import product
-from main.crf import ClusterCRF
+from orion.crf import ClusterCRF
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_loto.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
@@ -44,14 +44,14 @@ def interface():
 
     parser.add_argument("-w", "--weight-col",
                         dest="w",
-                        default="pseudo_norm_prot",
+                        default="pseudo_norm",
                         type=str,
                         help="Column to be used as local weights on pfam domains.")
 
     parser.add_argument("--feature-type",
                         dest="feature_type",
                         type=str,
-                        default="group",
+                        default="single",
                         help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
 
     parser.add_argument("--truncate",

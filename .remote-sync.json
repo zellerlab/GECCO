@@ -1,0 +1,26 @@
+{
+  "logger": {
+    "title": "Remote Sync"
+  },
+  "uploadOnSave": true,
+  "useAtomicWrites": false,
+  "deleteLocal": false,
+  "hostname": "login.cluster.embl.de",
+  "port": "22",
+  "target": "/home/fleck/bin/orion",
+  "ignore": [
+    "*.remote-sync.json",
+    ".git/**",
+    "*.git/*",
+    "*.git*",
+    "*/.bash*",
+    "*/.python*",
+    "*/.cache*",
+    "*/.config*",
+    "data/**"
+  ],
+  "username": "fleck",
+  "password": "Lovelace1815",
+  "watch": [],
+  "transport": "scp"
+}

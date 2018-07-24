@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import multiprocessing
 from itertools import product
-from main.crf import ClusterCRF
+from orion.crf import ClusterCRF
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_train.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
@@ -40,7 +40,7 @@ def interface():
     parser.add_argument("--feature-type",
                         dest="feature_type",
                         type=str,
-                        default="group",
+                        default="single",
                         help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
 
     parser.add_argument("--truncate",
