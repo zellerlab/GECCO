@@ -55,7 +55,7 @@ def crf_interface():
     parser.add_argument("-e", "--evalue",
                         dest="e_filter",
                         type=float,
-                        default="1",
+                        default="1e-5",
                         help="E-value threshold for the test set.")
 
     parser.add_argument("-w", "--weight-col",
@@ -63,6 +63,18 @@ def crf_interface():
                         default="rev_i_Evalue",
                         type=str,
                         help="Column to be used as local weights on pfam domains.")
+
+    parser.add_argument("-s", "--split-col",
+                        dest="split_col",
+                        default="genome_id",
+                        type=str,
+                        help="Column to be used for splitting in to samples, i.e. different sequences.")
+
+    parser.add_argument("-g", "--group-col",
+                        dest="group_col",
+                        default="protein_id",
+                        type=str,
+                        help="Column to be used for grouping features if feature_type is 'group'.")
 
     parser.add_argument("--feature-type",
                         dest="feature_type",

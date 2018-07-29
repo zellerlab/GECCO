@@ -95,7 +95,7 @@ def filter_repeats(pfam_df):
     out_df = pfam_df[~pfam_df["pfam"].isin(repeats)]
     return out_df
 
-def extract_features(table, Y_col, feature_col=[], weight_col=[]):
+def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
     """
     Prepares class labels Y and features from a table
     given
@@ -103,13 +103,16 @@ def extract_features(table, Y_col, feature_col=[], weight_col=[]):
     Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
     *args:  the columns to be used as features
     """
-    Y = np.array(table[Y_col].astype(str))
     X = []
     for _, row in table.iterrows():
         X.append({row[f]: row[w] for f, w in zip(feature_col, weight_col)})
-    return X, Y
+    if Y_col:
+        Y = np.array(table[Y_col].astype(str))
+        return X, Y
+    else:
+        return X, None
 
-def extract_protein_features(table, Y_col, feature_col="pfam", prot_col="protein_id",
+def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="protein_id",
     weight_col="rev_i_Evalue"):
     """
     Extracts features on protein level.
@@ -122,10 +125,14 @@ def extract_protein_features(table, Y_col, feature_col="pfam", prot_col="protein
             for f, w in zip(feature_col, weight_col):
                 feat_dict[row[f]] = row[w]
         X.append(feat_dict)
-        Y.append(str(tbl[Y_col].values[0]))
-    return X, Y
+        if Y_col:
+            Y.append(str(tbl[Y_col].values[0]))
+    if Y_col:
+        return X, Y
+    else:
+        return X, None
 
-def extract_overlapping_features(table, Y_col, feature_col=[], weight_col=[], overlap=1):
+def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[], overlap=1):
     """
     Prepares class labels Y and features from a table
     given
@@ -133,14 +140,17 @@ def extract_overlapping_features(table, Y_col, feature_col=[], weight_col=[], ov
     Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
     *args:  the columns to be used as features
     """
-    Y = np.array(table[Y_col].astype(str))
     X = []
     for idx, _ in table.iterrows():
         wind = table.iloc[idx - overlap : idx + overlap + 1]
         X.append({row[f]: row[w]
             for f, w in zip(feature_col, weight_col)
             for _, row in wind.iterrows()})
-    return X, Y
+    if Y_col:
+        Y = np.array(table[Y_col].astype(str))
+        return X, Y
+    else:
+        return X, None
 
 def read_to_set(file, split_at="."):
     out_set = set()
@@ -149,3 +159,22 @@ def read_to_set(file, split_at="."):
             out_set.add(line.strip().split(split_at)[0])
 
     return out_set
+
+def compute_features(pfam_df, split_col):
+    return (pfam_df
+        .assign(
+            pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
+            rev_i_Evalue = 1 - pfam_df["i_Evalue"],
+            log_i_Evalue = - np.log10(pfam_df["i_Evalue"]),
+        )
+        .groupby("pfam", sort=False)
+        .apply(lambda x: x.assign(
+            pseudo_norm = (x["log_i_Evalue"] / x["log_i_Evalue"].max())
+        )
+        .reset_index(drop=True)
+        .groupby("protein_id", sort=False)
+        .apply(lambda x: x.assign(
+            pseudo_norm_prot = x["pseudo_norm"] / x["pseudo_norm"].sum()))
+        .reset_index(drop=True)
+        .sort_values([split_col, "start", "domain_start"]))
+    )

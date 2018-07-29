@@ -13,7 +13,7 @@ from orion.preprocessing import extract_features, flatten
 # CLASS
 class ClusterCRF(object):
 
-    def __init__(self, data=[], Y_col="",
+    def __init__(self, data=[], Y_col=None,
         feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
         algorithm="lbsgf", overlap=2, **kwargs):
 
@@ -54,7 +54,7 @@ class ClusterCRF(object):
             cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
             if self.feature_type == "group":
-                test_data = [self._distinct(s) for s in test_data]
+                self.data = [self._distinct(s) for s in self.data]
 
             result_df = pd.concat(self.data)
             result_df = result_df.assign(p_pred=cluster_probs)
