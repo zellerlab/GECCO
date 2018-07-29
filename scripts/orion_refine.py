@@ -13,7 +13,7 @@ from orion.refine import ClusterRefiner
 from orion.interface import refine_interface
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv /home/fleck/bin/orion/data/model/f5_eval_s_t50.crf.model  -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_refine.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
@@ -32,6 +32,7 @@ if __name__ == "__main__":
     )
 
     refined_df = refiner.refine(
+        data_df,
         method = "antismash",
         target_col = "AS_pred"
     )
