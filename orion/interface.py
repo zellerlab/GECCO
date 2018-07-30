@@ -1,6 +1,44 @@
 import argparse
 
 # FUNC
+def main_interface():
+    parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a sorted FASTA file.")
+
+    parser.add_argument("FASTA",
+                        type=str,
+                        metavar="<FASTA>",
+                        help="FASTA file with proteins.")
+
+    parser.add_argument("-o", "--output-dir",
+                        dest="out",
+                        type=str,
+                        default="./",
+                        metavar="<out_dir>",
+                        help="Output directory.")
+
+    parser.add_argument("--e-filter",
+                        dest="e_filter",
+                        type=float,
+                        default="1e-5",
+                        metavar="<e_filter>",
+                        help="E-value cutoff for pfam domains to be included.")
+
+    parser.add_argument("--feature-type",
+                        dest="feature_type",
+                        default="protein",
+                        type=str,
+                        metavar="<feature_type>",
+                        help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
+
+    parser.add_argument("--weight-type",
+                        dest="weight_type",
+                        type=str,
+                        metavar="<weight_type>",
+                        help="Type of local weights for features.")
+
+    args = parser.parse_args()
+    return args
+
 def refine_interface():
     parser = argparse.ArgumentParser(description="Interface for the refinement script.")
 

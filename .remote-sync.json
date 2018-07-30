@@ -5,7 +5,7 @@
   "uploadOnSave": true,
   "useAtomicWrites": false,
   "deleteLocal": false,
-  "hostname": "login.cluster.embl.de",
+  "hostname": "nile",
   "port": "22",
   "target": "/home/fleck/bin/orion",
   "ignore": [
@@ -14,10 +14,11 @@
     "*.git/*",
     "*.git*",
     "*/.bash*",
+    "data/**",
     "*/.python*",
     "*/.cache*",
     "*/.config*",
-    "data/**"
+    ".DS*"
   ],
   "username": "fleck",
   "password": "Lovelace1815",

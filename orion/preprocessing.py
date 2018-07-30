@@ -160,21 +160,35 @@ def read_to_set(file, split_at="."):
 
     return out_set
 
-def compute_features(pfam_df, split_col):
-    return (pfam_df
-        .assign(
-            pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
-            rev_i_Evalue = 1 - pfam_df["i_Evalue"],
-            log_i_Evalue = - np.log10(pfam_df["i_Evalue"]),
+def compute_features(pfam_df, weight_type=None):
+
+    if weight_type:
+        pfam_df = embed_tbl["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+        return (pfam_df
+            .sort_values(by = "protein_id")
+            .assign(
+                pfam = embed_tbl["pfam"].str.replace(
+                    r"(PF\d+)\.\d+", lambda m: m.group(1)),
+                pseudo_pos = range(len(pfam_df)),
+                rev_Evalue = 1 - pfam_df["i_Evalue"],
+                log_Evalue = [min(- np.log10(n), 300) for n in pfam_df["i_Evalue"]]
+                )
+            .groupby("pfam", sort = False)
+            .apply(lambda x: x.assign(
+                supnorm_Evalue = (x["log_Evalue"] / x["log_Evalue"].max())
+            ))
+            .reset_index(drop = True)
+            .groupby("protein_id", sort = False)
+            .apply(lambda x: x.assign(
+                supnorm_Evalue_prot = x["supnorm_Evalue"] / x["supnorm_Evalue"].sum()
+            ))
+            .reset_index(drop = True)
+            .sort_values("pseudo_pos")
         )
-        .groupby("pfam", sort=False)
-        .apply(lambda x: x.assign(
-            pseudo_norm = (x["log_i_Evalue"] / x["log_i_Evalue"].max())
-        )
-        .reset_index(drop=True)
-        .groupby("protein_id", sort=False)
-        .apply(lambda x: x.assign(
-            pseudo_norm_prot = x["pseudo_norm"] / x["pseudo_norm"].sum()))
-        .reset_index(drop=True)
-        .sort_values([split_col, "start", "domain_start"]))
-    )
+
+    else:
+        return pfam_df.assign(
+            pfam = pfam_df["pfam"].str.replace(
+                r"(PF\d+)\.\d+", lambda m: m.group(1)),
+            noweight = 1
+            )
