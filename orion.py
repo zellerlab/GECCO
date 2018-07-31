@@ -26,7 +26,7 @@ from orion.preprocessing import compute_features
 
 # CONST
 SCRIPT_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
-PFAM = os.environ["PFAM"]
+PFAM = open(os.path.join(SCRIPT_DIR, "data/db_config.txt")).readlines()[0].strip()
 MODEL = os.path.join(SCRIPT_DIR, "data/model/f5_eval_p_t50.crf.model")
 C1 = 0.15
 C2 = 1.75
@@ -72,16 +72,12 @@ if __name__ == "__main__":
         stdout = open(log_out, "wt"),
         stderr = open(log_out, "wt"))
 
-    print("DONE")
-
     # HMMER
 
     print("Running Pfam domain annotation...")
 
     with open(proteins_out, "rt") as f:
         gene_order = [l.split()[0][1:] for l in f if l.startswith(">")]
-
-    print(gene_order)
 
     hmmer_out = os.path.join(out_dir, "hmmer/")
     if not os.path.exists(hmmer_out):
@@ -97,8 +93,6 @@ if __name__ == "__main__":
     tsv_out = os.path.join(hmmer_out, base + ".hmmer.tsv")
     convert_hmmer(dom_out, tsv_out)
 
-    print("DONE")
-
     # Format feature table
     pfam_df = pd.read_csv(tsv_out, sep = "\t")
     pfam_df["protein_id"] = pd.Categorical(pfam_df["protein_id"], gene_order)
@@ -112,7 +106,7 @@ if __name__ == "__main__":
 
     # Predict
 
-    print("Running Cluster prediction.")
+    print("Running Cluster prediction...")
 
     crf = ClusterCRF(
         data = [pfam_df],
@@ -129,8 +123,10 @@ if __name__ == "__main__":
         model = pickle.load(f)
         crf.model = model
 
-    pred_df = crf.predict_marginals()
+    pfam_df = crf.predict_marginals()
 
     # Write predictions to file
-    pred_df = os.path.join(out_dir, base + ".pred.tsv")
-    pfam_df.to_csv(pred_df, sep="\t", index=False)
+    pred_out = os.path.join(out_dir, base + ".pred.tsv")
+    pfam_df.to_csv(pred_out, sep="\t", index=False)
+
+    print("DONE.")
