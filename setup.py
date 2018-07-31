@@ -112,22 +112,21 @@ if __name__ == "__main__":
     sys.stderr.write("|            Welcome to the ORION installer            |\n")
     sys.stderr.write(" ------------------------------------------------------\n")
 
-    default_path = os.path.join(HERE, "data/pfam/Pfam-A.hmm.gz")
+    default_dir = os.path.join(HERE, "data/pfam/")
 
     sys.stderr.write("Downloading the Pfam database (~1.2Gb).\n")
     default = query_yes_no("Do you want to download the database in the current program directory ({0})?".format(default_path))
 
     if default:
-        db_path = default_path
+        if not os.path.exists(default_dir):
+            os.mkdirs(default_dir)
+        db_dir = default_dir
     else:
-        while True:
-            db_path = input("Please specify the directory where you wish to download the Pfam database:\n> ")
-            if os.path.exists(db_path):
-                db_path = os.path.join(os.path.realpath(db_path), "Pfam-A.hmm.gz")
-                break
-            else:
-                sys.stderr.write("This path does not seem to be valid.\n")
-                continue
+        db_dir = input("Please specify the directory where you wish to download the Pfam database:\n> ")
+        if not os.path.exists(db_dir):
+            os.mkdirs(db_dir)
+
+    db_path = os.path.join(os.path.realpath(db_dir), "Pfam-A.hmm.gz")
 
     force = False
     if os.path.exists(db_path[:-3]):
