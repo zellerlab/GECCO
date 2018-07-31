@@ -3,3 +3,4 @@ test/
 *.pyc
 *.DS_Store
 *__pycache__
+*.remote-sync.json
