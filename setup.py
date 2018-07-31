@@ -115,7 +115,7 @@ if __name__ == "__main__":
     default_dir = os.path.join(HERE, "data/pfam/")
 
     sys.stderr.write("Downloading the Pfam database (~1.2Gb).\n")
-    default = query_yes_no("Do you want to download the database in the current program directory ({0})?".format(default_path))
+    default = query_yes_no("Do you want to download the database in the current program directory ({0})?".format(default_dir))
 
     if default:
         if not os.path.exists(default_dir):
