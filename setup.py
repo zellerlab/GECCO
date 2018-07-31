@@ -119,12 +119,12 @@ if __name__ == "__main__":
 
     if default:
         if not os.path.exists(default_dir):
-            os.mkdirs(default_dir)
+            os.makedirs(default_dir)
         db_dir = default_dir
     else:
         db_dir = input("Please specify the directory where you wish to download the Pfam database:\n> ")
         if not os.path.exists(db_dir):
-            os.mkdirs(db_dir)
+            os.makedirs(db_dir)
 
     db_path = os.path.join(os.path.realpath(db_dir), "Pfam-A.hmm.gz")
 
