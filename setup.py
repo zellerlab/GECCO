@@ -129,6 +129,7 @@ if __name__ == "__main__":
                 sys.stderr.write("This path does not seem to be valid.\n")
                 continue
 
+    force = False
     if os.path.exists(db_path[:-3]):
         force = query_yes_no("There is already a Pfam database in that directory. Do you want to overwrite it with the current download?", default="no")
 
@@ -141,7 +142,6 @@ if __name__ == "__main__":
     config_path = os.path.join(HERE, "data/db_config.txt")
     with open(config_path, "wt") as f:
         f.write(db_path[:-3] + "\n")
-
 
     sys.stderr.write("Setting up Python dependencies\n\n")
 
