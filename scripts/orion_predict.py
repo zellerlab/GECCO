@@ -21,46 +21,30 @@ if __name__ == "__main__":
     model_file = args.model
     out_file = args.out
 
-    C1 = 0.15
-    C2 = 1.75
-
-    weight_col = args.w
-    feature_type = args.feature_type
     e_filter = args.e_filter
     split_col = args.split_col
-    overlap = args.overlap
+    sort_cols = args.sort_cols
+    weight_col = args.w
 
     print(args)
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
-    data_tbl = data_tbl.sort_values(["genome_id", "start", "domain_start"])
+    data_tbl = data_tbl.sort_values(sort_cols)
+    data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
+    data_tbl = compute_features(data_tbl, weight_type=weight_col)
 
-    # data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
-    # data_tbl = compute_features(data_tbl, split_col=split_col)
-    #
     print(data_tbl)
-    #
-    # data_tbl.to_csv(out_file + ".format.tsv", sep="\t", index=False, header=True)
+
+    data_tbl.to_csv(out_file + ".format.tsv", sep="\t", index=False, header=True)
 
     data_tbl = [s for _, s in data_tbl.groupby(split_col)]
 
-
-    crf = ClusterCRF(data_tbl,
-        feature_cols = ["pfam"],
-        group_col = "protein_id",
-        weight_cols = [weight_col],
-        feature_type = feature_type,
-        overlap = overlap,
-        algorithm = "lbfgs",
-        c1 = C1,
-        c2 = C2
-    )
-
     with open(model_file, "rb") as f:
-        model = pickle.load(f)
-        crf.model = model
+        crf = pickle.load(f)
 
-    pred_df = crf.predict_marginals()
+    print(crf.__dict__)
+
+    pred_df = crf.predict_marginals(data=data_tbl)
 
     print(pred_df)
 

@@ -98,7 +98,6 @@ def crf_interface():
 
     parser.add_argument("-w", "--weight-col",
                         dest="w",
-                        default="rev_i_Evalue",
                         type=str,
                         help="Column to be used as local weights on pfam domains.")
 
@@ -113,6 +112,13 @@ def crf_interface():
                         default="protein_id",
                         type=str,
                         help="Column to be used for grouping features if feature_type is 'group'.")
+
+    parser.add_argument("--sort-cols",
+                        dest="sort_cols",
+                        default=["genome_id", "start", "domain_start"],
+                        nargs="+",
+                        type=str,
+                        help="Columns to be used for sorting the data.")
 
     parser.add_argument("--feature-type",
                         dest="feature_type",
@@ -135,6 +141,12 @@ def crf_interface():
                         dest="shuffle",
                         action="store_false",
                         help="Switch to turn of shuffling of the data before doing CV.")
+
+    parser.add_argument("--folds",
+                        dest="splits",
+                        default="10",
+                        type=int,
+                        help="Number of folds for CV.")
 
     args = parser.parse_args()
     return args

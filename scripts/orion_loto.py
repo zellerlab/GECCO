@@ -43,20 +43,24 @@ if __name__ == "__main__":
     if shuffle:
         random.shuffle(data_tbl)
 
-    crf = ClusterCRF(data_tbl, "BGC",
+    crf = ClusterCRF(
+        Y_col = "BGC",
         feature_cols = ["pfam"],
         weight_cols = [weight_col],
         feature_type = feature_type,
         overlap = overlap,
         algorithm = "lbfgs",
         c1 = C1,
-        c2 = C2)
+        c2 = C2
+    )
 
     results = crf.loto_cv(
+        data_tbl,
         type_col = "BGC_type",
         threads = threads,
         e_filter = e_filter,
-        truncate = truncate)
+        truncate = truncate
+    )
 
     result_df = (pd .concat(results)
                     .assign(c1 = C1,

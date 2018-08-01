@@ -6,19 +6,17 @@ from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
 from itertools import zip_longest
 from orion.cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
-from orion.preprocessing import extract_overlapping_features
-from orion.preprocessing import extract_protein_features
-from orion.preprocessing import extract_features, flatten
+from orion.preprocessing import extract_features, flatten, truncate
+from orion.preprocessing import extract_overlapping_features, extract_protein_features
+
 
 # CLASS
 class ClusterCRF(object):
 
-    def __init__(self, data=[], Y_col=None,
+    def __init__(self, Y_col=None,
         feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
         algorithm="lbsgf", overlap=2, **kwargs):
 
-        self.data = data
-        self.n_samples = len(data)
         self.Y_col = Y_col
         self.features = feature_cols
         self.weights = weight_cols
@@ -33,20 +31,20 @@ class ClusterCRF(object):
             all_possible_states = True,
             **kwargs)
 
-    def fit(self, X=None, Y=None):
+    def fit(self, X=None, Y=None, data=None):
         if (X is not None) and (Y is not None):
             self.model.fit(X, Y)
-        else:
-            samples = [self._extract_features(s) for s in self.data]
+        elif data is not None:
+            samples = [self._extract_features(s) for s in data]
             X = np.array([x for x, _ in samples])
             Y = np.array([y for _, y in samples])
             self.model.fit(X, Y)
 
-    def predict_marginals(self, X=None):
+    def predict_marginals(self, data=None, X=None):
         if X is not None:
             return self.model.predict_marginals(X)
-        else:
-            samples = [self._extract_features(s) for s in self.data]
+        elif data is not None:
+            samples = [self._extract_features(s) for s in data]
             X = np.array([x for x, _ in samples])
             marginal_probs = self.model.predict_marginals(X)
             marginal_probs = np.concatenate(
@@ -54,70 +52,68 @@ class ClusterCRF(object):
             cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
             if self.feature_type == "group":
-                self.data = [self._distinct(s) for s in self.data]
+                data = [self._distinct(s) for s in data]
 
-            result_df = pd.concat(self.data)
+            result_df = pd.concat(data)
             result_df = result_df.assign(p_pred=cluster_probs)
 
             return result_df
 
-    def cv(self, k=10, threads=1, e_filter=1, truncate=None, strat_col=None):
+    def cv(self, data, k=10, threads=1, e_filter=1, truncate=None, strat_col=None):
 
         if strat_col:
-            types = [s[strat_col].values[0].split(",") for s in self.data]
+            types = [s[strat_col].values[0].split(",") for s in data]
             cv_split = StratifiedSplit(types, n_splits=k)
         else:
-            folds = n_folds(self.n_samples, n=k)
+            folds = n_folds(len(data), n=k)
             cv_split = PredefinedSplit(folds)
 
         results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(train_idx, test_idx, e_filter=e_filter,
+            delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 truncate=truncate) for train_idx, test_idx in cv_split.split())
 
         return results
 
-    def loto_cv(self, type_col, threads=1, e_filter=1, truncate=None):
+    def loto_cv(self, data, type_col, threads=1, e_filter=1, truncate=None):
 
-        types = [s[type_col].values[0].split(",") for s in self.data]
+        types = [s[type_col].values[0].split(",") for s in data]
         cv_split = LotoSplit(types)
 
         results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(train_idx, test_idx,
+            delayed(self._single_fold_cv)(data, train_idx, test_idx,
                 round_id=typ, e_filter=e_filter, truncate=truncate)
                 for train_idx, test_idx, typ in cv_split.split())
 
         return results
 
-    def partial_cv(self, n_train, n_val, k=10, threads=1, e_filter=1, truncate=None):
+    def partial_cv(self, data, n_train, n_val, k=10, threads=1, e_filter=1,
+            truncate=None):
 
         folds = n_folds_partial(n_train, n_val, n=k)
         cv_split = PredefinedSplit(folds)
 
         results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(train_idx, test_idx, e_filter=e_filter,
+            delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 truncate=truncate) for train_idx, test_idx in cv_split.split())
 
         return results
 
-    def truncate(self, length):
-        """Truncate all samples in self.data to length"""
-        self.data = [self._truncate(df, length) for df in self.data]
-
-    def _single_fold_cv(self, train_idx, test_idx, round_id=None, e_filter=1,
-        truncate=None):
+    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, e_filter=1,
+            truncate=None):
         """Performs a single CV round with the given train_idx and test_idx
         """
 
-        train_data = [self.data[i].reset_index() for i in train_idx]
+        train_data = [data[i].reset_index() for i in train_idx]
 
         if truncate:
-            train_data = [self._truncate(df, truncate) for df in train_data]
+            train_data = [truncate(df, truncate, Y_col=self.Y_col, grouping=self.groups)
+                for df in train_data]
 
         train_samples = [self._extract_features(s) for s in train_data]
         X_train = np.array([x for x, _ in train_samples])
         Y_train = np.array([y for _, y in train_samples])
 
-        test_data = [self.data[i].reset_index() for i in test_idx]
+        test_data = [data[i].reset_index() for i in test_idx]
         test_data = [t[t["i_Evalue"] < e_filter].reset_index(drop=True)
             for t in test_data]
         test_samples = [self._extract_features(s) for s in test_data]
@@ -125,7 +121,7 @@ class ClusterCRF(object):
         X_test = np.array([x for x, _ in test_samples])
         Y_test = np.array([y for _, y in test_samples])
 
-        self.fit(X_train, Y_train)
+        self.fit(X=X_train, Y=Y_train)
 
         marginal_probs = self.model.predict_marginals(X_test)
         marginal_probs = np.concatenate(np.array([np.array(_) for _ in marginal_probs]))
@@ -163,21 +159,6 @@ class ClusterCRF(object):
                 feature_col=self.features,
                 weight_col=self.weights,
                 prot_col=self.groups)
-
-    def _truncate(self, df, length):
-
-        df0 = df[df[self.Y_col] == 0]
-        df1 = df[df[self.Y_col] == 1]
-        df0 = [df for _, df in df0.groupby(self.groups, sort=False)]
-        trunc_len = int((len(df0) - 2 * length) / 2)
-
-        try:
-            df_trunc = pd.concat(df0[trunc_len : -trunc_len])
-        except ValueError as err:
-            df_trunc = pd.concat(df0)
-            # print(err)
-
-        return df_trunc.append(df1).sort_index().reset_index()
 
     def _distinct(self, df):
         return  df.groupby(self.groups, sort=False).first().reset_index()

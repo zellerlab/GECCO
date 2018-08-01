@@ -11,6 +11,7 @@ import multiprocessing
 from itertools import product
 from orion.crf import ClusterCRF
 from orion.interface import crf_interface
+from orion.preprocessing import truncate
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_train.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
@@ -38,22 +39,26 @@ if __name__ == "__main__":
     if shuffle:
         random.shuffle(data_tbl)
 
-    crf = ClusterCRF(data_tbl, "BGC",
+    crf = ClusterCRF(
+        Y_col = "BGC",
         feature_cols = ["pfam"],
+        group_col = "protein_id",
         weight_cols = [weight_col],
         feature_type = feature_type,
         overlap = overlap,
         algorithm = "lbfgs",
         c1 = C1,
-        c2 = C2)
+        c2 = C2
+    )
 
     if trunc:
-        crf.truncate(trunc)
+        data_tbl = [truncate(df, trunc, Y_col="BGC", grouping="protein_id")
+            for df in data_tbl]
 
-    crf.fit()
+    crf.fit(data=data_tbl)
 
     with open(out_file + ".crf.model", "wb") as f:
-        pickle.dump(crf.model, f, protocol=2)
+        pickle.dump(crf, f, protocol=2)
 
     with open(out_file + ".trans.tsv", "wt") as f:
         f.write("from\tto\tweight\n")

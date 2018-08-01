@@ -31,6 +31,20 @@ def flatten(l):
         else:
             yield el
 
+def truncate(df, length, Y_col="BGC", grouping="protein_id"):
+
+    df0 = df[df[Y_col] == 0]
+    df1 = df[df[Y_col] == 1]
+    df0 = [df for _, df in df0.groupby(grouping, sort=False)]
+    trunc_len = int((len(df0) - 2 * length) / 2)
+
+    try:
+        df_trunc = pd.concat(df0[trunc_len : -trunc_len])
+    except ValueError as err:
+        df_trunc = pd.concat(df0)
+
+    return df_trunc.append(df1).sort_index().reset_index()
+
 def safe_encode(X, feature_set=None, encoding="onehot"):
     """Sefely onehot encodes samples with different categorical composition."""
     if isinstance(feature_set, Iterable):
@@ -61,7 +75,7 @@ def prepare_sample(table, X_col, Y_col):
     return X, Y
 
 def prepare_split_samples(table_list, split_col, X_col="pfam",
-                        Y_col="BGC", ascending=True):
+        Y_col="BGC", ascending=True):
     """
     Splits tables into separate samples
     given
@@ -113,7 +127,7 @@ def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
         return X, None
 
 def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="protein_id",
-    weight_col="rev_i_Evalue"):
+        weight_col="rev_i_Evalue"):
     """
     Extracts features on protein level.
     """
@@ -132,7 +146,8 @@ def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="pr
     else:
         return X, None
 
-def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[], overlap=1):
+def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[],
+        overlap=1):
     """
     Prepares class labels Y and features from a table
     given
@@ -162,17 +177,29 @@ def read_to_set(file, split_at="."):
 
 def compute_features(pfam_df, weight_type=None):
 
-    if weight_type:
-        pfam_df = embed_tbl["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+    pfam_df = pfam_df.assign(
+        pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)))
+
+    if weight_type == "rev_Evalue":
+        return pfam_df.assign(rev_Evalue = 1 - pfam_df["i_Evalue"])
+
+    if weight_type == "supnorm_Evalue":
         return (pfam_df
-            .sort_values(by = "protein_id")
             .assign(
-                pfam = embed_tbl["pfam"].str.replace(
-                    r"(PF\d+)\.\d+", lambda m: m.group(1)),
-                pseudo_pos = range(len(pfam_df)),
-                rev_Evalue = 1 - pfam_df["i_Evalue"],
                 log_Evalue = [min(- np.log10(n), 300) for n in pfam_df["i_Evalue"]]
-                )
+            )
+            .groupby("pfam", sort = False)
+            .apply(lambda x: x.assign(
+                supnorm_Evalue = (x["log_Evalue"] / x["log_Evalue"].max())
+            ))
+            .reset_index(drop = True)
+        )
+
+    if weight_type == "supnorm_Evalue_prot":
+        return (pfam_df
+            .assign(
+                log_Evalue = [min(- np.log10(n), 300) for n in pfam_df["i_Evalue"]]
+            )
             .groupby("pfam", sort = False)
             .apply(lambda x: x.assign(
                 supnorm_Evalue = (x["log_Evalue"] / x["log_Evalue"].max())
@@ -187,8 +214,4 @@ def compute_features(pfam_df, weight_type=None):
         )
 
     else:
-        return pfam_df.assign(
-            pfam = pfam_df["pfam"].str.replace(
-                r"(PF\d+)\.\d+", lambda m: m.group(1)),
-            noweight = 1
-            )
+        return pfam_df.assign(noweight = 1)
