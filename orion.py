@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     out_dir = args.out
     if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+        os.makedirs(out_dir)
 
     e_filter = max(1, args.e_filter)
     weight_type = args.weight_type
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     prodigal_out = os.path.join(out_dir, "prodigal/")
     if not os.path.exists(prodigal_out):
-        os.mkdir(prodigal_out)
+        os.makedirs(prodigal_out)
 
     coords_out = os.path.join(prodigal_out, base + ".coords.sco")
     genes_out = os.path.join(prodigal_out, base + ".genes.fna")
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     hmmer_out = os.path.join(out_dir, "hmmer/")
     if not os.path.exists(hmmer_out):
-        os.mkdir(hmmer_out)
+        os.makedirs(hmmer_out)
 
     dom_out = os.path.join(hmmer_out, base + ".hmmer.dom")
     log_out = os.path.join(hmmer_out, base + ".hmmer.log")

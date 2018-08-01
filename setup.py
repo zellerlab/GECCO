@@ -39,6 +39,7 @@ try:
 except FileNotFoundError:
     long_description = DESCRIPTION
 
+# FUNC
 def safe_extract(file):
     extract_cmd = "gzip -df " + file
     try:
@@ -104,7 +105,7 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
-
+# MAIN
 if __name__ == "__main__":
 
     sys.stderr.write(" ------------------------------------------------------\n")
@@ -161,10 +162,10 @@ if __name__ == "__main__":
         sys.stderr.write("Done.\n")
 
     except:
-        sys.stderr.write("It seems like the python dependencies could not be set up correctly. You might not have enough permissions to write to the PYTHONPATH.\nIf you are on a remote server, you can try re-running the installation from within a conda environment with pip installed.\nOtherwise, you might have to suppy the following python dependencies manually:\n\n{0}\n\n".format(
+        sys.stderr.write("It seems like the python dependencies could not be set up correctly. You might not have enough permissions to write to the PYTHONPATH.\nIf you are on a remote server, you can try re-running the installation from within a conda environment with pip installed.\nOtherwise, you might have to supply the following python dependencies manually:\n\n{0}\n\n".format(
         "\n".join(REQUIRED)))
 
-    to_path = query_yes_no("Do you want to add orion.py to you PATH?")
+    to_path = query_yes_no("Do you want to add orion.py to your PATH?")
     if to_path:
         os.system("chmod +x " + os.path.join(HERE, "orion.py"))
         os.system("echo '# ORION' >> ~/.bashrc")
