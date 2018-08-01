@@ -118,8 +118,15 @@ def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
     *args:  the columns to be used as features
     """
     X = []
+    err = False
     for _, row in table.iterrows():
-        X.append({row[f]: row[w] for f, w in zip(feature_col, weight_col)})
+        try:
+            X.append({row[f]: row[w] for f, w in zip(feature_col, weight_col)})
+        except KeyError:
+            err = True
+            X.append({row[f]: 1 for f in feature_col})
+    if err:
+        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
     if Y_col:
         Y = np.array(table[Y_col].astype(str))
         return X, Y
@@ -133,14 +140,22 @@ def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="pr
     """
     X = []
     Y = []
+    err = False
     for prot, tbl in table.groupby(prot_col, sort=False):
         feat_dict = dict()
         for _, row in tbl.iterrows():
-            for f, w in zip(feature_col, weight_col):
-                feat_dict[row[f]] = row[w]
+            try:
+                for f, w in zip(feature_col, weight_col):
+                    feat_dict[row[f]] = row[w]
+            except KeyError:
+                err = True
+                for f in feature_col:
+                    feat_dict[row[f]] = 1
         X.append(feat_dict)
         if Y_col:
             Y.append(str(tbl[Y_col].values[0]))
+    if err:
+        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
     if Y_col:
         return X, Y
     else:
@@ -156,11 +171,20 @@ def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[
     *args:  the columns to be used as features
     """
     X = []
+    err = False
     for idx, _ in table.iterrows():
         wind = table.iloc[idx - overlap : idx + overlap + 1]
-        X.append({row[f]: row[w]
-            for f, w in zip(feature_col, weight_col)
-            for _, row in wind.iterrows()})
+        try:
+            X.append({row[f]: row[w]
+                for f, w in zip(feature_col, weight_col)
+                for _, row in wind.iterrows()})
+        except KeyError:
+            err = True
+            X.append({row[f]: 1
+                for f in feature_col
+                for _, row in wind.iterrows()})
+    if err:
+        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
     if Y_col:
         Y = np.array(table[Y_col].astype(str))
         return X, Y
@@ -214,4 +238,4 @@ def compute_features(pfam_df, weight_type=None):
         )
 
     else:
-        return pfam_df.assign(noweight = 1)
+        return pfam_df
