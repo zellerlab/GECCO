@@ -2,12 +2,12 @@ import argparse
 
 # FUNC
 def main_interface():
-    parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a sorted FASTA file.")
+    parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a genome FASTA file.")
 
     parser.add_argument("FASTA",
                         type=str,
                         metavar="<FASTA>",
-                        help="FASTA file with proteins.")
+                        help="A genome FASTA file as input.")
 
     parser.add_argument("-o", "--output-dir",
                         dest="out",

@@ -59,7 +59,7 @@ class ClusterCRF(object):
 
             return result_df
 
-    def cv(self, data, k=10, threads=1, e_filter=1, truncate=None, strat_col=None):
+    def cv(self, data, k=10, threads=1, e_filter=1, trunc=None, strat_col=None):
 
         if strat_col:
             types = [s[strat_col].values[0].split(",") for s in data]
@@ -70,43 +70,43 @@ class ClusterCRF(object):
 
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
-                truncate=truncate) for train_idx, test_idx in cv_split.split())
+                trunc=trunc) for train_idx, test_idx in cv_split.split())
 
         return results
 
-    def loto_cv(self, data, type_col, threads=1, e_filter=1, truncate=None):
+    def loto_cv(self, data, type_col, threads=1, e_filter=1, trunc=None):
 
         types = [s[type_col].values[0].split(",") for s in data]
         cv_split = LotoSplit(types)
 
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx,
-                round_id=typ, e_filter=e_filter, truncate=truncate)
+                round_id=typ, e_filter=e_filter, trunc=trunc)
                 for train_idx, test_idx, typ in cv_split.split())
 
         return results
 
     def partial_cv(self, data, n_train, n_val, k=10, threads=1, e_filter=1,
-            truncate=None):
+            trunc=None):
 
         folds = n_folds_partial(n_train, n_val, n=k)
         cv_split = PredefinedSplit(folds)
 
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
-                truncate=truncate) for train_idx, test_idx in cv_split.split())
+                trunc=trunc) for train_idx, test_idx in cv_split.split())
 
         return results
 
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, e_filter=1,
-            truncate=None):
+            trunc=None):
         """Performs a single CV round with the given train_idx and test_idx
         """
 
         train_data = [data[i].reset_index() for i in train_idx]
 
         if truncate:
-            train_data = [truncate(df, truncate, Y_col=self.Y_col, grouping=self.groups)
+            train_data = [truncate(df, trunc, Y_col=self.Y_col, grouping=self.groups)
                 for df in train_data]
 
         train_samples = [self._extract_features(s) for s in train_data]

@@ -58,14 +58,14 @@ class ClusterRefiner(object):
                             .loc[:, feature_cols]
         )
         print(feature_df)
-        clusters = [self._extract_clusters(df, target_col=target_col, prefix=s)
+        clusters = [self._segment(df, target_col=target_col, prefix=s)
             for s, df in feature_df.groupby(self.seq_col)]
 
         print(clusters)
 
         return pfam_df
 
-    def _extract_clusters(self, pfam_df, target_col="Y_pred", prefix="cluster"):
+    def _segment(self, pfam_df, target_col="Y_pred", prefix="cluster"):
         cluster_num = 1
         cluster_state = False
         cluster_dict = {}
@@ -75,7 +75,8 @@ class ClusterRefiner(object):
                 # non-cluster -> cluster
                 if not cluster_state:
                     cluster_name = prefix + "_" + str(cluster_num)
-                    row = (pd   .DataFrame(row[self.grouping + [n, "start", "end"]])
+                    row = (pd   .DataFrame(row[self.grouping + ["start", "end"]])
+                                .assign(idx = n)
                                 .transpose())
                     cluster_dict[cluster_name] = row
                     cluster_state = True

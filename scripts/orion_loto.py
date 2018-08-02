@@ -59,7 +59,7 @@ if __name__ == "__main__":
         type_col = "BGC_type",
         threads = threads,
         e_filter = e_filter,
-        truncate = truncate
+        trunc = truncate
     )
 
     result_df = (pd .concat(results)

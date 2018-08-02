@@ -29,7 +29,7 @@ if __name__ == "__main__":
     print(args)
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
-    data_tbl = data_tbl.sort_values(sort_cols)
+    data_tbl = data_tbl.sort_values(sort_cols).reset_index()
     data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
     data_tbl = compute_features(data_tbl, weight_type=weight_col)
 
@@ -42,10 +42,6 @@ if __name__ == "__main__":
     with open(model_file, "rb") as f:
         crf = pickle.load(f)
 
-    print(crf.__dict__)
-
     pred_df = crf.predict_marginals(data=data_tbl)
-
-    print(pred_df)
 
     pred_df.to_csv(out_file + ".pred.tsv", sep="\t", index=False, header=True)

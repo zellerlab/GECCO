@@ -60,7 +60,7 @@ if __name__ == "__main__":
         k = splits,
         threads = threads,
         e_filter = e_filter,
-        truncate = truncate,
+        trunc = truncate,
         strat_col = "BGC_type"
     )
 
