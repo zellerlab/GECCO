@@ -60,6 +60,12 @@ def refine_interface():
                         type=float,
                         help="Probability threshold for clusters prediction.")
 
+    parser.add_argument("-s", "--split-col",
+                        dest="split_col",
+                        default="genome_id",
+                        type=str,
+                        help="Column to be used for splitting in to samples, i.e. different sequences.")
+                        
     args = parser.parse_args()
     return args
 

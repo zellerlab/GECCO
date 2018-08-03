@@ -22,6 +22,7 @@ if __name__ == "__main__":
     data = args.DATA
     out_file = args.out
     thresh = args.thresh
+    split_col = args.split_col
 
     print(args)
 
@@ -31,12 +32,16 @@ if __name__ == "__main__":
         threshold = thresh
     )
 
-    refined_df = refiner.refine(
-        data_df,
-        method = "antismash",
-        target_col = "AS_pred"
-    )
+    cluster_list = []
+    for sid, df in data_df.groupby(split_col):
+        clusters = refiner.find_clusters(
+            df,
+            method = "antismash",
+            prefix = sid
+        )
+        if clusters:
+            cluster_list += clusters
 
-    print(refined_df)
-
-    refined_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=True)
+    with open(out_file + ".clusters.tsv", "wt") as f:
+        for c in clusters:
+            c.write_to_file(f)
