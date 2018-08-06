@@ -20,8 +20,9 @@ class Protein(object):
 
 class BGC(object):
     """A biosynthetic gene cluster with multiple proteins"""
-    def __init__(self, proteins, name="cluster"):
+    def __init__(self, proteins, name="cluster", bgc_type=None):
         self.name = name
+        self.type = bgc_type
         self.proteins = proteins
         self.prot_ids = [p.name for p in proteins]
         self.start = min([p.start for p in proteins])
@@ -58,7 +59,10 @@ class BGC(object):
         comp_arr = np.zeros(len(all_possible))
         for i in range(len(all_possible)):
             n = list(self.domains).count(all_possible[i])
-            weight = self.weights[self.domains == all_possible[i]].mean()
+            if n > 0:
+                weight = self.weights[self.domains == all_possible[i]].mean()
+            else:
+                weight = 0
             comp_arr[i] = n * weight
         return comp_arr / comp_arr.sum()
 
