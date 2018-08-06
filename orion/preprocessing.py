@@ -1,4 +1,5 @@
 import math
+import numbers
 import numpy as np
 import pandas as pd
 from math import ceil
@@ -115,18 +116,14 @@ def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
     given
     table:  a table with pfam domains and class lables
     Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    *args:  the columns to be used as features
+    feature_col: either name of a column with a categorical feature or the name of a numerical feature
+    weight_col: either name of a column with numerical values or a numerical weight
     """
     X = []
-    err = False
     for _, row in table.iterrows():
-        try:
-            X.append({row[f]: row[w] for f, w in zip(feature_col, weight_col)})
-        except KeyError:
-            err = True
-            X.append({row[f]: 1 for f in feature_col})
-    if err:
-        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
+        feat_dict = dict()
+        feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
+        X.append(feat_dict)
     if Y_col:
         Y = np.array(table[Y_col].astype(str))
         return X, Y
@@ -136,26 +133,22 @@ def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
 def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="protein_id",
         weight_col="rev_i_Evalue"):
     """
-    Extracts features on protein level.
+    Extracts features on protein level
+    given
+    table:  a table with pfam domains and class lables
+    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+    feature_col: either name of a column with a categorical feature or the name of a numerical feature
+    weight_col: either name of a column with numerical values or a numerical weight
     """
     X = []
     Y = []
-    err = False
     for prot, tbl in table.groupby(prot_col, sort=False):
         feat_dict = dict()
         for _, row in tbl.iterrows():
-            try:
-                for f, w in zip(feature_col, weight_col):
-                    feat_dict[row[f]] = row[w]
-            except KeyError:
-                err = True
-                for f in feature_col:
-                    feat_dict[row[f]] = 1
+            feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
         X.append(feat_dict)
         if Y_col:
             Y.append(str(tbl[Y_col].values[0]))
-    if err:
-        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
     if Y_col:
         return X, Y
     else:
@@ -168,28 +161,38 @@ def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[
     given
     table:  a table with pfam domains and class lables
     Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    *args:  the columns to be used as features
+    feature_col: either name of a column with a categorical feature or the name of a numerical feature
+    weight_col: either name of a column with numerical values or a numerical weight
     """
     X = []
-    err = False
     for idx, _ in table.iterrows():
         wind = table.iloc[idx - overlap : idx + overlap + 1]
-        try:
-            X.append({row[f]: row[w]
-                for f, w in zip(feature_col, weight_col)
-                for _, row in wind.iterrows()})
-        except KeyError:
-            err = True
-            X.append({row[f]: 1
-                for f in feature_col
-                for _, row in wind.iterrows()})
-    if err:
-        print("The specified weight column ({0}) was not found. Setting all weights to 1.".format(weight_col))
+        feat_dict = dict()
+        for _, row in wind.iterrows():
+            feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
+        X.append(feat_dict)
     if Y_col:
         Y = np.array(table[Y_col].astype(str))
         return X, Y
     else:
         return X, None
+
+def make_feature_dict(row, features=[], weights=[], feat_dict=dict()):
+    """
+    Constructs a dict with feature:value pairs from
+    row: input row or dict
+    features: either name of feature or name of column in row/dict
+    weights: either numerical weight or name of column in row/dict
+    """
+    for f, w in zip(features, weights):
+        if isinstance(w, numbers.Number):
+            feat_dict[row[f]] = w
+            continue
+        try:
+            feat_dict[row[f]] = row[w]
+        except KeyError:
+            feat_dict[f] = row[w]
+    return feat_dict
 
 def read_to_set(file, split_at="."):
     out_set = set()
@@ -204,8 +207,8 @@ def compute_features(pfam_df, weight_type=None):
     pfam_df = pfam_df.assign(
         pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)))
 
-    if weight_type == "rev_Evalue":
-        return pfam_df.assign(rev_Evalue = 1 - pfam_df["i_Evalue"])
+    if weight_type == "rev_i_Evalue":
+        return pfam_df.assign(rev_i_Evalue = 1 - pfam_df["i_Evalue"])
 
     if weight_type == "supnorm_Evalue":
         return (pfam_df
