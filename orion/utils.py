@@ -1,4 +1,6 @@
-
+import numpy as np
+from scipy.stats import entropy
+from itertools import product
 
 def convert_hmmer(dom_file, out_file):
     """Converts HMMER --domtblout output to regular TSV"""
@@ -20,3 +22,20 @@ def coerce_numeric(s):
         return float(s)
     except ValueError:
         return s
+
+def jsd(mat, base=np.e):
+    """
+    Computes Janson-Shannon Divergence given a matrix with probability vectors.
+    """
+    dist_vec = []
+    for p, q in product(mat, mat):
+        p, q = np.asarray(p), np.asarray(q)
+
+        # Normalize p, q to probabilities
+        p, q = p/p.sum(), q/q.sum()
+        m = 1./2*(p + q)
+
+        dist = entropy(p, m, base=base)/2. + entropy(q, m, base=base)/2.
+        dist_vec.append(dist)
+
+    return np.array(dist_vec).reshape(len(mat), len(mat))
