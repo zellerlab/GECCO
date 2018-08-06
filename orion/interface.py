@@ -65,7 +65,7 @@ def refine_interface():
                         default="genome_id",
                         type=str,
                         help="Column to be used for splitting in to samples, i.e. different sequences.")
-                        
+
     args = parser.parse_args()
     return args
 
@@ -102,10 +102,25 @@ def crf_interface():
                         default="1e-5",
                         help="E-value threshold for the test set.")
 
+    parser.add_argument("-y", "--y-col",
+                        dest="y",
+                        type=str,
+                        default="BGC",
+                        help="Column with class labels.")
+
     parser.add_argument("-w", "--weight-col",
                         dest="w",
                         type=str,
-                        help="Column to be used as local weights on pfam domains.")
+                        nargs="+",
+                        default=["1"],
+                        help="Column to be used as local weights on features.")
+
+    parser.add_argument("-f", "--feature-col",
+                        dest="feat",
+                        type=str,
+                        nargs="+",
+                        default=["pfam"],
+                        help="Column to be used as features.")
 
     parser.add_argument("-s", "--split-col",
                         dest="split_col",
@@ -125,6 +140,12 @@ def crf_interface():
                         nargs="+",
                         type=str,
                         help="Columns to be used for sorting the data.")
+
+    parser.add_argument("--strat-col",
+                        dest="strat_col",
+                        default="BGC_type",
+                        type=str,
+                        help="Columns to be used for stratifying the samples (BGC types).")
 
     parser.add_argument("--feature-type",
                         dest="feature_type",
@@ -153,6 +174,18 @@ def crf_interface():
                         default="10",
                         type=int,
                         help="Number of folds for CV.")
+
+    parser.add_argument("--C1",
+                        dest="C1",
+                        default="0.15",
+                        type=float,
+                        help="Parameter for L1 regularization.")
+
+    parser.add_argument("--C2",
+                        dest="C2",
+                        default="1.75",
+                        type=float,
+                        help="Parameter for L2 regularization.")
 
     args = parser.parse_args()
     return args
