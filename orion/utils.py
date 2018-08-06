@@ -13,3 +13,10 @@ def convert_hmmer(dom_file, out_file):
                     line = line.split()
                     row = [line[0]] + [line[4]] + [line[12]] + line[17:19]
                     fout.write("\t".join(row) + "\n")
+
+def coerce_numeric(s):
+    """Tries to coerce string to numeric and returns number if possible"""
+    try:
+        return float(s)
+    except ValueError:
+        return s
