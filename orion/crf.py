@@ -1,4 +1,5 @@
 import math
+import warnings
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
@@ -105,7 +106,7 @@ class ClusterCRF(object):
 
         train_data = [data[i].reset_index() for i in train_idx]
 
-        if truncate:
+        if trunc:
             train_data = [truncate(df, trunc, Y_col=self.Y_col, grouping=self.groups)
                 for df in train_data]
 
@@ -125,8 +126,13 @@ class ClusterCRF(object):
 
         marginal_probs = self.model.predict_marginals(X_test)
         marginal_probs = np.concatenate(np.array([np.array(_) for _ in marginal_probs]))
-        cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
-
+        try:
+            cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
+        except KeyError:
+            warnings.warn(
+                "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
+            )
+            cluster_probs = np.array([0 for d in [s for s in marginal_probs]])
         Y_pred = np.array([1 if p > 0.5 else 0 for p in cluster_probs])
         Y_real = np.array([int(i) for i in np.concatenate(Y_test)])
 
