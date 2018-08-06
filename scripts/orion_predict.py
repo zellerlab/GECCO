@@ -1,6 +1,6 @@
 import sys
 import os
-ORION = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..")
+ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
 sys.path.append(ORION)
 import pickle
 import pandas as pd

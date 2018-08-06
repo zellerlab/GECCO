@@ -1,6 +1,6 @@
 import sys
 import os
-ORION = os.path.abspath(os.path.dirname(sys.argv[0]) + "/..")
+ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
 sys.path.append(ORION)
 import random
 import argparse
@@ -14,18 +14,18 @@ from orion.refine import ClusterRefiner
 from orion.interface import refine_interface
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_refine.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_knn.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
-    args = refine_interface()
-
-    data = args.DATA
-    out_file = args.out
-    thresh = args.thresh
-    split_col = args.split_col
-
-    print(args)
+    # args = refine_interface()
+    #
+    # data = args.DATA
+    # out_file = args.out
+    # thresh = args.thresh
+    # split_col = args.split_col
+    #
+    # print(args)
 
     data = "/Users/Jonas/Documents/Msc-Biotechnologie/masterarbeit-zeller/remote/scripts/clust/test/test.pred.tsv"
     thresh = 0.5
@@ -50,3 +50,5 @@ if __name__ == "__main__":
     all_dom = list(cluster_list[0].domains) + list(cluster_list[1].domains) + list(cluster_list[2].domains)
 
     cluster_comp = np.array([c.domain_composition(all_possible=all_dom) for c in cluster_list])
+
+    print(cluster_comp)
