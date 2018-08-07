@@ -10,14 +10,14 @@ import numpy as np
 import multiprocessing
 from itertools import product
 from orion.refine import ClusterRefiner
-from orion.interface import refine_interface
+from orion.interface import scripts_interface
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_refine.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
-    args = refine_interface()
+    args = scripts_interface()
 
     data = args.DATA
     out_file = args.out
@@ -41,6 +41,11 @@ if __name__ == "__main__":
         )
         if clusters:
             cluster_list += clusters
+
+    cluster_prots = np.hstack(np.array([c.prot_ids for c in cluster_list]))
+    data_df["AS_pred"] = np.where(data_df["protein_id"].isin(cluster_prots), 1, 0)
+
+    data_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=False)
 
     with open(out_file + ".clusters.tsv", "wt") as f:
         for c in clusters:

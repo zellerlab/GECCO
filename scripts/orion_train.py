@@ -10,7 +10,7 @@ import numpy as np
 import multiprocessing
 from itertools import product
 from orion.crf import ClusterCRF
-from orion.interface import crf_interface
+from orion.interface import scripts_interface
 from orion.preprocessing import truncate
 from orion.utils import coerce_numeric
 
@@ -19,7 +19,7 @@ from orion.utils import coerce_numeric
 
 # MAIN
 if __name__ == "__main__":
-    args = crf_interface()
+    args = scripts_interface()
 
     data = args.DATA
     out_file = args.out

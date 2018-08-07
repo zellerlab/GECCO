@@ -2,23 +2,21 @@ import sys
 import os
 ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
 sys.path.append(ORION)
-import random
-import argparse
-import pickle
-import pandas as pd
 import numpy as np
-import multiprocessing
-from scipy.stats import entropy
-from itertools import product
+import pandas as pd
+from skbio.stats.ordination import pcoa
+from sklearn.manifold import TSNE
+from sklearn.neighbors import KNeighborsClassifier
 from orion.refine import ClusterRefiner
-from orion.interface import refine_interface
+from orion.interface import scripts_interface
+from orion.utils import jsd
 
 ### TEST ###
 # python /home/fleck/bin/orion/scripts/orion_knn.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
-    # args = refine_interface()
+    # args = scripts_interface()
     #
     # data = args.DATA
     # out_file = args.out
@@ -27,7 +25,7 @@ if __name__ == "__main__":
     #
     # print(args)
 
-    data = "/Users/Jonas/Documents/Msc-Biotechnologie/masterarbeit-zeller/remote/scripts/clust/test/test.pred.tsv"
+    data = "~/scripts/clust/test/test.pred.tsv"
     thresh = 0.5
     split_col = "sequence_id"
 
@@ -52,3 +50,17 @@ if __name__ == "__main__":
     cluster_comp = np.array([c.domain_composition(all_possible=all_dom) for c in cluster_list])
 
     print(cluster_comp)
+
+    jsd_mat = jsd(cluster_comp)
+
+    print(jsd_mat)
+
+    pcoa_res = pcoa(jsd_mat)
+    tsne = TSNE(metric="precomputed", perplexity=2, n_iter=2000)
+    tsne_res = tsne.fit_transform(jsd_mat)
+
+    knn = KNeighborsClassifier(n_neighbors=1, metric="precomputed")
+    knn.fit(jsd_mat, y=["bla", "blubb", "bla"])
+    knn_pred = knn.predict(jsd_mat)
+
+    print(knn_pred)
