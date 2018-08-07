@@ -4,7 +4,7 @@ from orion.bgc import Protein, BGC
 
 class ClusterRefiner(object):
 
-    def __init__(self, threshold=0.5, lower_thresh=0.3, biosynthetic_pfams=5,
+    def __init__(self, threshold=0.6, lower_thresh=0.3, biosynthetic_pfams=5,
             seq_col="sequence_id", prot_col="protein_id",
             p_col="p_pred", domain_col="pfam", weight_col="log_i_Evalue",
             min_domains=1, min_proteins=5, join_width=1):
@@ -57,7 +57,7 @@ class ClusterRefiner(object):
                     name = pid,
                     domains = list(subdf[self.domain_col]),
                     weights = list(subdf[self.weight_col]),
-                    p = subdf[self.p_col].mean()
+                    p = list(subdf[self.p_col])
                 )
                 prot_list.append(protein)
 

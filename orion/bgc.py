@@ -6,16 +6,16 @@ class Protein(object):
     def __init__(self, start, end, name, p=0.0, domains=[], weights=None):
         self.start = min(start, end)
         self.end = max(start, end)
-        self.name = name
-        self.domains = domains
+        self.name = np.array(name)
+        self.domains = np.array(domains)
         if weights:
-            self.weights = weights
+            self.weights = np.array(weights)
         else:
             self.weights = np.ones(len(domains))
-        self.p = p
+        self.probs = np.array(p)
 
     def is_potential_cluster(self, thresh=0.3):
-        return self.p > thresh
+        return self.probs.mean() > thresh
 
 
 class BGC(object):
@@ -24,14 +24,14 @@ class BGC(object):
         self.name = name
         self.type = bgc_type
         self.proteins = proteins
-        self.prot_ids = [p.name for p in proteins]
+        self.prot_ids = np.array([p.name for p in proteins])
         self.start = min([p.start for p in proteins])
         self.end = max([p.end for p in proteins])
-        self.domains = np.array(list(flatten([p.domains for p in proteins])))
-        self.weights = np.array(list(flatten([p.weights for p in proteins])))
-        self.probs = np.array([p.p for p in proteins])
+        self.domains = np.array([p.domains for p in proteins])
+        self.weights = np.array([p.weights for p in proteins])
+        self.probs = np.array([p.probs for p in proteins])
 
-    def is_valid(self, criterion="antismash", thresh=0.5):
+    def is_valid(self, criterion="antismash", thresh=0.6):
         if criterion == "antismash":
             # These are the default options only
             return self._antismash_check(
@@ -43,24 +43,25 @@ class BGC(object):
             return self._orion_check()
 
     def write_to_file(self, handle):
-        prot = ",".join(self.prot_ids)
-        pfam = ",".join(self.domains)
-        p_mean = self.probs.mean()
-        p_max = self.probs.max()
+        prot = ",".join(np.hstack(self.prot_ids))
+        pfam = ",".join(np.hstack(self.domains))
+        p_mean = np.hstack(self.probs).mean()
+        p_max = np.hstack(self.probs).max()
         row = [self.name, self.start, self.end, p_mean, p_max, prot, pfam]
         row = map(str, row)
         handle.write("\t".join(row) + "\n")
 
     def domain_composition(self, all_possible=None):
-        """Comoutes weighted domain composition with respect to all_possible.
+        """Computes weighted domain composition with respect to all_possible.
         """
+        doms = np.hstack(self.domains)
         if all_possible is None:
-            all_possible = np.unique(self.domains)
+            all_possible = np.unique(doms)
         comp_arr = np.zeros(len(all_possible))
         for i in range(len(all_possible)):
-            n = list(self.domains).count(all_possible[i])
+            n = list(doms).count(all_possible[i])
             if n > 0:
-                weight = self.weights[self.domains == all_possible[i]].mean()
+                weight = self.weights[doms == all_possible[i]].mean()
             else:
                 weight = 0
             comp_arr[i] = n * weight
@@ -69,11 +70,12 @@ class BGC(object):
     def domain_counts(self, all_possible=None):
         """Comoutes domain counts with respect to all_possible.
         """
+        doms = np.hstack(self.domains)
         if all_possible is None:
-            all_possible = np.unique(self.domains)
+            all_possible = np.unique(doms)
         comp_arr = np.zeros(len(all_possible))
         for i in range(len(all_possible)):
-            n = list(self.domains).count(all_possible[i])
+            n = list(doms).count(all_possible[i])
             comp_arr[i] = n
         return comp_arr
 
@@ -107,9 +109,9 @@ class BGC(object):
             "PF08484", "PF08421"
         }
 
-        bio_crit = len(set(self.domains) & bio_pfams) >= n_biopfams
-        p_crit = np.mean(self.probs) >= p_thresh
-        cds_crit = len(self.prot_ids) >= n_cds
+        bio_crit = len(set(np.hstack(self.domains)) & bio_pfams) >= n_biopfams
+        p_crit = np.mean([p.mean() for p in self.probs]) >= p_thresh
+        cds_crit = len(np.hstack(self.prot_ids)) >= n_cds
 
         return (bio_crit and p_crit and cds_crit)
 
