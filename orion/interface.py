@@ -39,37 +39,7 @@ def main_interface():
     args = parser.parse_args()
     return args
 
-def refine_interface():
-    parser = argparse.ArgumentParser(description="Interface for the refinement script.")
-
-    parser.add_argument("DATA",
-                        type=str,
-                        metavar="<DATA>",
-                        help="Pfam table.")
-
-    parser.add_argument("-o", "--output-basename",
-                        dest="out",
-                        type=str,
-                        default="CRF",
-                        metavar="<basename>",
-                        help="Basename for predictions.")
-
-    parser.add_argument("-t", "--threshold",
-                        dest="thresh",
-                        default="0.5",
-                        type=float,
-                        help="Probability threshold for clusters prediction.")
-
-    parser.add_argument("-s", "--split-col",
-                        dest="split_col",
-                        default="genome_id",
-                        type=str,
-                        help="Column to be used for splitting in to samples, i.e. different sequences.")
-
-    args = parser.parse_args()
-    return args
-
-def crf_interface():
+def scripts_interface():
     parser = argparse.ArgumentParser(description="Generic interface for all scripts which use the ClusterCRF (orion_[cv/loto/train/predict].py)")
 
     parser.add_argument("DATA",
@@ -82,7 +52,7 @@ def crf_interface():
                         type=str,
                         default="CRF",
                         metavar="<basename>",
-                        help="Basename for the output table.")
+                        help="Basename for the output.")
 
     parser.add_argument("-m", "--model",
                         dest="model",
@@ -133,6 +103,12 @@ def crf_interface():
                         default="protein_id",
                         type=str,
                         help="Column to be used for grouping features if feature_type is 'group'.")
+
+    parser.add_argument("-p", "--threshold",
+                        dest="thresh",
+                        default="0.6",
+                        type=float,
+                        help="Probability threshold for clusters prediction.")
 
     parser.add_argument("--sort-cols",
                         dest="sort_cols",
