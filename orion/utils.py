@@ -23,7 +23,7 @@ def coerce_numeric(s):
     except ValueError:
         return s
 
-def jsd(mat, base=np.e):
+def jsd(mat, base=2):
     """
     Computes Janson-Shannon Divergence given a matrix with probability vectors.
     """
@@ -39,3 +39,15 @@ def jsd(mat, base=np.e):
         dist_vec.append(dist)
 
     return np.array(dist_vec).reshape(len(mat), len(mat))
+
+def jsd_pairwise(p, q, base=2):
+    """
+    Computes Janson-Shannon Divergence given two probability vectors p and q.
+    """
+    p, q = np.asarray(p), np.asarray(q)
+
+    # Normalize p, q to probabilities
+    p, q = p/p.sum(), q/q.sum()
+    m = 1./2*(p + q)
+
+    return entropy(p, m, base=base)/2. + entropy(q, m, base=base)/2.
