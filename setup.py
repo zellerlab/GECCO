@@ -24,7 +24,8 @@ REQUIRED = [
     "sklearn-crfsuite >= 0.3.6",
     "scikit-learn >= 0.19.1",
     "joblib >= 0.11",
-    "pandas >= 0.22.0"
+    "pandas >= 0.22.0",
+    "scikit-bio >= 0.5.2"
 ]
 
 # Path to Pfam Database
