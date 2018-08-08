@@ -12,7 +12,7 @@ from orion.preprocessing import compute_features
 from orion.utils import coerce_numeric
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv --model /home/fleck/bin/orion/data/model/f5_eval_s_t50.crf.model  -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv --model /home/fleck/bin/orion/data/model/f5_eval_p_t50.crf.model  -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":

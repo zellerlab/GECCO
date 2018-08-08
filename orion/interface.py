@@ -40,7 +40,7 @@ def main_interface():
     return args
 
 def scripts_interface():
-    parser = argparse.ArgumentParser(description="Generic interface for all scripts which use the ClusterCRF (orion_[cv/loto/train/predict].py)")
+    parser = argparse.ArgumentParser(description="Generic interface for all scripts which use the ClusterCRF (orion_[cv/loto/train/predict/refine].py)")
 
     parser.add_argument("DATA",
                         type=str,

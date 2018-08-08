@@ -45,7 +45,7 @@ class ClusterCRF(object):
         if X is not None:
             return self.model.predict_marginals(X)
         elif data is not None:
-            samples = [self._extract_features(s) for s in data]
+            samples = [self._extract_features(s, X_only=True) for s in data]
             X = np.array([x for x, _ in samples])
             marginal_probs = self.model.predict_marginals(X)
             marginal_probs = np.concatenate(
@@ -53,10 +53,11 @@ class ClusterCRF(object):
             cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
             if self.feature_type == "group":
-                data = [self._distinct(s) for s in data]
-
-            result_df = pd.concat(data)
-            result_df = result_df.assign(p_pred=cluster_probs)
+                result_df = pd.concat(data)
+                result_df = self._merge(result_df, p_pred=cluster_probs)
+            else:
+                result_df = pd.concat(data)
+                result_df = result_df.assign(p_pred=cluster_probs)
 
             return result_df
 
@@ -133,38 +134,46 @@ class ClusterCRF(object):
                 "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
             )
             cluster_probs = np.array([0 for d in [s for s in marginal_probs]])
-        Y_pred = np.array([1 if p > 0.5 else 0 for p in cluster_probs])
-        Y_real = np.array([int(i) for i in np.concatenate(Y_test)])
 
         if self.feature_type == "group":
-            test_data = [self._distinct(s) for s in test_data]
-
-        result_df = pd.concat(test_data)
-        result_df = result_df.assign(
-            p_pred = cluster_probs,
-            y_pred = Y_pred,
-            cv_round = round_id)
+            result_df = pd.concat(test_data).assign(cv_round=round_id)
+            result_df = self._merge(result_df, p_pred=cluster_probs)
+        else:
+            result_df = (pd.concat(test_data)
+                .assign(
+                    p_pred = cluster_probs,
+                    cv_round = round_id
+                )
+            )
 
         return result_df
 
-    def _extract_features(self, sample):
+    def _extract_features(self, sample, X_only=False):
+
+        if X_only:
+            Y_col = None
+        else:
+            Y_col = self.Y_col
 
         if self.feature_type == "single":
-            return extract_features(sample, self.Y_col,
+            return extract_features(sample, Y_col,
                 feature_col=self.features,
                 weight_col=self.weights)
 
         if self.feature_type == "overlap":
-            return extract_overlapping_features(sample, self.Y_col,
+            return extract_overlapping_features(sample, Y_col,
                 feature_col=self.features,
                 weight_col=self.weights,
                 overlap=self.overlap)
 
         if self.feature_type == "group":
-            return extract_protein_features(sample, self.Y_col,
+            return extract_protein_features(sample, Y_col,
                 feature_col=self.features,
                 weight_col=self.weights,
                 prot_col=self.groups)
 
-    def _distinct(self, df):
-        return  df.groupby(self.groups, sort=False).first().reset_index()
+    def _merge(self, df, **cols):
+        unidf = pd.DataFrame(cols)
+        unidf[self.groups] = df[self.groups].unique()
+
+        return df.merge(unidf)

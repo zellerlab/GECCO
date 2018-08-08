@@ -42,11 +42,11 @@ if __name__ == "__main__":
         if clusters:
             cluster_list += clusters
 
-    cluster_prots = np.hstack(np.array([c.prot_ids for c in cluster_list]))
-    data_df["AS_pred"] = np.where(data_df["protein_id"].isin(cluster_prots), 1, 0)
-
-    data_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=False)
+    # cluster_prots = np.hstack(np.array([c.prot_ids for c in cluster_list]))
+    # data_df["AS_pred"] = np.where(data_df["protein_id"].isin(cluster_prots), 1, 0)
+    #
+    # data_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=True)
 
     with open(out_file + ".clusters.tsv", "wt") as f:
-        for c in clusters:
-            c.write_to_file(f)
+        for c in cluster_list:
+            c.write_to_file(f, short=True)

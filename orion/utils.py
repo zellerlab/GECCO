@@ -2,43 +2,12 @@ import numpy as np
 from scipy.stats import entropy
 from itertools import product
 
-def convert_hmmer(dom_file, out_file):
-    """Converts HMMER --domtblout output to regular TSV"""
-
-    header = ["protein_id", "pfam", "i_Evalue", "domain_start", "domain_end"]
-
-    with open(dom_file, "rt") as f:
-        with open(out_file, "wt") as fout:
-            fout.write("\t".join(header) + "\n")
-            for line in f:
-                if not line.startswith("#"):
-                    line = line.split()
-                    row = [line[0]] + [line[4]] + [line[12]] + line[17:19]
-                    fout.write("\t".join(row) + "\n")
-
 def coerce_numeric(s):
     """Tries to coerce string to numeric and returns number if possible"""
     try:
         return float(s)
     except ValueError:
         return s
-
-def jsd(mat, base=2):
-    """
-    Computes Janson-Shannon Divergence given a matrix with probability vectors.
-    """
-    dist_vec = []
-    for p, q in product(mat, mat):
-        p, q = np.asarray(p), np.asarray(q)
-
-        # Normalize p, q to probabilities
-        p, q = p/p.sum(), q/q.sum()
-        m = 1./2*(p + q)
-
-        dist = entropy(p, m, base=base)/2. + entropy(q, m, base=base)/2.
-        dist_vec.append(dist)
-
-    return np.array(dist_vec).reshape(len(mat), len(mat))
 
 def jsd_pairwise(p, q, base=2):
     """
@@ -49,5 +18,34 @@ def jsd_pairwise(p, q, base=2):
     # Normalize p, q to probabilities
     p, q = p/p.sum(), q/q.sum()
     m = 1./2*(p + q)
-
     return entropy(p, m, base=base)/2. + entropy(q, m, base=base)/2.
+
+def jsd(mat, base=2):
+    """
+    Computes Janson-Shannon Divergence given a matrix with probability vectors.
+    """
+    dist_vec = []
+    for p, q in product(mat, mat):
+        dist = jsd_pairwise(p, q)
+        dist_vec.append(dist)
+    return np.array(dist_vec).reshape(len(mat), len(mat))
+
+def tanimoto_pairwise(p, q):
+    """
+    Computes the cosine tanimoto coefficient given two probability vectors p and q.
+    """
+    pq = p * q
+    p_square = p ** 2
+    q_square = q ** 2
+    return pq / (p_square + q_square - pq)
+
+
+def tanimoto(mat):
+    """
+    Computes the cosine tanimoto coefficient a matrix with probability vectors.
+    """
+    dist_vec = []
+    for p, q in product(mat, mat):
+        dist = tanimoto_pairwise(p, q)
+        dist_vec.append(dist)
+    return np.array(dist_vec).reshape(len(mat), len(mat))

@@ -8,7 +8,7 @@ class Protein(object):
         self.end = max(start, end)
         self.name = np.array(name)
         self.domains = np.array(domains)
-        if weights:
+        if weights is not None:
             self.weights = np.array(weights)
         else:
             self.weights = np.ones(len(domains))
@@ -42,12 +42,15 @@ class BGC(object):
         if criterion == "orion":
             return self._orion_check()
 
-    def write_to_file(self, handle):
-        prot = ",".join(np.hstack(self.prot_ids))
-        pfam = ",".join(np.hstack(self.domains))
+    def write_to_file(self, handle, short=True):
         p_mean = np.hstack(self.probs).mean()
         p_max = np.hstack(self.probs).max()
-        row = [self.name, self.start, self.end, p_mean, p_max, prot, pfam]
+        if short:
+            row = [self.name, self.start, self.end, p_mean, p_max, self.type]
+        else:
+            prot = ",".join(np.hstack(self.prot_ids))
+            pfam = ",".join(np.hstack(self.domains))
+            row = [self.name, self.start, self.end, p_mean, p_max, self.type, prot, pfam]
         row = map(str, row)
         handle.write("\t".join(row) + "\n")
 
@@ -55,13 +58,14 @@ class BGC(object):
         """Computes weighted domain composition with respect to all_possible.
         """
         doms = np.hstack(self.domains)
+        w = np.hstack(self.weights)
         if all_possible is None:
             all_possible = np.unique(doms)
         comp_arr = np.zeros(len(all_possible))
         for i in range(len(all_possible)):
             n = list(doms).count(all_possible[i])
             if n > 0:
-                weight = self.weights[doms == all_possible[i]].mean()
+                weight = w[doms == all_possible[i]].mean()
             else:
                 weight = 0
             comp_arr[i] = n * weight

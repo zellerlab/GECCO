@@ -55,9 +55,9 @@ class ClusterRefiner(object):
                     start = subdf["start"].min(),
                     end = subdf["end"].max(),
                     name = pid,
-                    domains = list(subdf[self.domain_col]),
-                    weights = list(subdf[self.weight_col]),
-                    p = list(subdf[self.p_col])
+                    domains = subdf.get(self.domain_col),
+                    weights = subdf.get(self.weight_col),
+                    p = subdf.get(self.p_col)
                 )
                 prot_list.append(protein)
 
