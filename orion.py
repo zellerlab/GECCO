@@ -18,6 +18,7 @@ import pickle
 import argparse
 import warnings
 import subprocess
+import multiprocessing
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 import numpy as np
@@ -83,8 +84,10 @@ if __name__ == "__main__":
 
     # Filter i-Evalue
     pfam_df = pfam_df[pfam_df["i_Evalue"] < e_filter]
-    pfam_df["protein_id"] = pd.Categorical(
-                pfam_df["protein_id"], pfam_df["protein_id"].unique())
+    # Reformat pfam IDs
+    pfam_df = pfam_df.assign(
+        pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+    )
 
     # Write feature table to file
     feat_out = os.path.join(out_dir, base + ".features.tsv")
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     crf.weights = [1]
     #############################################
 
-    pfam_df = [pfam_df]
+    pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
     pfam_df = crf.predict_marginals(data=pfam_df)
 
     # Write predictions to file
@@ -112,12 +115,15 @@ if __name__ == "__main__":
     # REFINE
     log_file.write("Extracting and refining clusters..." + "\n")
 
-    refiner = ClusterRefiner(threshold=args.thresh)
-    clusters = refiner.find_clusters(
-        pfam_df,
-        method = args.post,
-        prefix = base
-    )
+    clusters = []
+    for sid, subdf in pfam_df.groupby("sequence_id"):
+        refiner = ClusterRefiner(threshold=args.thresh)
+        found_clusters = refiner.find_clusters(
+            pfam_df,
+            method = args.post,
+            prefix = sid
+        )
+        clusters += found_clusters
 
     del pfam_df
 
@@ -150,7 +156,8 @@ if __name__ == "__main__":
     cluster_out = os.path.join(out_dir, base + ".clusters.tsv")
     with open(cluster_out, "wt") as f:
         for c, t in zip(clusters, knn_pred):
-            c.type = t
+            c.type = t[0]
+            c.type_proba = t[1]
             c.write_to_file(f)
 
     log_file.write("DONE." + "\n")
