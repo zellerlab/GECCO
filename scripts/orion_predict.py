@@ -30,7 +30,10 @@ if __name__ == "__main__":
     print(args)
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
-    data_tbl = data_tbl.sort_values(sort_cols).reset_index()
+    try:
+        data_tbl = data_tbl.sort_values(sort_cols).reset_index(drop=True)
+    except KeyError as err:
+        print("Colums could not be sorted.")
     data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
 
     for w in weight_col:
@@ -40,7 +43,10 @@ if __name__ == "__main__":
 
     data_tbl.to_csv(out_file + ".format.tsv", sep="\t", index=False, header=True)
 
-    data_tbl = [s for _, s in data_tbl.groupby(split_col)]
+    if split_col:
+        data_tbl = [s for _, s in data_tbl.groupby(split_col)]
+    else:
+        data_tbl = [data_tbl]
 
     with open(model_file, "rb") as f:
         crf = pickle.load(f)

@@ -20,17 +20,18 @@ class HMMER(object):
         dom_out = os.path.join(self.out_dir, base + ".hmmer.dom")
         cmd =  ["hmmsearch", "--domtblout",
             dom_out, self.hmms, self.fasta]
-        log_out = os.path.join(self.out_dir, base + ".hmmer.log")
+        std_out = os.path.join(self.out_dir, base + ".hmmer.out")
+        err_out = os.path.join(self.out_dir, base + ".hmmer.err")
         subprocess.run(cmd,
-            stdout = open(log_out, "wt"),
-            stderr = open(log_out, "wt"))
+            stdout = open(std_out, "wt"),
+            stderr = open(err_out, "wt"))
 
         tsv_out = os.path.join(self.out_dir, base + ".hmmer.tsv")
         self._to_tsv(dom_out, tsv_out)
 
         out_df = pd.read_csv(tsv_out, sep = "\t")
         out_df["protein_id"] = pd.Categorical(out_df["protein_id"], self.gene_order)
-        out_df = out_df.sort_values(["protein_id", "domain_start"])
+        out_df = out_df.sort_values(["protein_id", "domain_start"]).reset_index(drop=True)
         return out_df
 
     def _check_hmmer(self):

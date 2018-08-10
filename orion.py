@@ -16,22 +16,21 @@ import os
 import sys
 import pickle
 import argparse
-import subprocess
 import warnings
+import subprocess
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-import pandas as pd
 import numpy as np
-from orion.orf import ORFFinder
+import pandas as pd
 from orion.hmmer import HMMER
+from orion.orf import ORFFinder
 from orion.crf import ClusterCRF
 from orion.knn import ClusterKNN
 from orion.refine import ClusterRefiner
 from orion.interface import main_interface
-from orion.preprocessing import compute_features
 
 # CONST
-SCRIPT_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 PFAM = open(os.path.join(SCRIPT_DIR, "data/db_config.txt")).readlines()[0].strip()
 MODEL = os.path.join(SCRIPT_DIR, "data/model/f5_eval_p_t50.crf.model")
 TRAINING_MATRIX = os.path.join(SCRIPT_DIR, "data/knn/domain_composition.tsv")
@@ -42,24 +41,27 @@ if __name__ == "__main__":
 
     # PARAMS
     args = main_interface()
+    log_file = args.log
+    sys.stderr = log_file
 
-    sys.stdout.write("Running ORION with these parameters:" + "\n")
-    sys.stdout.write(str(args) + "\n")
+    log_file.write("Running ORION with these parameters:" + "\n")
+    log_file.write(str(args) + "\n")
 
     fasta = args.FASTA
-    base = os.path.basename(fasta).split(".")[0]
+    base = ".".join(os.path.basename(fasta).split(".")[:-1])
 
     out_dir = args.out
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    e_filter = max(1, args.e_filter)
-    weight_type = args.weight_type
+    e_filter = min(1, args.e_filter)
+    threads = args.threads
+    if not threads:
+        threads = multiprocessing.cpu_count()
 
 
     # PRODIGAL
-
-    sys.stdout.write("Running ORF prediction using PRODIGAL..." + "\n")
+    log_file.write("Running ORF prediction using PRODIGAL..." + "\n")
 
     prodigal_out = os.path.join(out_dir, "prodigal/")
     if not os.path.exists(prodigal_out):
@@ -70,8 +72,7 @@ if __name__ == "__main__":
 
 
     # HMMER
-
-    sys.stdout.write("Running Pfam domain annotation..." + "\n")
+    log_file.write("Running Pfam domain annotation..." + "\n")
 
     hmmer_out = os.path.join(out_dir, "hmmer/")
     if not os.path.exists(hmmer_out):
@@ -80,9 +81,10 @@ if __name__ == "__main__":
     hmmer = HMMER(orf_file, hmmer_out, hmms=PFAM)
     pfam_df = hmmer.run()
 
-    # Format feature table
+    # Filter i-Evalue
     pfam_df = pfam_df[pfam_df["i_Evalue"] < e_filter]
-    # pfam_df = compute_features(pfam_df, weight_type=weight_type)
+    pfam_df["protein_id"] = pd.Categorical(
+                pfam_df["protein_id"], pfam_df["protein_id"].unique())
 
     # Write feature table to file
     feat_out = os.path.join(out_dir, base + ".features.tsv")
@@ -90,8 +92,7 @@ if __name__ == "__main__":
 
 
     # CRF
-
-    sys.stdout.write("Running cluster prediction..." + "\n")
+    log_file.write("Running cluster prediction..." + "\n")
 
     with open(MODEL, "rb") as f:
         crf = pickle.load(f)
@@ -100,7 +101,8 @@ if __name__ == "__main__":
     crf.weights = [1]
     #############################################
 
-    pfam_df = crf.predict_marginals(data=[pfam_df])
+    pfam_df = [pfam_df]
+    pfam_df = crf.predict_marginals(data=pfam_df)
 
     # Write predictions to file
     pred_out = os.path.join(out_dir, base + ".pred.tsv")
@@ -108,25 +110,26 @@ if __name__ == "__main__":
 
 
     # REFINE
+    log_file.write("Extracting and refining clusters..." + "\n")
 
-    sys.stdout.write("Extracting and refining clusters..." + "\n")
-
-    refiner = ClusterRefiner(threshold=0.5)
+    refiner = ClusterRefiner(threshold=args.thresh)
     clusters = refiner.find_clusters(
         pfam_df,
-        method = "antismash",
-        prefix = sid
+        method = args.post,
+        prefix = base
     )
 
+    del pfam_df
+
     if not clusters:
-        sys.stdout.write("Unfortunately, no clusters were found. Exiting now.")
+        log_file.write("Unfortunately, no clusters were found. Exiting now.")
         sys.exit()
 
 
     # KNN
+    log_file.write("Running cluster type prediction..." + "\n")
 
-    sys.stdout.write("Running cluster type prediction..." + "\n")
-
+    ### This part should go into ClusterKNN object ###
     train_df = pd.read_csv(TRAINING_MATRIX, sep="\t", encoding="utf-8")
     train_comp = train_df.iloc[:,1:].values
     id_array = train_df["BGC_id"].values
@@ -139,8 +142,9 @@ if __name__ == "__main__":
     new_comp = np.array(
         [c.domain_composition(all_possible=pfam_array) for c in clusters]
     )
+    ##################################################
 
-    knn = ClusterKNN(metric="jsd", n_neighbors=1)
+    knn = ClusterKNN(metric=args.dist, n_neighbors=args.k)
     knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
     cluster_out = os.path.join(out_dir, base + ".clusters.tsv")
@@ -149,4 +153,4 @@ if __name__ == "__main__":
             c.type = t
             c.write_to_file(f)
 
-    sys.stdout.write("DONE." + "\n")
+    log_file.write("DONE." + "\n")

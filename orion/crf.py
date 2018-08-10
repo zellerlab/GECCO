@@ -175,5 +175,4 @@ class ClusterCRF(object):
     def _merge(self, df, **cols):
         unidf = pd.DataFrame(cols)
         unidf[self.groups] = df[self.groups].unique()
-
         return df.merge(unidf)
