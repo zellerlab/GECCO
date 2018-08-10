@@ -1,3 +1,4 @@
+import sys
 import argparse
 
 # FUNC
@@ -6,35 +7,63 @@ def main_interface():
 
     parser.add_argument("FASTA",
                         type=str,
-                        metavar="<FASTA>",
+                        metavar="<f>",
                         help="A genome FASTA file as input.")
 
     parser.add_argument("-o", "--output-dir",
                         dest="out",
                         type=str,
                         default="./",
-                        metavar="<out_dir>",
-                        help="Output directory.")
+                        metavar="<d>",
+                        help="Output directory [./].")
 
-    parser.add_argument("--e-filter",
+    parser.add_argument("-t", "--cpus", "--threads",
+                        dest="threads",
+                        type=int,
+                        metavar="<int>",
+                        help="Number of CPUs for multithreading [auto].")
+
+    parser.add_argument("--e-filter", "-e",
                         dest="e_filter",
                         type=float,
                         default="1e-5",
                         metavar="<e_filter>",
-                        help="E-value cutoff for pfam domains to be included.")
+                        help="E-value cutoff for pfam domains to be included [1e-5].")
 
-    parser.add_argument("--feature-type",
-                        dest="feature_type",
-                        default="protein",
-                        type=str,
-                        metavar="<feature_type>",
-                        help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
+    parser.add_argument("--thresh", "-p",
+                        dest="thresh",
+                        type=float,
+                        default="0.4",
+                        metavar="<float>",
+                        help="Probability threshold for cluster detection. Default depends on the chosen postprocessing method [0.4 (orion)/0.6 (antismash).")
 
-    parser.add_argument("--weight-type",
-                        dest="weight_type",
+    parser.add_argument("-k", "--neighbors",
+                        dest="k",
+                        type=int,
+                        default="5",
+                        metavar="<int>",
+                        help="Numer of neighbors for kNN type prediction.")
+
+    parser.add_argument("-d", "--distance-metric",
+                        dest="dist",
                         type=str,
-                        metavar="<weight_type>",
-                        help="Type of local weights for features.")
+                        default="jsd",
+                        metavar="<jsd/tanimoto>",
+                        help="Distance metric for kNN type prediction.")
+
+    parser.add_argument("--postproc",
+                        dest="post",
+                        type=str,
+                        default="orion",
+                        metavar="<orion/antismash>",
+                        help="Type of method for cluster extraction [orion].")
+
+    parser.add_argument("--log",
+                        dest="log",
+                        type=argparse.FileType("wt"),
+                        default=sys.stdout,
+                        metavar="<f>",
+                        help="Where to write the log file [stdout].")
 
     args = parser.parse_args()
     return args
@@ -150,6 +179,18 @@ def scripts_interface():
                         default="10",
                         type=int,
                         help="Number of folds for CV.")
+
+    parser.add_argument("--distance-metric",
+                        dest="dist",
+                        default="jsd",
+                        type=str,
+                        help="Dinstance metric for kNN.")
+
+    parser.add_argument("--postproc",
+                        dest="post",
+                        default="orion",
+                        type=str,
+                        help="Method for extracting clusters.")
 
     parser.add_argument("--C1",
                         dest="C1",
