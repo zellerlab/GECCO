@@ -42,14 +42,14 @@ def main_interface():
                         type=int,
                         default="5",
                         metavar="<int>",
-                        help="Numer of neighbors for kNN type prediction.")
+                        help="Numer of neighbors for kNN type prediction [5].")
 
     parser.add_argument("-d", "--distance-metric",
                         dest="dist",
                         type=str,
                         default="jsd",
                         metavar="<jsd/tanimoto>",
-                        help="Distance metric for kNN type prediction.")
+                        help="Distance metric for kNN type prediction [jsd].")
 
     parser.add_argument("--postproc",
                         dest="post",

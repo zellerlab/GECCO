@@ -6,9 +6,9 @@ class ORFFinder(object):
 
     def __init__(self, fasta, out_dir, method="prodigal",
             out_formats=["genes", "coords"],
-            other_args=["-p", "meta"]):
+            other_args=[]):
         self.fasta = fasta
-        self.base = os.path.basename(self.fasta).split(".")[0]
+        self.base = ".".join(os.path.basename(fasta).split(".")[:-1])
         self.out_dir = out_dir
         self.method = method
         self._check_method()
@@ -49,4 +49,4 @@ class ORFFinder(object):
             coords_out = os.path.join(self.out_dir, self.base + ".coords.sco")
             cmd += ["-o", coords_out]
 
-        return cmd + self.other_args
+        return cmd + ["-p", "meta", "-f", "sco"] + self.other_args

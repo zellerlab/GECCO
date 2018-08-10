@@ -3,7 +3,8 @@ from orion.preprocessing import flatten
 
 class Protein(object):
     """Definition of a Protein"""
-    def __init__(self, start, end, name, p=0.0, domains=[], weights=None):
+    def __init__(self, seq_id, start, end, name, p=0.0, domains=[], weights=None):
+        self.seq_id = seq_id
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = np.array(name)
@@ -20,10 +21,12 @@ class Protein(object):
 
 class BGC(object):
     """A biosynthetic gene cluster with multiple proteins"""
-    def __init__(self, proteins, name="cluster", bgc_type=None):
-        self.name = name
-        self.type = bgc_type
+    def __init__(self, proteins, name=None, bgc_type=None, type_prob=None):
         self.proteins = proteins
+        self.seq_id = self.proteins[0].seq_id
+        self.name = name if name else seq_id
+        self.type = bgc_type
+        self.type_prob = type_prob
         self.prot_ids = np.array([p.name for p in proteins])
         self.start = min([p.start for p in proteins])
         self.end = max([p.end for p in proteins])
@@ -42,15 +45,17 @@ class BGC(object):
         if criterion == "orion":
             return self._orion_check()
 
-    def write_to_file(self, handle, short=True):
+    def write_to_file(self, handle, long=False):
         p_mean = np.hstack(self.probs).mean()
         p_max = np.hstack(self.probs).max()
-        if short:
-            row = [self.name, self.start, self.end, p_mean, p_max, self.type]
+        if not long:
+            row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
+                self.type, self.type_proba]
         else:
             prot = ",".join(np.hstack(self.prot_ids))
             pfam = ",".join(np.hstack(self.domains))
-            row = [self.name, self.start, self.end, p_mean, p_max, self.type, prot, pfam]
+            row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
+                self.type, self.type_proba, prot, pfam]
         row = map(str, row)
         handle.write("\t".join(row) + "\n")
 
@@ -69,10 +74,11 @@ class BGC(object):
             else:
                 weight = 0
             comp_arr[i] = n * weight
-        return comp_arr / comp_arr.sum()
+        comp_arr = comp_arr / comp_arr.sum()
+        return np.nan_to_num(comp_arr, copy=False)
 
     def domain_counts(self, all_possible=None):
-        """Comoutes domain counts with respect to all_possible.
+        """Computes domain counts with respect to all_possible.
         """
         doms = np.hstack(self.domains)
         if all_possible is None:

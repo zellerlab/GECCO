@@ -7,7 +7,8 @@ from orion.utils import jsd_pairwise, tanimoto_pairwise
 class ClusterKNN(object):
     """
     Predicts cluster types based on a kNN Classifier and plots results.
-    Essentially a wrapper around sklearns KNeighborsClassifier, MDS and TSNE.
+    Essentially a wrapper around sklearns KNeighborsClassifier
+    (MDS and TSNE maybe later)
     """
 
     def __init__(self, metric="jsd", **kwargs):
@@ -26,4 +27,6 @@ class ClusterKNN(object):
 
     def fit_predict(self, train_matrix, new_matrix, y):
         self.knn.fit(train_matrix, y=y)
-        return self.knn.predict(new_matrix)
+        pred = self.knn.predict(new_matrix)
+        proba = [max(p) for p in self.knn.predict_proba(new_matrix)]
+        return list(zip(pred, proba))

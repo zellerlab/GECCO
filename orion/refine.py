@@ -81,6 +81,7 @@ class ClusterRefiner(object):
         prot_list = []
         for pid, subdf in segment.groupby(self.prot_col, sort=False):
             protein = Protein(
+                seq_id = subdf[self.seq_col].values[0],
                 start = subdf["start"].min(),
                 end = subdf["end"].max(),
                 name = pid,
@@ -92,7 +93,7 @@ class ClusterRefiner(object):
 
         return BGC(prot_list, name=cluster_name)
 
-    def extract_segments(self, df, prefix="cluster"):
+    def extract_segments(self, df):
         """Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
         """
@@ -104,7 +105,7 @@ class ClusterRefiner(object):
             if row[self.p_col] >= self.lower_thresh:
                 # non-cluster -> cluster
                 if not cluster_state:
-                    cluster_name = self.prefix + "_" + str(cluster_num)
+                    cluster_name = f"{row[self.seq_col]}_cluster_{str(cluster_num)}"
                     row = (pd.DataFrame(row)
                         .transpose())
                     cluster_start = row["start"]
@@ -117,7 +118,7 @@ class ClusterRefiner(object):
                 # cluster -> non-cluster
                 if cluster_state:
                     cluster_list.append(
-                        cluster_df.assign(idx = n, cluster_id = cluster_name)
+                        cluster_df.assign(idx=n, cluster_id=cluster_name)
                     )
                     cluster_num += 1
                     cluster_state = False
