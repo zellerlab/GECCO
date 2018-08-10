@@ -30,7 +30,28 @@ class ClusterRefiner(object):
             clusters = self._antismash_refine(pfam_df)
             return clusters
         if method == "orion":
-            pass
+            self.lower_thresh = self.thresh
+            clusters = self._orion_refine(pfam_df)
+            return clusters
+
+
+    def _orion_refine(self, dataframe):
+        """
+        So far, this implements a very basic extraction procedure:
+        1) Extract segments with p_pred > self.thresh
+        ...thats it.
+        """
+        bgc_list = []
+        segments = self.extract_segments(dataframe)
+        if not segments:
+            return
+        for seg in segments:
+            bgc = self._extract_cluster(dataframe, seg)
+            bgc_list.append(bgc)
+
+        return bgc_list
+
+
 
     def _antismash_refine(self, dataframe):
         """
@@ -46,57 +67,30 @@ class ClusterRefiner(object):
         if not segments:
             return
         for seg in segments:
-            cluster_name = seg["cluster_id"].values[0]
-            cluster_prots = set(seg[self.prot_col])
-            cluster_df = dataframe.loc[dataframe[self.prot_col].isin(cluster_prots)]
-            prot_list = []
-            for pid, subdf in seg.groupby(self.prot_col, sort=False):
-                protein = Protein(
-                    start = subdf["start"].min(),
-                    end = subdf["end"].max(),
-                    name = pid,
-                    domains = subdf.get(self.domain_col),
-                    weights = subdf.get(self.weight_col),
-                    p = subdf.get(self.p_col)
-                )
-                prot_list.append(protein)
-
-            bgc = BGC(prot_list, name=cluster_name)
+            bgc = self._extract_cluster(dataframe, seg)
             if bgc.is_valid(criterion="antismash"):
                 bgc_list.append(bgc)
 
         return bgc_list
 
-    def segment(self, df):
-        """Determines coordinates of segments determined by p_col over
-        a lower_thresh.
-        """
-        cluster_num = 1
-        cluster_state = False
-        cluster_list = []
-        for n in range(len(df)):
-            row = df.iloc[n]
-            if row[self.p_col] >= self.lower_thresh:
-                # non-cluster -> cluster
-                if not cluster_state:
-                    cluster_dict = {}
-                    cluster_dict[self.seq_col] = row[self.seq_col]
-                    cluster_dict["cluster_id"] = self.prefix + "_" + str(cluster_num)
-                    cluster_dict["start"] = min(row["start"], row["end"])
-                    cluster_state = True
-                # cluster -> cluster
-                # pass
-            else:
-                # cluster -> non-cluster
-                if cluster_state:
-                    cluster_dict["end"] = max(row["start"], row["end"])
-                    cluster_list.append(cluster_dict)
-                    cluster_num += 1
-                    cluster_state = False
-                # non-cluster -> non-cluster
-                # pass
-        return pd.DataFrame(cluster_list)
+    def _extract_cluster(self, dataframe, segment):
+        """Takes a DataFrame and a segement and returns a BGC object"""
+        cluster_name = segment["cluster_id"].values[0]
+        cluster_prots = set(segment[self.prot_col])
+        cluster_df = dataframe.loc[dataframe[self.prot_col].isin(cluster_prots)]
+        prot_list = []
+        for pid, subdf in segment.groupby(self.prot_col, sort=False):
+            protein = Protein(
+                start = subdf["start"].min(),
+                end = subdf["end"].max(),
+                name = pid,
+                domains = subdf.get(self.domain_col),
+                weights = subdf.get(self.weight_col),
+                p = subdf.get(self.p_col)
+            )
+            prot_list.append(protein)
 
+        return BGC(prot_list, name=cluster_name)
 
     def extract_segments(self, df, prefix="cluster"):
         """Extracts segments from a data frame which are determined by p_col.
@@ -134,3 +128,34 @@ class ClusterRefiner(object):
             return cluster_list
         else:
             return
+
+
+    def segment(self, df):
+        """Determines coordinates of segments determined by p_col over
+        a lower_thresh.
+        """
+        cluster_num = 1
+        cluster_state = False
+        cluster_list = []
+        for n in range(len(df)):
+            row = df.iloc[n]
+            if row[self.p_col] >= self.lower_thresh:
+                # non-cluster -> cluster
+                if not cluster_state:
+                    cluster_dict = {}
+                    cluster_dict[self.seq_col] = row[self.seq_col]
+                    cluster_dict["cluster_id"] = self.prefix + "_" + str(cluster_num)
+                    cluster_dict["start"] = min(row["start"], row["end"])
+                    cluster_state = True
+                # cluster -> cluster
+                # pass
+            else:
+                # cluster -> non-cluster
+                if cluster_state:
+                    cluster_dict["end"] = max(row["start"], row["end"])
+                    cluster_list.append(cluster_dict)
+                    cluster_num += 1
+                    cluster_state = False
+                # non-cluster -> non-cluster
+                # pass
+        return pd.DataFrame(cluster_list)

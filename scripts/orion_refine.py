@@ -21,31 +21,36 @@ if __name__ == "__main__":
 
     data = args.DATA
     out_file = args.out
-    thresh = args.thresh
-    split_col = args.split_col
 
     print(args)
 
     data_df = pd.read_csv(data, sep="\t", encoding="utf-8")
 
     refiner = ClusterRefiner(
-        threshold = thresh
+        threshold = args.thresh
     )
 
     cluster_list = []
-    for sid, df in data_df.groupby(split_col):
-        clusters = refiner.find_clusters(
+    if args.split_col:
+        for sid, df in data_df.groupby(args.split_col):
+            clusters = refiner.find_clusters(
+                df,
+                method = args.post,
+                prefix = sid
+            )
+            if clusters:
+                cluster_list += clusters
+    else:
+        cluster_list = refiner.find_clusters(
             df,
-            method = "antismash",
+            method = args.post,
             prefix = sid
         )
-        if clusters:
-            cluster_list += clusters
 
-    # cluster_prots = np.hstack(np.array([c.prot_ids for c in cluster_list]))
-    # data_df["AS_pred"] = np.where(data_df["protein_id"].isin(cluster_prots), 1, 0)
-    #
-    # data_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=True)
+    cluster_prots = np.hstack(np.array([c.prot_ids for c in cluster_list]))
+    data_df["Y_pred"] = np.where(data_df[args.group_col].isin(cluster_prots), 1, 0)
+
+    data_df.to_csv(out_file + ".refined.tsv", sep="\t", index=False, header=True)
 
     with open(out_file + ".clusters.tsv", "wt") as f:
         for c in cluster_list:
