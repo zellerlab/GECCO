@@ -14,7 +14,7 @@ URL = "https://git.embl.de/fleck/ORION.git"
 EMAIL = "jonas.simon.fleck@gmail.com"
 AUTHOR = "Jonas Simon Fleck"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 LICENSE = "MIT"
 
 # Python package requirements
