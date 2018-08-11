@@ -115,15 +115,17 @@ if __name__ == "__main__":
     # REFINE
     log_file.write("Extracting and refining clusters..." + "\n")
 
+    refiner = ClusterRefiner(threshold=args.thresh)
+
     clusters = []
     for sid, subdf in pfam_df.groupby("sequence_id"):
-        refiner = ClusterRefiner(threshold=args.thresh)
         found_clusters = refiner.find_clusters(
-            pfam_df,
+            subdf,
             method = args.post,
             prefix = sid
         )
-        clusters += found_clusters
+        if found_clusters:
+            clusters += found_clusters
 
     del pfam_df
 
@@ -158,6 +160,6 @@ if __name__ == "__main__":
         for c, t in zip(clusters, knn_pred):
             c.type = t[0]
             c.type_proba = t[1]
-            c.write_to_file(f)
+            c.write_to_file(f, long=True)
 
     log_file.write("DONE." + "\n")

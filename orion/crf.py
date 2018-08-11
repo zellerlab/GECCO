@@ -136,8 +136,9 @@ class ClusterCRF(object):
             cluster_probs = np.array([0 for d in [s for s in marginal_probs]])
 
         if self.feature_type == "group":
+            groups = np.concatenate([df[self.groups].unique() for df in test_data])
             result_df = pd.concat(test_data).assign(cv_round=round_id)
-            result_df = self._merge(result_df, p_pred=cluster_probs)
+            result_df = self._merge(result_df, groups, p_pred=cluster_probs)
         else:
             result_df = (pd.concat(test_data)
                 .assign(
@@ -172,7 +173,7 @@ class ClusterCRF(object):
                 weight_col=self.weights,
                 prot_col=self.groups)
 
-    def _merge(self, df, **cols):
+    def _merge(self, df, groups, **cols):
         unidf = pd.DataFrame(cols)
-        unidf[self.groups] = df[self.groups].unique()
+        unidf[self.groups] = groups
         return df.merge(unidf)

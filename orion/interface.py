@@ -155,7 +155,7 @@ def scripts_interface():
     parser.add_argument("--feature-type",
                         dest="feature_type",
                         type=str,
-                        default="single",
+                        default="group",
                         help="How features should be extracted. 'Single', 'overlap' or on some grouping level ('group').")
 
     parser.add_argument("--truncate",
