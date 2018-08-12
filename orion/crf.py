@@ -53,8 +53,9 @@ class ClusterCRF(object):
             cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
             if self.feature_type == "group":
+                groups = np.concatenate([df[self.groups].unique() for df in data])
                 result_df = pd.concat(data)
-                result_df = self._merge(result_df, p_pred=cluster_probs)
+                result_df = self._merge(result_df, groups, p_pred=cluster_probs)
             else:
                 result_df = pd.concat(data)
                 result_df = result_df.assign(p_pred=cluster_probs)
