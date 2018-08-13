@@ -28,7 +28,7 @@ if __name__ == "__main__":
         threads = multiprocessing.cpu_count()
 
     C1 = args.C1
-    C2 = args.C1
+    C2 = args.C2
     weight_col = [coerce_numeric(w) for w in args.w]
     y_col = args.y
     feature_col = args.feat
