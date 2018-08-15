@@ -67,7 +67,7 @@ def reporthook(count, block_size, total_size):
     percent = int(count * block_size * 100 / total_size)
     prog = int(50 * percent / 100)
     sys.stdout.write(
-        "\r Pfam-A.hmm.gz: {0}{1} | {2}%, {3} MB, {4} KB/s, {5} seconds passed".format(
+        "\rPfam-A.hmm.gz: {0}{1} | {2}%, {3} MB, {4} KB/s, {5} seconds passed".format(
         "#" * prog, " " * (50 - prog),
         percent, int(progress_size / (1024 * 1024)), speed, int(duration)))
     sys.stdout.flush()
