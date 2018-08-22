@@ -200,7 +200,7 @@ def scripts_interface():
 
     parser.add_argument("--C2",
                         dest="C2",
-                        default="1.75",
+                        default="0.15",
                         type=float,
                         help="Parameter for L2 regularization.")
 

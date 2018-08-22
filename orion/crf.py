@@ -13,6 +13,28 @@ from orion.preprocessing import extract_overlapping_features, extract_protein_fe
 
 # CLASS
 class ClusterCRF(object):
+    """
+    ClusterCRF is a wrapper around CRFSuite and enables predition and cross validation
+    for dataframes. This is handy for sequence prediction in e.g. annotated genomic
+    sequences.
+    Initiated with the columns defining the respective properties in the dataframe:
+        Y_col: column with class labels
+        feature_cols: column(s) with categorical features
+        weight_cols: column(s) with 'weights' for categorical features. These are applied
+            locally and don't correspont to the actual weights the model learns. You can read up on how this is used inside CRFSuite on the CRFSuite website.
+        group_col: in case of feature_type = 'group', this defines the grouping column
+        feature_type: defines how features should be extracted:
+            single: Features are extractd on a domain (row) level
+            overlap: Features are extracted in overlapping windows
+            group: Features are extracted in groupings determined by a column in the data
+            frame. This is most useful when dealing with proteins, but can handle
+            arbitrary grouping levels
+        algorithm: the optimization algorithm for the model
+            (again, check the CRFSuite website)
+        overlap: in case of feature_type='overlap', by how much the windows should
+            overlap
+        **kwargs: other parameters you want to pass to the CRF model.
+    """
 
     def __init__(self, Y_col=None,
         feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
@@ -33,6 +55,12 @@ class ClusterCRF(object):
             **kwargs)
 
     def fit(self, X=None, Y=None, data=None):
+        """
+        Fits the model.
+        If X and Y are defined, it fits the model on the corresponding vectors.
+        If data is defined, it takes toe dataframe to extract features and labels for
+        fitting
+        """
         if (X is not None) and (Y is not None):
             self.model.fit(X, Y)
         elif data is not None:
@@ -42,6 +70,12 @@ class ClusterCRF(object):
             self.model.fit(X, Y)
 
     def predict_marginals(self, data=None, X=None):
+        """
+        Predicts marginals for your data.
+        If X (a feature vector) is defined, it outputs a probability vector.
+        If data (a dataframe) is defined, it outputs the same dataframe with the
+        probability vector concatenated to it as the column p_pred.
+        """
         if X is not None:
             return self.model.predict_marginals(X)
         elif data is not None:
@@ -63,6 +97,7 @@ class ClusterCRF(object):
             return result_df
 
     def cv(self, data, k=10, threads=1, e_filter=1, trunc=None, strat_col=None):
+        """Runs stratified k-fold CV using k splits and a stratification column"""
 
         if strat_col:
             types = [s[strat_col].values[0].split(",") for s in data]
@@ -71,6 +106,7 @@ class ClusterCRF(object):
             folds = n_folds(len(data), n=k)
             cv_split = PredefinedSplit(folds)
 
+        # Run one job per split and collects the result in a list
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 trunc=trunc) for train_idx, test_idx in cv_split.split())
@@ -78,10 +114,12 @@ class ClusterCRF(object):
         return results
 
     def loto_cv(self, data, type_col, threads=1, e_filter=1, trunc=None):
+        """Runs LOTO CV based on a column defining the type of the sample (type_col)"""
 
         types = [s[type_col].values[0].split(",") for s in data]
         cv_split = LotoSplit(types)
 
+        # Run one job per split and collects the result in a list
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx,
                 round_id=typ, e_filter=e_filter, trunc=trunc)
@@ -91,10 +129,15 @@ class ClusterCRF(object):
 
     def partial_cv(self, data, n_train, n_val, k=10, threads=1, e_filter=1,
             trunc=None):
+        """
+        Runs partial CV. A training set is only used for training and the
+        validation set is used for k-fold CV
+        """
 
         folds = n_folds_partial(n_train, n_val, n=k)
         cv_split = PredefinedSplit(folds)
 
+        # Run one job per split and collects the result in a list
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 trunc=trunc) for train_idx, test_idx in cv_split.split())
@@ -109,14 +152,17 @@ class ClusterCRF(object):
         train_data = [data[i].reset_index() for i in train_idx]
 
         if trunc:
+            # Truncate training set from both sides to desired length
             train_data = [truncate(df, trunc, Y_col=self.Y_col, grouping=self.groups)
                 for df in train_data]
 
+        # Extract features to CRFSuite format
         train_samples = [self._extract_features(s) for s in train_data]
         X_train = np.array([x for x, _ in train_samples])
         Y_train = np.array([y for _, y in train_samples])
 
         test_data = [data[i].reset_index() for i in test_idx]
+        # Optional filter for E-value
         test_data = [t[t["i_Evalue"] < e_filter].reset_index(drop=True)
             for t in test_data]
         test_samples = [self._extract_features(s) for s in test_data]
@@ -126,6 +172,7 @@ class ClusterCRF(object):
 
         self.fit(X=X_train, Y=Y_train)
 
+        # Extract cluster (1) probabilities from marginals
         marginal_probs = self.model.predict_marginals(X_test)
         marginal_probs = np.concatenate(np.array([np.array(_) for _ in marginal_probs]))
         try:
@@ -136,6 +183,10 @@ class ClusterCRF(object):
             )
             cluster_probs = np.array([0 for d in [s for s in marginal_probs]])
 
+        # Merge probs vector with the input dataframe. This is tricky if we are dealing
+        # with protein features as length of vector does not fit to dataframe
+        # To deal with this, we merge by protein_id
+        # --> HOWEVER: this requires the protein IDs to be unique among all samples
         if self.feature_type == "group":
             groups = np.concatenate([df[self.groups].unique() for df in test_data])
             result_df = pd.concat(test_data).assign(cv_round=round_id)
@@ -151,6 +202,14 @@ class ClusterCRF(object):
         return result_df
 
     def _extract_features(self, sample, X_only=False):
+        """
+        Chooses extraction function based on feature type.
+        single: Features are extractd on a domain (row) level
+        overlap: Features are extracted in overlapping windows
+        group: Features are extracted in groupings determined by a column in the data
+        frame. This is most useful when dealing with proteins, bu can handle arbitrary
+        grouping levels
+        """
 
         if X_only:
             Y_col = None

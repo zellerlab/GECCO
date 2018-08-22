@@ -59,6 +59,16 @@ if __name__ == "__main__":
         c2 = C2
     )
 
+    # crf = ClusterCRF(
+    #     Y_col = y_col,
+    #     feature_cols = feature_col,
+    #     weight_cols = weight_col,
+    #     feature_type = feature_type,
+    #     overlap = overlap,
+    #     algorithm = "l2sgd",
+    #     c2 = C2
+    # )
+
     results = crf.loto_cv(
         data_tbl,
         type_col = strat_col,
