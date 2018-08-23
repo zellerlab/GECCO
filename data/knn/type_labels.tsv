@@ -14,8 +14,6 @@ BGC0000012	Polyketide	Type I
 BGC0000013	Polyketide	Type I
 BGC0000014	Polyketide	Type I
 BGC0000015	Polyketide	Type I
-BGC0000016	Other	Other
-BGC0000017	Mixed	Other
 BGC0000018	Polyketide	Type I
 BGC0000019	Polyketide	Type I
 BGC0000020	Polyketide	Type I
@@ -34,7 +32,6 @@ BGC0000032	Polyketide	Type I
 BGC0000033	Polyketide	Type I
 BGC0000034	Polyketide	Type I
 BGC0000035	Polyketide	Type I
-BGC0000036	Mixed	Other
 BGC0000037	Polyketide	Type I
 BGC0000038	Polyketide	Type I
 BGC0000039	Polyketide	Type I
@@ -53,7 +50,6 @@ BGC0000051	Polyketide	Type I
 BGC0000052	Polyketide	Type I
 BGC0000053	Polyketide	Type I
 BGC0000054	Polyketide	Type I
-BGC0000055	Mixed	Type I
 BGC0000056	Polyketide	Type I
 BGC0000057	Polyketide	Type I
 BGC0000058	Polyketide	Type I
@@ -91,7 +87,6 @@ BGC0000090	Polyketide	Type I
 BGC0000091	Polyketide	Type I
 BGC0000092	Polyketide	Type I
 BGC0000093	Polyketide	Type I
-BGC0000094	Mixed	Type I
 BGC0000095	Polyketide	Type I
 BGC0000096	Polyketide	Type I
 BGC0000097	Polyketide	Type I
@@ -101,7 +96,6 @@ BGC0000100	Polyketide	Type I
 BGC0000101	Polyketide	Type I
 BGC0000102	Polyketide	Type I
 BGC0000103	Polyketide	Type I
-BGC0000104	Mixed	Type I
 BGC0000105	Polyketide	Type I
 BGC0000106	Polyketide	Type I
 BGC0000107	Polyketide	Type I
@@ -112,11 +106,9 @@ BGC0000111	Polyketide	Type I
 BGC0000112	Polyketide	Type I
 BGC0000113	Polyketide	Type I
 BGC0000114	Polyketide	Type I
-BGC0000115	Mixed	Type I
 BGC0000116	Polyketide	Type I
 BGC0000117	Polyketide	Type I
 BGC0000118	Polyketide	Type I
-BGC0000119	Mixed	Type I
 BGC0000120	Polyketide	Other
 BGC0000121	Polyketide	Type I
 BGC0000122	Polyketide	Type I
@@ -146,10 +138,7 @@ BGC0000146	Polyketide	Type I
 BGC0000147	Polyketide	Type I
 BGC0000148	Polyketide	Type I
 BGC0000149	Polyketide	Type I
-BGC0000150	Mixed	Other
-BGC0000151	Mixed	Type I
 BGC0000152	Polyketide	Type I
-BGC0000153	Mixed	Other
 BGC0000154	Polyketide	Type I
 BGC0000155	Polyketide	Type I
 BGC0000156	Polyketide	Type I
@@ -171,17 +160,14 @@ BGC0000172	Polyketide	Type I
 BGC0000173	Polyketide	Type I
 BGC0000174	Polyketide	Type I
 BGC0000175	Polyketide	Type I
-BGC0000176	Other	Other
 BGC0000177	Polyketide	Type I
 BGC0000178	Polyketide	Type I
 BGC0000179	Polyketide	Type I
 BGC0000180	Polyketide	Type I
-BGC0000181	Other	Other
 BGC0000182	Polyketide	Other
 BGC0000183	Polyketide	Type I
 BGC0000184	Polyketide	Type I
 BGC0000185	Polyketide	Type I
-BGC0000186	Mixed	Other
 BGC0000187	Polyketide	Type II
 BGC0000188	Alkaloid	Other
 BGC0000189	Polyketide	Other
@@ -192,11 +178,6 @@ BGC0000193	Polyketide	Type II
 BGC0000194	Polyketide	Type II
 BGC0000195	Polyketide	Type II
 BGC0000196	Polyketide	Type II
-BGC0000197	Mixed	Type II
-BGC0000198	Mixed	Type II
-BGC0000199	Mixed	Type II
-BGC0000200	Mixed	Type II
-BGC0000201	Mixed	Type II
 BGC0000202	Polyketide	Type II
 BGC0000203	Polyketide	Type II
 BGC0000204	Polyketide	Type II
@@ -205,7 +186,6 @@ BGC0000206	Polyketide	Type II
 BGC0000207	Polyketide	Type II
 BGC0000208	Polyketide	Type II
 BGC0000209	Polyketide	Type II
-BGC0000210	Mixed	Type II
 BGC0000211	Polyketide	Type II
 BGC0000212	Polyketide	Type II
 BGC0000213	Polyketide	Type II
@@ -214,7 +194,6 @@ BGC0000215	Polyketide	Type II
 BGC0000216	Polyketide	Type II
 BGC0000217	Polyketide	Type II
 BGC0000218	Polyketide	Type II
-BGC0000219	Mixed	Type II
 BGC0000220	Polyketide	Type II
 BGC0000221	Polyketide	Type II
 BGC0000222	Polyketide	Type II
@@ -224,7 +203,6 @@ BGC0000225	Polyketide	Type II
 BGC0000226	Polyketide	Type II
 BGC0000227	Polyketide	Type II
 BGC0000228	Polyketide	Type II
-BGC0000229	Mixed	Type II
 BGC0000230	Polyketide	Type II
 BGC0000231	Polyketide	Type II
 BGC0000232	Polyketide	Type II
@@ -234,18 +212,13 @@ BGC0000235	Polyketide	Type II
 BGC0000236	Polyketide	Type II
 BGC0000237	Polyketide	Type II
 BGC0000238	Polyketide	Type II
-BGC0000239	Mixed	Type II
-BGC0000240	Mixed	Type II
-BGC0000241	Mixed	Type II
 BGC0000242	Polyketide	Type II
 BGC0000243	Polyketide	Type II
 BGC0000244	Polyketide	Type II
 BGC0000245	Polyketide	Type II
 BGC0000246	Polyketide	Type II
-BGC0000247	Mixed	Type II
 BGC0000248	Polyketide	Type II
 BGC0000249	Polyketide	Type II
-BGC0000250	Mixed	Type II
 BGC0000251	Polyketide	Type II
 BGC0000252	Polyketide	Type II
 BGC0000253	Polyketide	Type II
@@ -257,34 +230,26 @@ BGC0000258	Polyketide	Type II
 BGC0000259	Polyketide	Type II
 BGC0000260	Polyketide	Type II
 BGC0000261	Polyketide	Type II
-BGC0000262	Mixed	Type II
 BGC0000263	Polyketide	Type II
 BGC0000264	Polyketide	Type II
 BGC0000265	Polyketide	Type II
 BGC0000266	Polyketide	Type II
-BGC0000267	Mixed	Type II
 BGC0000268	Polyketide	Type II
-BGC0000269	Mixed	Type II
 BGC0000270	Polyketide	Type II
 BGC0000271	Polyketide	Type II
 BGC0000272	Polyketide	Type II
-BGC0000273	Mixed	Type II
 BGC0000274	Polyketide	Type II
 BGC0000275	Polyketide	Type II
-BGC0000276	Mixed	Type II
 BGC0000277	Polyketide	Type II
 BGC0000278	Polyketide	Type II
 BGC0000279	Polyketide	Type II
 BGC0000280	Polyketide	Other
 BGC0000281	Polyketide	Other
 BGC0000282	Polyketide	Other
-BGC0000283	Other	Other
 BGC0000284	Polyketide	Other
-BGC0000285	Mixed	Other
 BGC0000286	Polyketide	Other
 BGC0000287	NRP	Other
 BGC0000288	NRP	Other
-BGC0000289	Mixed	Type I
 BGC0000290	NRP	Type I
 BGC0000291	NRP	Other
 BGC0000292	NRP	Other
@@ -292,7 +257,6 @@ BGC0000293	NRP	Other
 BGC0000294	NRP	Other
 BGC0000295	NRP	Other
 BGC0000296	NRP	Other
-BGC0000297	Mixed	Other
 BGC0000298	NRP	Other
 BGC0000299	NRP	Other
 BGC0000300	NRP	Other
@@ -309,7 +273,6 @@ BGC0000310	NRP	Other
 BGC0000311	NRP	Other
 BGC0000312	NRP	Other
 BGC0000313	NRP	Other
-BGC0000314	Mixed	Other
 BGC0000315	NRP	Other
 BGC0000316	NRP	Other
 BGC0000317	NRP	Other
@@ -340,8 +303,6 @@ BGC0000341	NRP	Other
 BGC0000342	NRP	Other
 BGC0000343	NRP	Other
 BGC0000344	NRP	Other
-BGC0000345	Mixed	Other
-BGC0000346	Mixed	Other
 BGC0000347	NRP	Other
 BGC0000348	NRP	Other
 BGC0000349	NRP	Other
@@ -351,7 +312,6 @@ BGC0000352	NRP	Other
 BGC0000353	NRP	Other
 BGC0000354	NRP	Other
 BGC0000355	NRP	Other
-BGC0000356	Mixed	Other
 BGC0000357	NRP	Other
 BGC0000358	NRP	Other
 BGC0000359	NRP	Other
@@ -364,7 +324,6 @@ BGC0000365	NRP	Other
 BGC0000366	NRP	Other
 BGC0000367	NRP	Other
 BGC0000368	NRP	Other
-BGC0000369	Mixed	Other
 BGC0000370	NRP	Other
 BGC0000371	NRP	Other
 BGC0000372	NRP	Other
@@ -375,10 +334,8 @@ BGC0000376	NRP	Other
 BGC0000377	NRP	Other
 BGC0000378	NRP	Other
 BGC0000379	NRP	Other
-BGC0000380	Mixed	Type I
 BGC0000381	NRP	Other
 BGC0000382	NRP	Other
-BGC0000383	Mixed	Other
 BGC0000384	NRP	Other
 BGC0000385	NRP	Other
 BGC0000386	NRP	Other
@@ -387,7 +344,6 @@ BGC0000388	NRP	Other
 BGC0000389	NRP	Other
 BGC0000391	NRP	Other
 BGC0000392	NRP	Other
-BGC0000393	Mixed	Type I
 BGC0000394	NRP	Other
 BGC0000395	NRP	Other
 BGC0000396	NRP	Other
@@ -413,7 +369,6 @@ BGC0000415	NRP	Other
 BGC0000416	NRP	Other
 BGC0000417	NRP	Other
 BGC0000418	NRP	Other
-BGC0000419	Mixed	Other
 BGC0000420	NRP	Other
 BGC0000421	NRP	Other
 BGC0000422	NRP	Other
@@ -424,7 +379,6 @@ BGC0000426	NRP	Type I
 BGC0000427	NRP	Type I
 BGC0000428	NRP	Other
 BGC0000429	NRP	Other
-BGC0000430	Mixed	Other
 BGC0000431	NRP	Other
 BGC0000432	NRP	Other
 BGC0000433	NRP	Other
@@ -453,7 +407,6 @@ BGC0000455	NRP	Other
 BGC0000456	NRP	Other
 BGC0000457	NRP	Other
 BGC0000458	NRP	Other
-BGC0000459	Mixed	Other
 BGC0000460	NRP	Other
 BGC0000461	NRP	Other
 BGC0000462	NRP	Other
@@ -642,7 +595,6 @@ BGC0000650	Terpene	Other
 BGC0000651	Terpene	Other
 BGC0000652	Terpene	Other
 BGC0000653	Terpene	Other
-BGC0000654	Mixed	Other
 BGC0000655	Terpene	Other
 BGC0000656	Terpene	Other
 BGC0000657	Terpene	Other
@@ -653,10 +605,8 @@ BGC0000661	Terpene	Other
 BGC0000662	Terpene	Other
 BGC0000663	Terpene	Other
 BGC0000664	Terpene	Other
-BGC0000665	Mixed	Other
 BGC0000666	Terpene	Other
 BGC0000667	Terpene	Other
-BGC0000668	Mixed	Other
 BGC0000669	Terpene	Other
 BGC0000670	Terpene	Other
 BGC0000671	Terpene	Other
@@ -803,12 +753,9 @@ BGC0000812	Alkaloid	Other
 BGC0000813	Alkaloid	Other
 BGC0000814	Alkaloid	Other
 BGC0000815	Alkaloid	Other
-BGC0000816	Mixed	Other
 BGC0000817	Alkaloid	Other
 BGC0000818	NRP	Other
-BGC0000819	Mixed	Other
 BGC0000820	Alkaloid	Other
-BGC0000821	Other	Other
 BGC0000822	Alkaloid	Other
 BGC0000823	Alkaloid	Other
 BGC0000824	Alkaloid	Other
@@ -817,309 +764,40 @@ BGC0000826	Alkaloid	Other
 BGC0000827	Alkaloid	Other
 BGC0000828	Alkaloid	Other
 BGC0000829	Alkaloid	Other
-BGC0000830	Other	Other
 BGC0000831	Alkaloid	Other
-BGC0000832	Mixed	Other
-BGC0000833	Mixed	Other
-BGC0000834	Mixed	Other
 BGC0000835	Polyketide	Other
-BGC0000836	Other	Other
-BGC0000837	Other	Other
 BGC0000838	Polyketide	Other
-BGC0000839	Other	Other
-BGC0000840	Other	Other
-BGC0000841	Other	Other
-BGC0000842	Other	Other
-BGC0000843	Other	Other
-BGC0000844	Other	Other
-BGC0000845	Other	Other
-BGC0000846	Other	Other
-BGC0000847	Other	Other
-BGC0000848	Other	Other
-BGC0000849	Other	Other
-BGC0000850	Other	Other
-BGC0000851	Other	Other
-BGC0000852	Other	Other
-BGC0000853	Other	Other
-BGC0000854	Other	Other
-BGC0000855	Other	Other
-BGC0000856	Other	Other
-BGC0000857	Other	Other
-BGC0000858	Other	Other
-BGC0000859	Other	Other
-BGC0000860	Other	Other
-BGC0000861	Other	Other
-BGC0000862	Other	Other
-BGC0000863	Other	Other
-BGC0000864	Other	Other
-BGC0000865	Other	Other
-BGC0000866	Other	Other
-BGC0000867	Other	Other
-BGC0000868	Other	Other
-BGC0000869	Other	Other
-BGC0000870	Other	Other
-BGC0000871	Other	Other
-BGC0000872	Other	Other
-BGC0000873	Other	Other
-BGC0000874	Other	Other
-BGC0000875	Other	Other
-BGC0000876	Other	Other
-BGC0000877	Other	Other
-BGC0000878	Other	Other
-BGC0000879	Other	Other
-BGC0000881	Other	Other
-BGC0000882	Other	Other
-BGC0000883	Other	Other
-BGC0000884	Other	Other
-BGC0000885	Other	Other
-BGC0000886	Other	Other
 BGC0000887	Alkaloid	Other
-BGC0000888	Other	Other
-BGC0000889	Other	Other
-BGC0000890	Other	Other
-BGC0000891	Other	Other
-BGC0000892	Other	Other
 BGC0000893	NRP	Other
-BGC0000894	Other	Other
-BGC0000895	Other	Other
-BGC0000896	Other	Other
-BGC0000897	Other	Other
 BGC0000898	Saccharide	Other
-BGC0000899	Other	Other
-BGC0000900	Other	Other
-BGC0000901	Other	Other
-BGC0000902	Other	Other
-BGC0000903	Other	Other
-BGC0000904	Other	Other
-BGC0000905	Other	Other
-BGC0000906	Other	Other
-BGC0000907	Other	Other
-BGC0000908	Other	Other
-BGC0000909	Other	Other
-BGC0000910	Other	Other
-BGC0000911	Other	Other
-BGC0000912	Other	Other
-BGC0000913	Other	Other
-BGC0000914	Other	Other
-BGC0000915	Other	Other
-BGC0000916	Other	Other
-BGC0000917	Other	Other
-BGC0000918	Other	Other
-BGC0000919	Other	Other
-BGC0000920	Other	Other
-BGC0000921	Other	Other
-BGC0000922	Other	Other
-BGC0000923	Other	Other
-BGC0000924	Other	Other
-BGC0000925	Other	Other
-BGC0000926	Other	Other
-BGC0000927	Other	Other
-BGC0000928	Other	Other
-BGC0000929	Other	Other
-BGC0000930	Other	Other
-BGC0000931	Other	Other
-BGC0000932	Other	Other
-BGC0000933	Other	Other
-BGC0000934	Other	Other
-BGC0000935	Other	Other
-BGC0000936	Other	Other
-BGC0000937	Other	Other
-BGC0000938	Other	Other
-BGC0000939	Other	Other
-BGC0000940	Other	Other
-BGC0000941	Other	Other
-BGC0000942	Other	Other
-BGC0000943	Other	Other
-BGC0000944	Other	Other
-BGC0000945	Other	Other
-BGC0000946	Other	Other
-BGC0000947	Other	Other
-BGC0000948	Other	Other
-BGC0000949	Mixed	Other
-BGC0000950	Mixed	Type I
-BGC0000951	Mixed	Other
-BGC0000952	Mixed	Type I
 BGC0000953	Saccharide	Other
-BGC0000954	Mixed	Other
-BGC0000955	Mixed	Other
-BGC0000956	Mixed	Type I
-BGC0000957	Mixed	Type I
-BGC0000958	Mixed	Other
-BGC0000959	Mixed	Other
-BGC0000960	Mixed	Type I
-BGC0000961	Mixed	Type I
-BGC0000962	Mixed	Other
-BGC0000963	Mixed	Other
-BGC0000964	Mixed	Type I
 BGC0000965	Polyketide	Type I
-BGC0000966	Mixed	Type I
-BGC0000967	Mixed	Type I
-BGC0000968	Mixed	Other
-BGC0000969	Mixed	Other
-BGC0000970	Mixed	Type I
-BGC0000971	Mixed	Other
-BGC0000972	Mixed	Other
-BGC0000973	Mixed	Type II
-BGC0000974	Mixed	Type I
 BGC0000975	NRP	Other
-BGC0000976	Mixed	Other
-BGC0000977	Mixed	Type I
-BGC0000978	Mixed	Other
-BGC0000979	Mixed	Type I
-BGC0000980	Mixed	Type I
-BGC0000981	Mixed	Type I
-BGC0000982	Mixed	Type I
-BGC0000983	Mixed	Other
-BGC0000984	Mixed	Type I
-BGC0000985	Mixed	Type I
-BGC0000986	Mixed	Type I
-BGC0000988	Mixed	Type I
-BGC0000989	Mixed	Type I
-BGC0000990	Mixed	Type I
-BGC0000991	Mixed	Type I
-BGC0000992	Mixed	Type I
-BGC0000993	Mixed	Type II
-BGC0000994	Mixed	Type I
-BGC0000995	Mixed	Type I
-BGC0000996	Mixed	Type I
-BGC0000997	Mixed	Type I
-BGC0000998	Mixed	Type I
-BGC0000999	Mixed	Type I
-BGC0001000	Mixed	Type I
-BGC0001001	Mixed	Other
-BGC0001002	Mixed	Type I
-BGC0001003	Mixed	Type II
 BGC0001004	Polyketide	Type I
-BGC0001005	Mixed	Type I
-BGC0001006	Mixed	Other
-BGC0001007	Mixed	Other
 BGC0001008	Polyketide	Type I
-BGC0001009	Mixed	Type I
-BGC0001010	Mixed	Type I
-BGC0001011	Mixed	Type I
-BGC0001012	Mixed	Type I
-BGC0001013	Mixed	Type I
-BGC0001014	Mixed	Other
-BGC0001015	Mixed	Type I
-BGC0001016	Mixed	Other
-BGC0001017	Mixed	Type I
-BGC0001018	Mixed	Type I
-BGC0001019	Mixed	Type I
-BGC0001020	Mixed	Type I
-BGC0001021	Mixed	Type I
-BGC0001022	Mixed	Type I
-BGC0001023	Mixed	Other
-BGC0001024	Mixed	Type I
-BGC0001025	Mixed	Other
-BGC0001026	Mixed	Type I
-BGC0001027	Mixed	Type I
 BGC0001028	NRP	Type I
 BGC0001029	NRP	Other
-BGC0001030	Mixed	Type I
-BGC0001031	Mixed	Type I
-BGC0001032	Mixed	Type I
-BGC0001033	Mixed	Type I
-BGC0001034	Mixed	Type I
-BGC0001035	Other	Other
-BGC0001036	Mixed	Type I
-BGC0001037	Mixed	Other
-BGC0001038	Mixed	Other
-BGC0001039	Mixed	Type I
-BGC0001040	Mixed	Type I
-BGC0001041	Mixed	Other
-BGC0001042	Mixed	Type I
-BGC0001043	Mixed	Type I
-BGC0001044	Mixed	Type I
-BGC0001045	Mixed	Type II
-BGC0001046	Mixed	Type I
-BGC0001047	Mixed	Type I
-BGC0001048	Mixed	Other
-BGC0001049	Mixed	Other
-BGC0001050	Mixed	Type I
-BGC0001051	Mixed	Other
-BGC0001052	Mixed	Type II
-BGC0001053	Mixed	Type I
-BGC0001054	Mixed	Type II
-BGC0001055	Mixed	Type I
-BGC0001056	Mixed	Other
-BGC0001057	Mixed	Type I
-BGC0001058	Mixed	Type II
-BGC0001059	Mixed	Type I
 BGC0001060	Polyketide	Other
-BGC0001061	Mixed	Other
 BGC0001062	Polyketide	Other
-BGC0001063	Mixed	Other
 BGC0001064	Polyketide	Other
 BGC0001065	Polyketide	Other
 BGC0001066	Polyketide	Type I
-BGC0001067	Mixed	Type I
-BGC0001068	Mixed	Type I
-BGC0001069	Mixed	Other
-BGC0001070	Mixed	Other
 BGC0001071	Polyketide	Type I
-BGC0001072	Mixed	Other
-BGC0001073	Mixed	Type II
-BGC0001074	Mixed	Type II
-BGC0001075	Mixed	Type II
-BGC0001076	Other	Other
-BGC0001077	Mixed	Other
-BGC0001078	Mixed	Other
-BGC0001079	Mixed	Other
-BGC0001080	Other	Other
-BGC0001081	Mixed	Other
 BGC0001082	Terpene	Other
-BGC0001083	Mixed	Other
-BGC0001084	Mixed	Other
-BGC0001085	Mixed	Other
-BGC0001086	Mixed	Other
-BGC0001087	Mixed	Other
-BGC0001088	Mixed	Type I
-BGC0001089	Other	Other
 BGC0001090	NRP	Other
-BGC0001091	Mixed	Type I
-BGC0001092	Mixed	Other
-BGC0001093	Mixed	Type I
-BGC0001094	Mixed	Type I
-BGC0001095	Mixed	Other
-BGC0001096	Mixed	Type I
-BGC0001098	Mixed	Type I
-BGC0001099	Mixed	Other
-BGC0001100	Mixed	Type I
-BGC0001101	Mixed	Other
-BGC0001102	Mixed	Type I
-BGC0001103	Mixed	Type I
-BGC0001104	Mixed	Type I
-BGC0001105	Mixed	Other
-BGC0001106	Mixed	Type I
-BGC0001107	Mixed	Type I
 BGC0001108	Polyketide	Type I
-BGC0001109	Mixed	Type I
-BGC0001110	Mixed	Other
-BGC0001111	Mixed	Other
-BGC0001112	Mixed	Other
-BGC0001113	Mixed	Type I
-BGC0001114	Mixed	Other
-BGC0001115	Mixed	Type I
-BGC0001116	Mixed	Type I
 BGC0001117	NRP	Other
 BGC0001118	Polyketide	Type I
 BGC0001119	Polyketide	Type I
-BGC0001120	Mixed	Type II
 BGC0001121	Polyketide	Type I
-BGC0001122	Mixed	Other
 BGC0001123	NRP	Other
 BGC0001124	Polyketide	Other
-BGC0001125	Mixed	Type I
-BGC0001126	Mixed	Other
 BGC0001127	NRP	Other
 BGC0001128	NRP	Other
 BGC0001132	NRP	Type I
 BGC0001133	NRP	Other
-BGC0001134	Other	Other
 BGC0001135	NRP	Other
-BGC0001136	Mixed	Other
 BGC0001137	Alkaloid	Other
-BGC0001138	Other	Other
 BGC0001140	Terpene	Other
 BGC0001141	Polyketide	Type I
 BGC0001142	NRP	Other
@@ -1128,96 +806,68 @@ BGC0001144	Polyketide	Type I
 BGC0001145	RiPP	Thiopeptide
 BGC0001146	RiPP	Thiopeptide
 BGC0001147	NRP	Other
-BGC0001148	Mixed	Other
-BGC0001149	Mixed	Other
 BGC0001150	Polyketide	Other
-BGC0001151	Other	Other
 BGC0001152	NRP	Other
 BGC0001153	NRP	Type I
-BGC0001154	Other	Other
 BGC0001155	RiPP	Thiopeptide
 BGC0001156	Terpene	Other
 BGC0001157	RiPP	Other
 BGC0001158	Polyketide	Type I
-BGC0001159	Mixed	Other
 BGC0001160	Polyketide	Type I
 BGC0001161	Polyketide	Type I
 BGC0001162	Polyketide	Type I
 BGC0001163	Polyketide	Type I
 BGC0001164	Polyketide	Type I
-BGC0001165	Mixed	Other
 BGC0001166	NRP	Other
 BGC0001167	RiPP	Other
 BGC0001168	NRP	Other
 BGC0001169	Polyketide	Type I
 BGC0001170	RiPP	LAP
 BGC0001171	RiPP	LAP
-BGC0001172	Mixed	Type II
 BGC0001173	RiPP	LAP
 BGC0001174	RiPP	LAP
 BGC0001176	RiPP	Lassopeptide
 BGC0001177	Polyketide	Type II
 BGC0001178	NRP	Type I
 BGC0001179	Polyketide	Type II
-BGC0001180	Other	Other
 BGC0001181	Terpene	Other
-BGC0001182	Mixed	Other
 BGC0001183	Polyketide	Type I
-BGC0001184	Other	Other
 BGC0001185	NRP	Other
 BGC0001186	Polyketide	Other
-BGC0001187	Mixed	Other
 BGC0001188	RiPP	Other
 BGC0001189	NRP	Other
 BGC0001190	Polyketide	Other
-BGC0001191	Other	Other
 BGC0001192	NRP	Other
 BGC0001193	NRP	Other
 BGC0001194	Polyketide	Other
-BGC0001195	Mixed	Type I
 BGC0001196	NRP	Other
 BGC0001197	Polyketide	Other
 BGC0001198	Terpene	Other
 BGC0001199	Polyketide	Other
 BGC0001200	Polyketide	Other
 BGC0001201	Terpene	Other
-BGC0001202	Mixed	Type I
-BGC0001203	Mixed	Type I
 BGC0001204	Polyketide	Other
 BGC0001205	Polyketide	Other
-BGC0001206	Other	Other
 BGC0001207	NRP	Other
 BGC0001208	NRP	Other
 BGC0001209	RiPP	Other
 BGC0001210	RiPP	Other
 BGC0001211	NRP	Other
-BGC0001212	Mixed	Type I
 BGC0001213	Polyketide	Other
 BGC0001214	NRP	Other
-BGC0001216	Mixed	Type I
-BGC0001217	Other	Other
-BGC0001218	Mixed	Type I
 BGC0001219	Polyketide	Other
 BGC0001220	NRP	Other
-BGC0001221	Other	Other
 BGC0001222	RiPP	Other
-BGC0001223	Other	Other
-BGC0001224	Other	Other
 BGC0001225	NRP	Other
 BGC0001226	RiPP	Lantipeptide
 BGC0001227	Terpene	Other
 BGC0001228	NRP	Other
 BGC0001229	RiPP	Lantipeptide
-BGC0001230	Mixed	Type I
-BGC0001231	Mixed	Type I
 BGC0001232	Polyketide	Type I
 BGC0001233	NRP	Other
 BGC0001234	NRP	Other
-BGC0001235	Mixed	Type I
 BGC0001236	Polyketide	Type I
 BGC0001237	Polyketide	Type I
-BGC0001238	Other	Other
-BGC0001239	Other	Other
 BGC0001240	NRP	Other
 BGC0001241	Terpene	Other
 BGC0001242	Polyketide	Type I
@@ -1233,8 +883,6 @@ BGC0001251	NRP	Other
 BGC0001252	Polyketide	Type I
 BGC0001253	Polyketide	Type I
 BGC0001254	Polyketide	Type I
-BGC0001255	Mixed	Type I
-BGC0001256	Other	Other
 BGC0001257	Polyketide	Type I
 BGC0001258	Polyketide	Type I
 BGC0001259	Polyketide	Type I
@@ -1246,13 +894,9 @@ BGC0001264	Polyketide	Type I
 BGC0001265	Polyketide	Type I
 BGC0001266	Polyketide	Type I
 BGC0001267	Terpene	Other
-BGC0001268	Mixed	Type I
-BGC0001269	Mixed	Type I
-BGC0001270	Mixed	Type I
 BGC0001271	Polyketide	Type I
 BGC0001272	Polyketide	Type I
 BGC0001273	Polyketide	Type I
-BGC0001274	Other	Other
 BGC0001275	Polyketide	Type I
 BGC0001276	Polyketide	Type I
 BGC0001277	Terpene	Other
@@ -1260,27 +904,19 @@ BGC0001278	Terpene	Other
 BGC0001279	Terpene	Other
 BGC0001280	Polyketide	Type I
 BGC0001281	Polyketide	Type I
-BGC0001282	Other	Other
-BGC0001283	Other	Other
 BGC0001284	Terpene	Other
-BGC0001285	Other	Other
-BGC0001286	Other	Other
 BGC0001287	Polyketide	Type I
 BGC0001288	Polyketide	Type I
 BGC0001289	RiPP	Other
 BGC0001290	NRP	Other
 BGC0001291	RiPP	Other
-BGC0001292	Other	Other
 BGC0001293	Polyketide	Type I
-BGC0001294	Other	Other
-BGC0001295	Other	Other
 BGC0001296	Polyketide	Type I
 BGC0001297	NRP	Other
 BGC0001298	Polyketide	Type I
 BGC0001299	Polyketide	Type I
 BGC0001300	Polyketide	Type I
 BGC0001301	Polyketide	Type I
-BGC0001302	Other	Other
 BGC0001303	Polyketide	Type I
 BGC0001304	Polyketide	Type I
 BGC0001305	Polyketide	Type I
@@ -1294,9 +930,7 @@ BGC0001312	NRP	Other
 BGC0001313	Terpene	Other
 BGC0001314	Terpene	Other
 BGC0001315	Terpene	Other
-BGC0001316	Other	Other
 BGC0001317	Terpene	Other
-BGC0001318	Other	Other
 BGC0001319	Terpene	Other
 BGC0001320	Terpene	Other
 BGC0001321	Terpene	Other
@@ -1312,39 +946,28 @@ BGC0001337	Alkaloid	Other
 BGC0001338	Polyketide	Type I
 BGC0001339	Polyketide	Type I
 BGC0001340	Polyketide	Type I
-BGC0001342	Mixed	Type I
 BGC0001343	Polyketide	Type II
-BGC0001344	Mixed	Type I
 BGC0001345	NRP	Other
 BGC0001346	NRP	Other
 BGC0001347	NRP	Other
 BGC0001348	Polyketide	Type I
-BGC0001349	Mixed	Type I
 BGC0001350	Polyketide	Type I
 BGC0001351	NRP	Other
-BGC0001352	Mixed	Type I
-BGC0001353	Mixed	Type I
-BGC0001354	Mixed	Type I
-BGC0001355	Mixed	Type I
 BGC0001356	RiPP	Other
 BGC0001357	Polyketide	Type I
 BGC0001358	Polyketide	Type I
 BGC0001359	Polyketide	Type I
 BGC0001360	Polyketide	Type I
 BGC0001361	Terpene	Other
-BGC0001362	Other	Other
-BGC0001363	Mixed	Type I
 BGC0001364	RiPP	Other
 BGC0001365	NRP	Other
 BGC0001366	Polyketide	Type II
-BGC0001367	Mixed	Type I
 BGC0001368	NRP	Other
 BGC0001369	Polyketide	Other
 BGC0001370	NRP	Other
 BGC0001371	NRP	Other
 BGC0001372	Terpene	Other
 BGC0001373	Polyketide	Type I
-BGC0001374	Other	Other
 BGC0001375	Terpene	Other
 BGC0001376	Polyketide	Type II
 BGC0001377	Polyketide	Type I
@@ -1352,22 +975,16 @@ BGC0001378	Polyketide	Type I
 BGC0001379	NRP	Other
 BGC0001380	Saccharide	Other
 BGC0001381	Polyketide	Type I
-BGC0001382	Mixed	Type I
 BGC0001383	Polyketide	Type I
 BGC0001384	Polyketide	Type II
 BGC0001385	Polyketide	Type I
 BGC0001386	Polyketide	Type II
-BGC0001387	Other	Other
 BGC0001388	RiPP	Other
 BGC0001389	NRP	Other
-BGC0001390	Mixed	Type I
 BGC0001391	RiPP	Other
 BGC0001392	RiPP	Other
 BGC0001393	NRP	Other
-BGC0001394	Mixed	Type I
-BGC0001395	Other	Other
 BGC0001396	Polyketide	Type I
-BGC0001397	Mixed	Type I
 BGC0001398	RiPP	Other
 BGC0001399	NRP	Other
 BGC0001400	Polyketide	Type I
@@ -1378,7 +995,6 @@ BGC0001404	Polyketide	Type I
 BGC0001405	Polyketide	Type I
 BGC0001406	NRP	Other
 BGC0001407	RiPP	Other
-BGC0001408	Other	Other
 BGC0001409	Polyketide	Type II
 BGC0001410	Saccharide	Other
 BGC0001411	Saccharide	Other
