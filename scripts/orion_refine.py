@@ -54,4 +54,4 @@ if __name__ == "__main__":
 
     with open(out_file + ".clusters.tsv", "wt") as f:
         for c in cluster_list:
-            c.write_to_file(f, short=True)
+            c.write_to_file(f)

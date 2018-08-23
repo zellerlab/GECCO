@@ -33,7 +33,7 @@ from orion.interface import main_interface
 # CONST
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 PFAM = open(os.path.join(SCRIPT_DIR, "data/db_config.txt")).readlines()[0].strip()
-MODEL = os.path.join(SCRIPT_DIR, "data/model/f5_eval_p_t50.crf.model")
+MODEL = os.path.join(SCRIPT_DIR, "data/model/feat_v8_param_v2.crf.model")
 TRAINING_MATRIX = os.path.join(SCRIPT_DIR, "data/knn/domain_composition.tsv")
 LABELS = os.path.join(SCRIPT_DIR, "data/knn/type_labels.tsv")
 
@@ -100,10 +100,6 @@ if __name__ == "__main__":
     with open(MODEL, "rb") as f:
         crf = pickle.load(f)
 
-    ### TEMPORARY HACK, HAVE TO REPLACE MODEL ###
-    crf.weights = [1]
-    #############################################
-
     pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
     pfam_df = crf.predict_marginals(data=pfam_df)
 
@@ -137,7 +133,6 @@ if __name__ == "__main__":
     # KNN
     log_file.write("Running cluster type prediction..." + "\n")
 
-    ### This part should go into ClusterKNN object ###
     train_df = pd.read_csv(TRAINING_MATRIX, sep="\t", encoding="utf-8")
     train_comp = train_df.iloc[:,1:].values
     id_array = train_df["BGC_id"].values
@@ -150,7 +145,6 @@ if __name__ == "__main__":
     new_comp = np.array(
         [c.domain_composition(all_possible=pfam_array) for c in clusters]
     )
-    ##################################################
 
     knn = ClusterKNN(metric=args.dist, n_neighbors=args.k)
     knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
@@ -159,7 +153,7 @@ if __name__ == "__main__":
     with open(cluster_out, "wt") as f:
         for c, t in zip(clusters, knn_pred):
             c.type = t[0]
-            c.type_proba = t[1]
+            c.type_prob = t[1]
             c.write_to_file(f, long=True)
 
     log_file.write("DONE." + "\n")

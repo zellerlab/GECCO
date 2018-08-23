@@ -17,6 +17,7 @@ class ClusterKNN(object):
         if self.metric == "jsd":
             self.dist = jsd_pairwise
 
+        # Doesn't work, really
         if self.metric == "tanimoto":
             self.dist = tanimoto_pairwise
 

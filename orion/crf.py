@@ -79,13 +79,19 @@ class ClusterCRF(object):
         if X is not None:
             return self.model.predict_marginals(X)
         elif data is not None:
+            # Extract features to dict (CRFSuite format)
             samples = [self._extract_features(s, X_only=True) for s in data]
             X = np.array([x for x, _ in samples])
             marginal_probs = self.model.predict_marginals(X)
+            # Extract cluster (1) probs
             marginal_probs = np.concatenate(
                 np.array([np.array(_) for _ in marginal_probs]))
             cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
 
+            # Merge probs vector with the input dataframe. This is tricky if we are
+            # dealing with protein features as length of vector does not fit to dataframe
+            # To deal with this, we merge by protein_id
+            # --> HOWEVER: this requires the protein IDs to be unique among all samples
             if self.feature_type == "group":
                 groups = np.concatenate([df[self.groups].unique() for df in data])
                 result_df = pd.concat(data)
@@ -110,7 +116,6 @@ class ClusterCRF(object):
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 trunc=trunc) for train_idx, test_idx in cv_split.split())
-
         return results
 
     def loto_cv(self, data, type_col, threads=1, e_filter=1, trunc=None):
@@ -124,7 +129,6 @@ class ClusterCRF(object):
             delayed(self._single_fold_cv)(data, train_idx, test_idx,
                 round_id=typ, e_filter=e_filter, trunc=trunc)
                 for train_idx, test_idx, typ in cv_split.split())
-
         return results
 
     def partial_cv(self, data, n_train, n_val, k=10, threads=1, e_filter=1,
@@ -141,7 +145,6 @@ class ClusterCRF(object):
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
                 trunc=trunc) for train_idx, test_idx in cv_split.split())
-
         return results
 
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, e_filter=1,
@@ -198,7 +201,6 @@ class ClusterCRF(object):
                     cv_round = round_id
                 )
             )
-
         return result_df
 
     def _extract_features(self, sample, X_only=False):
@@ -210,7 +212,7 @@ class ClusterCRF(object):
         frame. This is most useful when dealing with proteins, bu can handle arbitrary
         grouping levels
         """
-
+        # Little hacky this, but... meh...
         if X_only:
             Y_col = None
         else:

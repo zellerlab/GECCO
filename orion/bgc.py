@@ -50,12 +50,12 @@ class BGC(object):
         p_max = np.hstack(self.probs).max()
         if not long:
             row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                self.type, self.type_proba]
+                self.type, self.type_prob]
         else:
             prot = ",".join(np.hstack(self.prot_ids))
             pfam = ",".join(np.hstack(self.domains))
             row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                self.type, self.type_proba, prot, pfam]
+                self.type, self.type_prob, prot, pfam]
         row = map(str, row)
         handle.write("\t".join(row) + "\n")
 

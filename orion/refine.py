@@ -94,7 +94,8 @@ class ClusterRefiner(object):
         return BGC(prot_list, name=cluster_name)
 
     def extract_segments(self, df):
-        """Extracts segments from a data frame which are determined by p_col.
+        """
+        Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
         """
         cluster_num = 1
@@ -132,7 +133,8 @@ class ClusterRefiner(object):
 
 
     def segment(self, df):
-        """Determines coordinates of segments determined by p_col over
+        """
+        Determines coordinates of segments determined by p_col over
         a lower_thresh.
         """
         cluster_num = 1
