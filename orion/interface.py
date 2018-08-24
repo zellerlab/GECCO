@@ -58,12 +58,10 @@ def main_interface():
                         metavar="<orion/antismash>",
                         help="Type of method for cluster extraction [orion].")
 
-    parser.add_argument("--log",
-                        dest="log",
-                        type=argparse.FileType("wt"),
-                        default=sys.stdout,
-                        metavar="<f>",
-                        help="Where to write the log file [stdout].")
+    parser.add_argument("--verbose",
+                        dest="verbose",
+                        action="store_true",
+                        help="Turn on verbose mode.")
 
     args = parser.parse_args()
     return args

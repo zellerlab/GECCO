@@ -15,6 +15,7 @@
 import os
 import sys
 import pickle
+import logging
 import argparse
 import warnings
 import subprocess
@@ -39,21 +40,28 @@ LABELS = os.path.join(SCRIPT_DIR, "data/knn/type_labels.tsv")
 
 # MAIN
 if __name__ == "__main__":
-
     # PARAMS
     args = main_interface()
-    log_file = args.log
-    sys.stderr = log_file
 
-    log_file.write("Running ORION with these parameters:" + "\n")
-    log_file.write(str(args) + "\n")
+    # Make out directory
+    out_dir = args.out
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    # Set up logging
+    logging.basicConfig(
+        level = logging.INFO,
+        format = "%(asctime)s [%(levelname)s]  %(message)s",
+        handlers = [
+            logging.FileHandler(os.path.join(out_dir, "orion.log")),
+            logging.StreamHandler()
+    ])
+
+    logging.info(f"Running ORION with these parameters:\n{args.__dict__}")
 
     fasta = args.FASTA
     base = ".".join(os.path.basename(fasta).split(".")[:-1])
 
-    out_dir = args.out
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
 
     e_filter = min(1, args.e_filter)
     threads = args.threads
@@ -62,23 +70,25 @@ if __name__ == "__main__":
 
 
     # PRODIGAL
-    log_file.write("Running ORF prediction using PRODIGAL..." + "\n")
+    logging.info("Predicting ORFs with PRODIGAL.")
 
     prodigal_out = os.path.join(out_dir, "prodigal/")
     if not os.path.exists(prodigal_out):
         os.makedirs(prodigal_out)
 
+    # Extract ORFs from genome
     prodigal = ORFFinder(fasta, prodigal_out, method="prodigal")
     orf_file = prodigal.run()
 
 
     # HMMER
-    log_file.write("Running Pfam domain annotation..." + "\n")
+    logging.info("Running Pfam domain annotation.")
 
     hmmer_out = os.path.join(out_dir, "hmmer/")
     if not os.path.exists(hmmer_out):
         os.makedirs(hmmer_out)
 
+    # Run PFAM HMM DB over ORFs to annotate with Pfam domains
     hmmer = HMMER(orf_file, hmmer_out, hmms=PFAM)
     pfam_df = hmmer.run()
 
@@ -95,11 +105,13 @@ if __name__ == "__main__":
 
 
     # CRF
-    log_file.write("Running cluster prediction..." + "\n")
+    logging.info("Prediction of cluster probabilities with the CRF model.")
 
+    # Load model from file
     with open(MODEL, "rb") as f:
         crf = pickle.load(f)
 
+    # Split input dataframe and predict marginal probabilitites
     pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
     pfam_df = crf.predict_marginals(data=pfam_df)
 
@@ -109,12 +121,16 @@ if __name__ == "__main__":
 
 
     # REFINE
-    log_file.write("Extracting and refining clusters..." + "\n")
+    logging.info("Extracting clusters.")
 
     refiner = ClusterRefiner(threshold=args.thresh)
 
     clusters = []
     for sid, subdf in pfam_df.groupby("sequence_id"):
+        if len(subdf["protein_id"].unique()) < 5:
+            logging.warning(
+                f"Skipping sequence {sid} because it is too short (< 5 ORFs).")
+            continue
         found_clusters = refiner.find_clusters(
             subdf,
             method = args.post,
@@ -126,29 +142,34 @@ if __name__ == "__main__":
     del pfam_df
 
     if not clusters:
-        log_file.write("Unfortunately, no clusters were found. Exiting now.")
+        logging.warning("Unfortunately, no clusters were found. Exiting now.")
         sys.exit()
 
 
     # KNN
-    log_file.write("Running cluster type prediction..." + "\n")
+    logging.info("Prediction of BGC types.")
 
+    # Reformat training matrix
     train_df = pd.read_csv(TRAINING_MATRIX, sep="\t", encoding="utf-8")
     train_comp = train_df.iloc[:,1:].values
     id_array = train_df["BGC_id"].values
     pfam_array = train_df.columns.values[1:]
 
+    # Reformant type labels
     types_df = pd.read_csv(LABELS, sep="\t", encoding="utf-8")
     types_array = types_df["cluster_type"].values
     subtypes_array = types_df["subtype"].values
 
+    # Calculate domain composition for all new found clusters
     new_comp = np.array(
         [c.domain_composition(all_possible=pfam_array) for c in clusters]
     )
 
+    # Inititate kNN and predict types
     knn = ClusterKNN(metric=args.dist, n_neighbors=args.k)
     knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
+    # Write predicted clusters to file
     cluster_out = os.path.join(out_dir, base + ".clusters.tsv")
     with open(cluster_out, "wt") as f:
         for c, t in zip(clusters, knn_pred):
@@ -156,4 +177,4 @@ if __name__ == "__main__":
             c.type_prob = t[1]
             c.write_to_file(f, long=True)
 
-    log_file.write("DONE." + "\n")
+    logging.info("DONE.\n")

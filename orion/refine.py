@@ -4,7 +4,7 @@ from orion.bgc import Protein, BGC
 
 class ClusterRefiner(object):
 
-    def __init__(self, threshold=0.6, lower_thresh=0.3, biosynthetic_pfams=5,
+    def __init__(self, threshold=0.4, lower_thresh=0.3, biosynthetic_pfams=5,
             seq_col="sequence_id", prot_col="protein_id",
             p_col="p_pred", domain_col="pfam", weight_col="log_i_Evalue",
             min_domains=1, min_proteins=5, join_width=1):
@@ -23,7 +23,7 @@ class ClusterRefiner(object):
         self.p_col = p_col
         self.grouping = [seq_col, prot_col]
 
-    def find_clusters(self, pfam_df, method="antismash", prefix="cluster"):
+    def find_clusters(self, pfam_df, method="orion", prefix="cluster"):
         self.prefix = prefix
         if method == "antismash":
             self.lower_thresh = 0.3
@@ -115,6 +115,11 @@ class ClusterRefiner(object):
                 # cluster -> cluster
                 else:
                     cluster_df = cluster_df.append(row)
+                    # Check if last row
+                    if n == range(len(df))[-1]:
+                        cluster_list.append(
+                            cluster_df.assign(idx=n, cluster_id=cluster_name)
+                        )
             else:
                 # cluster -> non-cluster
                 if cluster_state:
