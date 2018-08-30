@@ -3,23 +3,23 @@ import os
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
-sys.path.append(ORION)
+GECCO = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
+sys.path.append(GECCO)
 import random
 import argparse
 import pickle
 import pandas as pd
 import numpy as np
-from orion.knn import ClusterKNN
-from orion.refine import ClusterRefiner
-from orion.interface import scripts_interface
+from gecco.knn import ClusterKNN
+from gecco.refine import ClusterRefiner
+from gecco.interface import scripts_interface
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 TRAINING_MATRIX = os.path.join(SCRIPT_DIR, "../data/knn/domain_composition.tsv")
 LABELS = os.path.join(SCRIPT_DIR, "../data/knn/type_labels.tsv")
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_extract.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/gecco/scripts/gecco_extract.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":

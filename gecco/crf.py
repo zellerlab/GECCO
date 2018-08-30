@@ -6,9 +6,9 @@ from joblib import Parallel, delayed
 from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
 from itertools import zip_longest
-from orion.cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
-from orion.preprocessing import extract_features, flatten, truncate
-from orion.preprocessing import extract_overlapping_features, extract_protein_features
+from gecco.cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
+from gecco.preprocessing import extract_features, flatten, truncate
+from gecco.preprocessing import extract_overlapping_features, extract_protein_features
 
 
 # CLASS
@@ -219,23 +219,91 @@ class ClusterCRF(object):
             Y_col = self.Y_col
 
         if self.feature_type == "single":
-            return extract_features(sample, Y_col,
-                feature_col=self.features,
-                weight_col=self.weights)
+            return self._extract_features(sample, Y_col)
 
         if self.feature_type == "overlap":
-            return extract_overlapping_features(sample, Y_col,
-                feature_col=self.features,
-                weight_col=self.weights,
-                overlap=self.overlap)
+            return self._extract_overlapping_features(sample, Y_col)
 
         if self.feature_type == "group":
-            return extract_protein_features(sample, Y_col,
-                feature_col=self.features,
-                weight_col=self.weights,
-                prot_col=self.groups)
+            return self._extract_protein_features(sample, Y_col)
 
     def _merge(self, df, groups, **cols):
         unidf = pd.DataFrame(cols)
         unidf[self.groups] = groups
         return df.merge(unidf)
+
+    def _extract_features(self, table, Y_col=None):
+        """
+        Prepares class labels Y and features from a table
+        given
+        table:  a table with pfam domains and class lables
+        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        """
+        X = []
+        for _, row in table.iterrows():
+            feat_dict = dict()
+            feat_dict = self._make_feature_dict(row, feat_dict)
+            X.append(feat_dict)
+        if Y_col:
+            Y = np.array(table[Y_col].astype(str))
+            return X, Y
+        else:
+            return X, None
+
+    def _extract_protein_features(self, table, Y_col=None):
+        """
+        Extracts features on protein level
+        given
+        table:  a table with pfam domains and class lables
+        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        """
+        X = []
+        Y = []
+        for prot, tbl in table.groupby(prot_col, sort=False):
+            feat_dict = dict()
+            for _, row in tbl.iterrows():
+                feat_dict = self._make_feature_dict(row, feat_dict)
+            X.append(feat_dict)
+            if Y_col:
+                Y.append(str(tbl[Y_col].values[0]))
+        if Y_col:
+            return X, Y
+        else:
+            return X, None
+
+    def _extract_overlapping_features(self, table, Y_col=None):
+        """
+        Prepares class labels Y and features from a table
+        given
+        table:  a table with pfam domains and class lables
+        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        """
+        X = []
+        for idx, _ in table.iterrows():
+            wind = table.iloc[idx - overlap : idx + overlap + 1]
+            feat_dict = dict()
+            for _, row in wind.iterrows():
+                feat_dict = self._make_feature_dict(row, feat_dict)
+            X.append(feat_dict)
+        if Y_col:
+            Y = np.array(table[Y_col].astype(str))
+            return X, Y
+        else:
+            return X, None
+
+    def _make_feature_dict(self, row, feat_dict=dict()):
+        """
+        Constructs a dict with feature:value pairs from
+        row: input row or dict
+        self.features: either name of feature or name of column in row/dict
+        self.weights: either numerical weight or name of column in row/dict
+        """
+        for f, w in zip(self.features, self.weights):
+            if isinstance(w, numbers.Number):
+                feat_dict[row[f]] = w
+                continue
+            try:
+                feat_dict[row[f]] = row[w]
+            except KeyError:
+                feat_dict[f] = row[w]
+        return feat_dict

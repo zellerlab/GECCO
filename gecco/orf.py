@@ -33,7 +33,7 @@ class ORFFinder(object):
             subprocess.run([self.method], stdout=devnull, stderr=devnull)
         except OSError as err:
             if err.errno == os.errno.ENOENT:
-                raise OSError(f"{self.method} does not seem to be installed. Please install it and re-run ORION.")
+                raise OSError(f"{self.method} does not seem to be installed. Please install it and re-run GECCO.")
 
     def _make_commandline(self):
         """Makes commandline for subprocess"""

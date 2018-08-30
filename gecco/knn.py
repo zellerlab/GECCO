@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE, MDS
 from sklearn.neighbors import KNeighborsClassifier
-from orion.utils import jsd_pairwise, tanimoto_pairwise
+from gecco.utils import jsd_pairwise, tanimoto_pairwise
 
 class ClusterKNN(object):
     """

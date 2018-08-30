@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import multiprocessing
 from sklearn.model_selection import PredefinedSplit, check_cv, StratifiedKFold
-from orion.preprocessing import flatten
+from gecco.preprocessing import flatten
 
 # CLASS
 class LotoSplit(object):

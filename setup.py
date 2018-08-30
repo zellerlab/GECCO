@@ -8,9 +8,9 @@ import subprocess
 import urllib.request
 from setuptools import setup, find_packages
 
-NAME = "ORION"
-DESCRIPTION = "Predicting biosynthetic gene clusters using conditional random fields."
-URL = "https://git.embl.de/fleck/ORION.git"
+NAME = "GECCO"
+DESCRIPTION = "GEne Cluster prediction with COnditional random fields."
+URL = "https://git.embl.de/fleck/GECCO.git"
 EMAIL = "jonas.simon.fleck@gmail.com"
 AUTHOR = "Jonas Simon Fleck"
 REQUIRES_PYTHON = ">=3.6.0"
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     sys.stdout.write(" ------------------------------------------------------\n")
     sys.stdout.write("|                     Greetings!                       |\n")
-    sys.stdout.write("|            Welcome to the ORION installer            |\n")
+    sys.stdout.write("|            Welcome to the GECCO installer            |\n")
     sys.stdout.write(" ------------------------------------------------------\n")
 
     default_dir = os.path.join(HERE, "data/pfam/")
@@ -165,11 +165,11 @@ if __name__ == "__main__":
         sys.stdout.write("It seems like the python dependencies could not be set up correctly. You might not have enough permissions to write to the PYTHONPATH.\nIf you are on a remote server, you can try re-running the installation from within a conda environment with pip installed.\nOtherwise, you might have to supply the following python dependencies manually:\n\n{0}\n\n".format(
         "\n".join(REQUIRED)))
 
-    to_path = query_yes_no("Do you want to add orion.py to your PATH?")
+    to_path = query_yes_no("Do you want to add gecco.py to your PATH?")
     if to_path:
-        os.system("chmod +x " + os.path.join(HERE, "orion.py"))
-        os.system("echo '# ORION' >> ~/.bashrc")
+        os.system("chmod +x " + os.path.join(HERE, "gecco.py"))
+        os.system("echo '# GECCO' >> ~/.bashrc")
         os.system("echo 'export PATH=\"{0}:$PATH\"' >> ~/.bashrc".format(HERE))
         os.system("source ~/.bashrc")
 
-    sys.stdout.write("\nCongratulations! ORION has been successfully installed.\n\n")
+    sys.stdout.write("\nCongratulations! GECCO has been successfully installed.\n\n")

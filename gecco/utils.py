@@ -11,14 +11,14 @@ def coerce_numeric(s):
 
 def jsd_pairwise(p, q, base=2):
     """
-    Computes Janson-Shannon Divergence given two probability vectors p and q.
+    Computes Janson-Shannon Distance given two probability vectors p and q.
     """
     p, q = np.asarray(p), np.asarray(q)
 
     # Normalize p, q to probabilities
-    p, q = p/p.sum(), q/q.sum()
-    m = 1./2*(p + q)
-    return entropy(p, m, base=base)/2. + entropy(q, m, base=base)/2.
+    p, q = p / p.sum(), q / q.sum()
+    m = 1.0 / 2 * (p + q)
+    return np.sqrt(entropy(p, m, base=base) / 2.0 + entropy(q, m, base=base) / 2.0)
 
 def jsd(mat, base=2):
     """

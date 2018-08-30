@@ -3,7 +3,7 @@ import argparse
 
 # FUNC
 def main_interface():
-    parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a genome FASTA file.")
+    parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a genome FASTA/Genbank file.")
 
     parser.add_argument("GENOME",
                         type=str,
@@ -35,7 +35,7 @@ def main_interface():
                         type=float,
                         default="0.4",
                         metavar="<float>",
-                        help="Probability threshold for cluster detection. Default depends on the chosen postprocessing method [0.4 (orion)/0.6 (antismash).")
+                        help="Probability threshold for cluster detection. Default depends on the chosen postprocessing method [0.4 (gecco)/0.6 (antismash).")
 
     parser.add_argument("-k", "--neighbors",
                         dest="k",
@@ -54,9 +54,9 @@ def main_interface():
     parser.add_argument("--postproc",
                         dest="post",
                         type=str,
-                        default="orion",
-                        metavar="<orion/antismash>",
-                        help="Type of method for cluster extraction [orion].")
+                        default="gecco",
+                        metavar="<gecco/antismash>",
+                        help="Type of method for cluster extraction [gecco].")
 
     parser.add_argument("--verbose",
                         dest="verbose",
@@ -67,7 +67,7 @@ def main_interface():
     return args
 
 def scripts_interface():
-    parser = argparse.ArgumentParser(description="Generic interface for all scripts which use the ClusterCRF (orion_[cv/loto/train/predict/refine].py)")
+    parser = argparse.ArgumentParser(description="Generic interface for all scripts which use the ClusterCRF (gecco_[cv/loto/train/predict/refine].py)")
 
     parser.add_argument("DATA",
                         type=str,
@@ -198,7 +198,7 @@ def scripts_interface():
 
     parser.add_argument("--postproc",
                         dest="post",
-                        default="orion",
+                        default="gecco",
                         type=str,
                         help="Method for extracting clusters.")
 

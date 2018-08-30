@@ -2,9 +2,9 @@
 
 #########################################################################################
 #                                                                                       #
-#                                           ORION                                       #
-#                           predicting biosynthetic gene clusters                       #
-#                              using conditional random fields                          #
+#                                           GECCO                                       #
+#                                  GEne Cluster prediction                              #
+#                               with COnditional random fields                          #
 #                                                                                       #
 #                                       MAIN SCRIPT                                     #
 #                                                                                       #
@@ -24,12 +24,12 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 import numpy as np
 import pandas as pd
-from orion.hmmer import HMMER
-from orion.orf import ORFFinder
-from orion.crf import ClusterCRF
-from orion.knn import ClusterKNN
-from orion.refine import ClusterRefiner
-from orion.interface import main_interface
+from gecco.hmmer import HMMER
+from gecco.orf import ORFFinder
+from gecco.crf import ClusterCRF
+from gecco.knn import ClusterKNN
+from gecco.refine import ClusterRefiner
+from gecco.interface import main_interface
 
 # CONST
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
@@ -53,14 +53,14 @@ if __name__ == "__main__":
         level = logging.INFO,
         format = "%(asctime)s [%(levelname)s]  %(message)s",
         handlers = [
-            logging.FileHandler(os.path.join(out_dir, "orion.log")),
+            logging.FileHandler(os.path.join(out_dir, "gecco.log")),
             logging.StreamHandler()
     ])
 
-    logging.info(f"Running ORION with these parameters:\n{args.__dict__}")
+    logging.info(f"GECCO is running with these parameters:\n{args.__dict__}")
 
-    fasta = args.GENOME
-    base = ".".join(os.path.basename(fasta).split(".")[:-1])
+    genome = args.GENOME
+    base = ".".join(os.path.basename(genome).split(".")[:-1])
 
     e_filter = min(1, args.e_filter)
     threads = args.threads
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         os.makedirs(prodigal_out)
 
     # Extract ORFs from genome
-    prodigal = ORFFinder(fasta, prodigal_out, method="prodigal")
+    prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
     orf_file = prodigal.run()
 
 

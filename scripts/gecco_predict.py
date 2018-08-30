@@ -3,20 +3,20 @@ import os
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
-sys.path.append(ORION)
+GECCO = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
+sys.path.append(GECCO)
 import pickle
 import pandas as pd
 import numpy as np
-from orion.crf import ClusterCRF
-from orion.interface import scripts_interface
-from orion.preprocessing import compute_features
-from orion.utils import coerce_numeric
+from gecco.crf import ClusterCRF
+from gecco.interface import scripts_interface
+from gecco.preprocessing import compute_features
+from gecco.utils import coerce_numeric
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/gecco/scripts/gecco_predict.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":

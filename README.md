@@ -1,1 +1,1 @@
-Predicting biosynthetic gene clusters using conditional random fields.
+GEne Cluster prediction with COnditional random fields.

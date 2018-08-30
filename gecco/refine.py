@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from orion.bgc import Protein, BGC
+from gecco.bgc import Protein, BGC
 
 class ClusterRefiner(object):
 
@@ -23,19 +23,19 @@ class ClusterRefiner(object):
         self.p_col = p_col
         self.grouping = [seq_col, prot_col]
 
-    def find_clusters(self, pfam_df, method="orion", prefix="cluster"):
+    def find_clusters(self, pfam_df, method="gecco", prefix="cluster"):
         self.prefix = prefix
         if method == "antismash":
             self.lower_thresh = 0.3
             clusters = self._antismash_refine(pfam_df)
             return clusters
-        if method == "orion":
+        if method == "gecco":
             self.lower_thresh = self.thresh
-            clusters = self._orion_refine(pfam_df)
+            clusters = self._gecco_refine(pfam_df)
             return clusters
 
 
-    def _orion_refine(self, dataframe):
+    def _gecco_refine(self, dataframe):
         """
         So far, this implements a very basic extraction procedure:
         1) Extract segments with p_pred > self.thresh

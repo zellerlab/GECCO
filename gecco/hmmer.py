@@ -38,7 +38,7 @@ class HMMER(object):
             subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                raise OSError("HMMER does not seem to be installed. Please install it and re-run ORION.")
+                raise OSError("HMMER does not seem to be installed. Please install it and re-run GECCO.")
 
     def _to_tsv(self, dom_file, out_file):
         """Converts HMMER --domtblout output to regular TSV"""

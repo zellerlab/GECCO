@@ -1,5 +1,5 @@
 import numpy as np
-from orion.preprocessing import flatten
+from gecco.preprocessing import flatten
 
 class Protein(object):
     """Definition of a Protein"""
@@ -42,8 +42,8 @@ class BGC(object):
                 p_thresh = 0.6,
                 n_cds = 5
             )
-        if criterion == "orion":
-            return self._orion_check()
+        if criterion == "gecco":
+            return self._gecco_check()
 
     def write_to_file(self, handle, long=False):
         p_mean = np.hstack(self.probs).mean()
@@ -125,5 +125,5 @@ class BGC(object):
 
         return (bio_crit and p_crit and cds_crit)
 
-    def _orion_check(self):
+    def _gecco_check(self):
         return True
