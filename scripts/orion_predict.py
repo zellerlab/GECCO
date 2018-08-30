@@ -1,18 +1,22 @@
 import sys
 import os
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
 sys.path.append(ORION)
 import pickle
 import pandas as pd
 import numpy as np
-from itertools import product
 from orion.crf import ClusterCRF
 from orion.interface import scripts_interface
 from orion.preprocessing import compute_features
 from orion.utils import coerce_numeric
 
+SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
+
 ### TEST ###
-# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv --model /home/fleck/bin/orion/data/model/f5_eval_p_t50.crf.model  -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/orion/scripts/orion_predict.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
 
 # MAIN
 if __name__ == "__main__":
@@ -20,6 +24,9 @@ if __name__ == "__main__":
 
     data = args.DATA
     model_file = args.model
+    if not model_file:
+        model_file = os.path.join(SCRIPT_DIR, "../data/model/feat_v8_param_v2.crf.model")
+
     out_file = args.out
 
     e_filter = args.e_filter
@@ -50,8 +57,6 @@ if __name__ == "__main__":
 
     with open(model_file, "rb") as f:
         crf = pickle.load(f)
-
-    crf.weights = [1]
 
     pred_df = crf.predict_marginals(data=data_tbl)
 

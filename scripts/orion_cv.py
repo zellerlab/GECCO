@@ -1,9 +1,11 @@
 import sys
 import os
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 ORION = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + "/..")
 sys.path.append(ORION)
 import random
-import argparse
 import pandas as pd
 import numpy as np
 import multiprocessing
