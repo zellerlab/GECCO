@@ -5,10 +5,10 @@ import argparse
 def main_interface():
     parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a genome FASTA file.")
 
-    parser.add_argument("FASTA",
+    parser.add_argument("GENOME",
                         type=str,
                         metavar="<f>",
-                        help="A genome FASTA file as input.")
+                        help="A genome FASTA/Genbank file as input.")
 
     parser.add_argument("-o", "--output-dir",
                         dest="out",
@@ -121,7 +121,7 @@ def scripts_interface():
 
     parser.add_argument("-s", "--split-col",
                         dest="split_col",
-                        default="genome_id",
+                        default="sequence_id",
                         type=str,
                         help="Column to be used for splitting in to samples, i.e. different sequences.")
 
@@ -183,6 +183,18 @@ def scripts_interface():
                         default="jsd",
                         type=str,
                         help="Dinstance metric for kNN.")
+
+    parser.add_argument("-k", "--neighbors",
+                        dest="k",
+                        type=int,
+                        default="5",
+                        help="Numer of neighbors for kNN type prediction.")
+
+    parser.add_argument("--min-orfs",
+                        dest="orfs",
+                        default="5",
+                        type=int,
+                        help="Minimum number of ORFs required for a sequence to be considered.")
 
     parser.add_argument("--postproc",
                         dest="post",

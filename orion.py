@@ -59,9 +59,8 @@ if __name__ == "__main__":
 
     logging.info(f"Running ORION with these parameters:\n{args.__dict__}")
 
-    fasta = args.FASTA
+    fasta = args.GENOME
     base = ".".join(os.path.basename(fasta).split(".")[:-1])
-
 
     e_filter = min(1, args.e_filter)
     threads = args.threads
