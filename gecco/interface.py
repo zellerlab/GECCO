@@ -97,7 +97,7 @@ def scripts_interface():
                         dest="e_filter",
                         type=float,
                         default="1e-5",
-                        help="E-value threshold for the test set.")
+                        help="E-value threshold for the data set.")
 
     parser.add_argument("-y", "--y-col",
                         dest="y",
@@ -213,6 +213,46 @@ def scripts_interface():
                         default="0.15",
                         type=float,
                         help="Parameter for L2 regularization.")
+
+    args = parser.parse_args()
+    return args
+
+
+
+def annot_interface():
+    parser = argparse.ArgumentParser(description="Generic interface for the annotation script (gecco_annotate.py).")
+
+    parser.add_argument("-g", "--genome",
+                        dest="GENOME",
+                        type=str,
+                        metavar="<f>",
+                        help="A genome FASTA file.")
+
+    parser.add_argument("-p", "--proteins",
+                        dest="PROTEINS",
+                        type=str,
+                        metavar="<f>",
+                        help="A protein FASTA file.")
+
+    parser.add_argument("-o", "--output-dir",
+                        dest="out",
+                        type=str,
+                        default="./",
+                        metavar="<d>",
+                        help="The output directory.")
+
+    parser.add_argument("-d", "--database", "--db",
+                        dest="DB",
+                        type=str,
+                        metavar="<model>",
+                        help="HMM database for annotation.")
+
+    parser.add_argument("--e-filter", "-e",
+                        dest="e_filter",
+                        type=float,
+                        default="1e-5",
+                        metavar="<e_filter>",
+                        help="E-value cutoff for pfam domains to be included [1e-5].")
 
     args = parser.parse_args()
     return args

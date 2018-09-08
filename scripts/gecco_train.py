@@ -50,6 +50,7 @@ if __name__ == "__main__":
         group_col = group_col,
         weight_cols = weight_col,
         feature_type = feature_type,
+        weights_prefix = out_file,
         overlap = overlap,
         algorithm = "lbfgs",
         c1 = C1,

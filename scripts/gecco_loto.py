@@ -46,6 +46,7 @@ if __name__ == "__main__":
     print(args)
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
+    data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
     data_tbl = [s for _, s in data_tbl.groupby(split_col)]
     if shuffle:
         random.shuffle(data_tbl)
@@ -55,6 +56,7 @@ if __name__ == "__main__":
         feature_cols = feature_col,
         weight_cols = weight_col,
         feature_type = feature_type,
+        weights_prefix = f"{out_file}_loto",
         overlap = overlap,
         algorithm = "lbfgs",
         c1 = C1,
@@ -75,7 +77,6 @@ if __name__ == "__main__":
         data_tbl,
         type_col = strat_col,
         threads = threads,
-        e_filter = e_filter,
         trunc = trunc
     )
 

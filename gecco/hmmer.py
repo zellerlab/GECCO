@@ -5,8 +5,11 @@ import pandas as pd
 class HMMER(object):
     """Searches a HMM library against protein sequences."""
 
-    def __init__(self, fasta, out_dir, hmms):
+    def __init__(self, fasta, out_dir, hmms, prodigal=True):
         self.fasta = fasta
+        self.prodigal = prodigal
+        if not self.prodigal:
+            self.protein_order = self._get_protein_order()
         self.out_dir = out_dir
         self.hmms = hmms
         self._check_hmmer()
@@ -50,9 +53,31 @@ class HMMER(object):
                 for l in f:
                     if not l.startswith("#"):
                         l = l.split()
-                        sid = "_".join(l[0].split("_")[:-1])
-                        start = min(l[23], l[25])
-                        end = max(l[23], l[25])
-                        strand = "+" if l[27] == "1" else "-"
-                        row = [sid, l[0], start, end, strand, l[4], l[12]] + l[17:19]
+                        if self.prodigal:
+                            sid = "_".join(l[0].split("_")[:-1])
+                            pid = l[0]
+                            start = min(l[23], l[25])
+                            end = max(l[23], l[25])
+                            strand = "+" if l[27] == "1" else "-"
+                        else:
+                            sid = "NA"
+                            pid = l[0]
+                            start = str(self.protein_order[pid])
+                            end = str(self.protein_order[pid])
+                            strand = "NA"
+                        acc = l[4]
+                        if not acc:
+                            acc = l[3]
+                        row = [sid, pid, start, end, strand, acc, l[12]] + l[17:19]
                         fout.write("\t".join(row) + "\n")
+
+    def _get_protein_order(self):
+        pos_dict = dict()
+        i = 0
+        with open(self.fasta, "rt") as f:
+            for line in f:
+                if line.startswith(">"):
+                    pid = line[1:].split()[0]
+                    pos_dict[pid] = i
+                    i += 1
+        return pos_dict

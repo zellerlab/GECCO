@@ -1,4 +1,6 @@
 import math
+import random
+import numbers
 import warnings
 import numpy as np
 import pandas as pd
@@ -7,8 +9,7 @@ from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
 from itertools import zip_longest
 from gecco.cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
-from gecco.preprocessing import extract_features, flatten, truncate
-from gecco.preprocessing import extract_overlapping_features, extract_protein_features
+from gecco.preprocessing import flatten, truncate
 
 
 # CLASS
@@ -33,12 +34,14 @@ class ClusterCRF(object):
             (again, check the CRFSuite website)
         overlap: in case of feature_type='overlap', by how much the windows should
             overlap
+        weights_prefix: prefix for writing transition and state feature weights after
+            each fitting
         **kwargs: other parameters you want to pass to the CRF model.
     """
 
     def __init__(self, Y_col=None,
         feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
-        algorithm="lbsgf", overlap=2, **kwargs):
+        algorithm="lbsgf", overlap=2, weights_prefix=None, **kwargs):
 
         self.Y_col = Y_col
         self.features = feature_cols
@@ -46,6 +49,7 @@ class ClusterCRF(object):
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
+        self.weights_prefix = weights_prefix
 
         self.alg = algorithm
         self.model = CRF(
@@ -58,7 +62,7 @@ class ClusterCRF(object):
         """
         Fits the model.
         If X and Y are defined, it fits the model on the corresponding vectors.
-        If data is defined, it takes toe dataframe to extract features and labels for
+        If data is defined, it takes a dataframe to extract features and labels for
         fitting
         """
         if (X is not None) and (Y is not None):
@@ -68,6 +72,11 @@ class ClusterCRF(object):
             X = np.array([x for x, _ in samples])
             Y = np.array([y for _, y in samples])
             self.model.fit(X, Y)
+        if self.weights_prefix:
+            rnd = random.randint(1, 10000)
+            prfx = f"{self.weights_prefix}.{rnd:05}"
+            self.save_weights(prfx)
+
 
     def predict_marginals(self, data=None, X=None):
         """
@@ -84,25 +93,31 @@ class ClusterCRF(object):
             X = np.array([x for x, _ in samples])
             marginal_probs = self.model.predict_marginals(X)
             # Extract cluster (1) probs
-            marginal_probs = np.concatenate(
-                np.array([np.array(_) for _ in marginal_probs]))
-            cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
-
+            cluster_probs = []
+            for sample in marginal_probs:
+                try:
+                    sample_probs = np.array([d["1"] for d in [_ for _ in sample]])
+                except KeyError:
+                    warnings.warn(
+                        "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
+                    )
+                    sample_probs = np.array([0 for d in [_ for _ in sample]])
+                cluster_probs.append(sample_probs)
             # Merge probs vector with the input dataframe. This is tricky if we are
             # dealing with protein features as length of vector does not fit to dataframe
             # To deal with this, we merge by protein_id
             # --> HOWEVER: this requires the protein IDs to be unique among all samples
             if self.feature_type == "group":
-                groups = np.concatenate([df[self.groups].unique() for df in data])
-                result_df = pd.concat(data)
-                result_df = self._merge(result_df, groups, p_pred=cluster_probs)
+                result_df = [self._merge(df, p_pred=p)
+                    for df, p in zip(data, cluster_probs)]
+                result_df = pd.concat(result_df)
             else:
                 result_df = pd.concat(data)
                 result_df = result_df.assign(p_pred=cluster_probs)
 
             return result_df
 
-    def cv(self, data, k=10, threads=1, e_filter=1, trunc=None, strat_col=None):
+    def cv(self, data, k=10, threads=1, trunc=None, strat_col=None):
         """Runs stratified k-fold CV using k splits and a stratification column"""
 
         if strat_col:
@@ -114,11 +129,11 @@ class ClusterCRF(object):
 
         # Run one job per split and collects the result in a list
         results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
-                trunc=trunc) for train_idx, test_idx in cv_split.split())
+            delayed(self._single_fold_cv)(data, train_idx, test_idx, trunc=trunc)
+                for train_idx, test_idx in cv_split.split())
         return results
 
-    def loto_cv(self, data, type_col, threads=1, e_filter=1, trunc=None):
+    def loto_cv(self, data, type_col, threads=1, trunc=None):
         """Runs LOTO CV based on a column defining the type of the sample (type_col)"""
 
         types = [s[type_col].values[0].split(",") for s in data]
@@ -127,27 +142,11 @@ class ClusterCRF(object):
         # Run one job per split and collects the result in a list
         results = Parallel(n_jobs=threads)(
             delayed(self._single_fold_cv)(data, train_idx, test_idx,
-                round_id=typ, e_filter=e_filter, trunc=trunc)
+                round_id=typ, trunc=trunc)
                 for train_idx, test_idx, typ in cv_split.split())
         return results
 
-    def partial_cv(self, data, n_train, n_val, k=10, threads=1, e_filter=1,
-            trunc=None):
-        """
-        Runs partial CV. A training set is only used for training and the
-        validation set is used for k-fold CV
-        """
-
-        folds = n_folds_partial(n_train, n_val, n=k)
-        cv_split = PredefinedSplit(folds)
-
-        # Run one job per split and collects the result in a list
-        results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(data, train_idx, test_idx, e_filter=e_filter,
-                trunc=trunc) for train_idx, test_idx in cv_split.split())
-        return results
-
-    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, e_filter=1,
+    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None,
             trunc=None):
         """Performs a single CV round with the given train_idx and test_idx
         """
@@ -165,9 +164,6 @@ class ClusterCRF(object):
         Y_train = np.array([y for _, y in train_samples])
 
         test_data = [data[i].reset_index() for i in test_idx]
-        # Optional filter for E-value
-        test_data = [t[t["i_Evalue"] < e_filter].reset_index(drop=True)
-            for t in test_data]
         test_samples = [self._extract_features(s) for s in test_data]
 
         X_test = np.array([x for x, _ in test_samples])
@@ -177,23 +173,26 @@ class ClusterCRF(object):
 
         # Extract cluster (1) probabilities from marginals
         marginal_probs = self.model.predict_marginals(X_test)
-        marginal_probs = np.concatenate(np.array([np.array(_) for _ in marginal_probs]))
-        try:
-            cluster_probs = np.array([d["1"] for d in [s for s in marginal_probs]])
-        except KeyError:
-            warnings.warn(
-                "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
-            )
-            cluster_probs = np.array([0 for d in [s for s in marginal_probs]])
+        cluster_probs = []
+        for sample in marginal_probs:
+            try:
+                sample_probs = np.array([d["1"] for d in [_ for _ in sample]])
+            except KeyError:
+                warnings.warn(
+                    "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
+                )
+                sample_probs = np.array([0 for d in [_ for _ in sample]])
+            cluster_probs.append(sample_probs)
 
         # Merge probs vector with the input dataframe. This is tricky if we are dealing
         # with protein features as length of vector does not fit to dataframe
         # To deal with this, we merge by protein_id
-        # --> HOWEVER: this requires the protein IDs to be unique among all samples
+        # --> HOWEVER: this requires the protein IDs to be unique within each sample
         if self.feature_type == "group":
-            groups = np.concatenate([df[self.groups].unique() for df in test_data])
-            result_df = pd.concat(test_data).assign(cv_round=round_id)
-            result_df = self._merge(result_df, groups, p_pred=cluster_probs)
+            result_df = [df.assign(cv_round=round_id) for df in test_data]
+            result_df = [self._merge(df, p_pred=p)
+                for df, p in zip(test_data, cluster_probs)]
+            result_df = pd.concat(result_df)
         else:
             result_df = (pd.concat(test_data)
                 .assign(
@@ -219,7 +218,7 @@ class ClusterCRF(object):
             Y_col = self.Y_col
 
         if self.feature_type == "single":
-            return self._extract_features(sample, Y_col)
+            return self._extract_single_features(sample, Y_col)
 
         if self.feature_type == "overlap":
             return self._extract_overlapping_features(sample, Y_col)
@@ -227,12 +226,12 @@ class ClusterCRF(object):
         if self.feature_type == "group":
             return self._extract_protein_features(sample, Y_col)
 
-    def _merge(self, df, groups, **cols):
+    def _merge(self, df, **cols):
         unidf = pd.DataFrame(cols)
-        unidf[self.groups] = groups
+        unidf[self.groups] = df[self.groups].unique()
         return df.merge(unidf)
 
-    def _extract_features(self, table, Y_col=None):
+    def _extract_single_features(self, table, Y_col=None):
         """
         Prepares class labels Y and features from a table
         given
@@ -259,7 +258,7 @@ class ClusterCRF(object):
         """
         X = []
         Y = []
-        for prot, tbl in table.groupby(prot_col, sort=False):
+        for prot, tbl in table.groupby(self.groups, sort=False):
             feat_dict = dict()
             for _, row in tbl.iterrows():
                 feat_dict = self._make_feature_dict(row, feat_dict)
@@ -280,7 +279,7 @@ class ClusterCRF(object):
         """
         X = []
         for idx, _ in table.iterrows():
-            wind = table.iloc[idx - overlap : idx + overlap + 1]
+            wind = table.iloc[idx - self.overlap : idx + self.overlap + 1]
             feat_dict = dict()
             for _, row in wind.iterrows():
                 feat_dict = self._make_feature_dict(row, feat_dict)
@@ -300,10 +299,24 @@ class ClusterCRF(object):
         """
         for f, w in zip(self.features, self.weights):
             if isinstance(w, numbers.Number):
-                feat_dict[row[f]] = w
-                continue
-            try:
-                feat_dict[row[f]] = row[w]
-            except KeyError:
-                feat_dict[f] = row[w]
+                key, val = row[f], w
+            else:
+                try:
+                    key, val = row[f], row[w]
+                except KeyError:
+                    key, val = f, row[w]
+            if key in feat_dict.keys():
+                feat_dict[key] = max(val, feat_dict[key])
+            else:
+                feat_dict[key] = val
         return feat_dict
+
+    def save_weights(self, fileprefix):
+        with open(fileprefix + ".trans.tsv", "wt") as f:
+            f.write("from\tto\tweight\n")
+            for (label_from, label_to), weight in self.model.transition_features_.items():
+                f.write(f"{label_from}\t{label_to}\t{weight}\n")
+        with open(fileprefix + ".state.tsv", "wt") as f:
+            f.write("attr\tlabel\tweight\n")
+            for (attr, label), weight in self.model.state_features_.items():
+                f.write(f"{attr}\t{label}\t{weight}\n")

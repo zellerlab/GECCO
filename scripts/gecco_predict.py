@@ -16,7 +16,7 @@ from gecco.utils import coerce_numeric
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 
 ### TEST ###
-# python /home/fleck/bin/gecco/scripts/gecco_predict.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
+# python /home/fleck/bin/gecco/scripts/gecco_predict.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test --sort-cols sequence_id
 
 # MAIN
 if __name__ == "__main__":

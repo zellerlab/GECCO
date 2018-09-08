@@ -21,18 +21,26 @@ class Protein(object):
 
 class BGC(object):
     """A biosynthetic gene cluster with multiple proteins"""
-    def __init__(self, proteins, name=None, bgc_type=None, type_prob=None):
+    def __init__(self, proteins=None, name=None, bgc_type=None, type_prob=None,
+        seq_id=None, start=None, end=None, domains=None, weights=None):
         self.proteins = proteins
-        self.seq_id = self.proteins[0].seq_id
+        if proteins:
+            self.seq_id = self.proteins[0].seq_id
+            self.prot_ids = np.array([p.name for p in proteins])
+            self.start = min([p.start for p in proteins])
+            self.end = max([p.end for p in proteins])
+            self.domains = np.array([p.domains for p in proteins])
+            self.weights = np.array([p.weights for p in proteins])
+            self.probs = np.array([p.probs for p in proteins])
+        else:
+            self.seq_id = seq_id
+            self.start = start
+            self.end = end
+            self.domains = domains
+            self.weights = weights
         self.name = name if name else seq_id
         self.type = bgc_type
         self.type_prob = type_prob
-        self.prot_ids = np.array([p.name for p in proteins])
-        self.start = min([p.start for p in proteins])
-        self.end = max([p.end for p in proteins])
-        self.domains = np.array([p.domains for p in proteins])
-        self.weights = np.array([p.weights for p in proteins])
-        self.probs = np.array([p.probs for p in proteins])
 
     def is_valid(self, criterion="antismash", thresh=0.6):
         if criterion == "antismash":
@@ -46,16 +54,19 @@ class BGC(object):
             return self._gecco_check()
 
     def write_to_file(self, handle, long=False):
-        p_mean = np.hstack(self.probs).mean()
-        p_max = np.hstack(self.probs).max()
-        if not long:
-            row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                self.type, self.type_prob]
+        if self.proteins:
+            p_mean = np.hstack(self.probs).mean()
+            p_max = np.hstack(self.probs).max()
+            if not long:
+                row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
+                    self.type, self.type_prob]
+            else:
+                prot = ",".join(np.hstack(self.prot_ids))
+                pfam = ",".join(np.hstack(self.domains))
+                row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
+                    self.type, self.type_prob, prot, pfam]
         else:
-            prot = ",".join(np.hstack(self.prot_ids))
-            pfam = ",".join(np.hstack(self.domains))
-            row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                self.type, self.type_prob, prot, pfam]
+            row = [self.seq_id, self.name, self.type]
         row = map(str, row)
         handle.write("\t".join(row) + "\n")
 
