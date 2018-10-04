@@ -49,6 +49,9 @@ if __name__ == "__main__":
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
     data_tbl = data_tbl[data_tbl["i_Evalue"] < e_filter]
+    data_tbl = data_tbl.assign(
+        domain = data_tbl["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+    )
     data_tbl = [s for _, s in data_tbl.groupby(split_col)]
     if shuffle:
         random.shuffle(data_tbl)
@@ -95,7 +98,7 @@ if __name__ == "__main__":
                         in_file = data_base,
                         cv_round = "all",
                         cv_type = "10-fold")
-                    .loc[ : , ["BGC", "BGC_id", "protein_id", "pfam", "pseudo_pos",
+                    .loc[ : , ["BGC", "BGC_id", "protein_id", "domain", "idx",
                         "p_pred", "c1", "c2", "feature_type", "e_filter", "overlap",
                         "weight", "truncate", "cv_type", "cv_round", "in_file"] ])
 

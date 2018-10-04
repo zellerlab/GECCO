@@ -73,6 +73,8 @@ class ClusterCRF(object):
             Y = np.array([y for _, y in samples])
             self.model.fit(X, Y)
         if self.weights_prefix:
+            # Random integer to avoid overriding.
+            # Hacky, but 1/10000 is enough for now
             rnd = random.randint(1, 10000)
             prfx = f"{self.weights_prefix}.{rnd:05}"
             self.save_weights(prfx)
@@ -113,7 +115,7 @@ class ClusterCRF(object):
                 result_df = pd.concat(result_df)
             else:
                 result_df = pd.concat(data)
-                result_df = result_df.assign(p_pred=cluster_probs)
+                result_df = result_df.assign(p_pred=np.concatenate(cluster_probs))
 
             return result_df
 
@@ -196,7 +198,7 @@ class ClusterCRF(object):
         else:
             result_df = (pd.concat(test_data)
                 .assign(
-                    p_pred = cluster_probs,
+                    p_pred = np.concatenate(cluster_probs),
                     cv_round = round_id
                 )
             )
@@ -205,11 +207,11 @@ class ClusterCRF(object):
     def _extract_features(self, sample, X_only=False):
         """
         Chooses extraction function based on feature type.
-        single: Features are extractd on a domain (row) level
+        single: Features are extracted on a domain (row) level
         overlap: Features are extracted in overlapping windows
         group: Features are extracted in groupings determined by a column in the data
-        frame. This is most useful when dealing with proteins, bu can handle arbitrary
-        grouping levels
+        frame. This is most useful when dealing with proteins, but can handle arbitrary
+        grouping levels.
         """
         # Little hacky this, but... meh...
         if X_only:
@@ -236,7 +238,8 @@ class ClusterCRF(object):
         Prepares class labels Y and features from a table
         given
         table:  a table with pfam domains and class lables
-        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        Y_col:  the column encoding the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        if Y_col == None, only X is returned --> for prediction cases
         """
         X = []
         for _, row in table.iterrows():
@@ -255,6 +258,7 @@ class ClusterCRF(object):
         given
         table:  a table with pfam domains and class lables
         Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        if Y_col == None, only X is returned --> for prediction cases
         """
         X = []
         Y = []
@@ -276,6 +280,7 @@ class ClusterCRF(object):
         given
         table:  a table with pfam domains and class lables
         Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
+        if Y_col == None, only X is returned --> for prediction cases
         """
         X = []
         for idx, _ in table.iterrows():
@@ -292,7 +297,7 @@ class ClusterCRF(object):
 
     def _make_feature_dict(self, row, feat_dict=dict()):
         """
-        Constructs a dict with feature:value pairs from
+        Constructs a dict with key:value pairs from
         row: input row or dict
         self.features: either name of feature or name of column in row/dict
         self.weights: either numerical weight or name of column in row/dict

@@ -71,6 +71,10 @@ if __name__ == "__main__":
     knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
     # Write predicted clusters to file
+    cluster_prots = np.hstack(np.array([c.prot_ids for c in clusters]))
+    pfam_df["Y_pred"] = np.where(pfam_df[args.group_col].isin(cluster_prots), 1, 0)
+    pfam_df.to_csv(f"{args.out}.refined.tsv", sep="\t", index=False, header=True)
+
     with open(f"{args.out}.clusters.tsv", "wt") as f:
         for c, t in zip(clusters, knn_pred):
             c.type = t[0]

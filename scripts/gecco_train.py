@@ -40,6 +40,10 @@ if __name__ == "__main__":
     print(args)
 
     data_tbl = pd.read_csv(data, sep="\t", encoding="utf-8")
+    data_tbl = data_tbl[data_tbl["i_Evalue"] < args.e_filter]
+    data_tbl = data_tbl.assign(
+        domain = data_tbl["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+    )
     data_tbl = [s for _, s in data_tbl.groupby(split_col)]
     if shuffle:
         random.shuffle(data_tbl)

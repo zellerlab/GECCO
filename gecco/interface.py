@@ -116,7 +116,7 @@ def scripts_interface():
                         dest="feat",
                         type=str,
                         nargs="+",
-                        default=["pfam"],
+                        default=["domain"],
                         help="Column to be used as features.")
 
     parser.add_argument("-s", "--split-col",

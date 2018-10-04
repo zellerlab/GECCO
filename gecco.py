@@ -12,24 +12,27 @@
 #                                                                                       #
 #########################################################################################
 
-import os
-import sys
-import pickle
-import logging
 import argparse
-import warnings
-import subprocess
+import logging
 import multiprocessing
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+import os
+import pickle
+import subprocess
+import sys
+import warnings
+
 import numpy as np
 import pandas as pd
-from gecco.hmmer import HMMER
-from gecco.orf import ORFFinder
+
 from gecco.crf import ClusterCRF
-from gecco.knn import ClusterKNN
-from gecco.refine import ClusterRefiner
+from gecco.hmmer import HMMER
 from gecco.interface import main_interface
+from gecco.knn import ClusterKNN
+from gecco.orf import ORFFinder
+from gecco.refine import ClusterRefiner
+
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 # CONST
 SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))

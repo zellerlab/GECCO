@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
@@ -8,6 +8,7 @@ sys.path.append(GECCO)
 import random
 import argparse
 import pickle
+import os
 import pandas as pd
 import numpy as np
 from gecco.knn import ClusterKNN
@@ -36,7 +37,7 @@ if __name__ == "__main__":
                 seq_id = line[1],
                 domains = line[3].split(","),
                 weights = map(float, line[4].split(",")),
-                name = args.DATA
+                name = os.path.abspath(args.DATA)
             )
             clusters.append(cluster)
 
