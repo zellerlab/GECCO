@@ -18,9 +18,6 @@ SCRIPT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])))
 TRAINING_MATRIX = os.path.join(SCRIPT_DIR, "../data/knn/domain_composition.tsv")
 LABELS = os.path.join(SCRIPT_DIR, "../data/knn/type_labels.tsv")
 
-### TEST ###
-# python /home/fleck/bin/gecco/scripts/gecco_extract.py /home/fleck/scripts/clust/test/test.pred.tsv -o /home/fleck/scripts/clust/test/test
-
 # MAIN
 if __name__ == "__main__":
     args = scripts_interface()

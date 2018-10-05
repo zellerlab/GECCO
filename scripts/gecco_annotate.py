@@ -11,10 +11,6 @@ from gecco.hmmer import HMMER
 from gecco.orf import ORFFinder
 from gecco.interface import annot_interface
 
-### TEST ###
-# python gecco_annotate.py -p ../test/test.faa --db /g/scb2/zeller/fleck/DB/Pfam-A.hmm  -o /g/scb2/zeller/fleck/test/
-
-
 # MAIN
 if __name__ == "__main__":
     # PARAMS

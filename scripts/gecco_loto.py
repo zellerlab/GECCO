@@ -14,9 +14,6 @@ from gecco.crf import ClusterCRF
 from gecco.interface import scripts_interface
 from gecco.utils import coerce_numeric
 
-### TEST ###
-# python /home/fleck/bin/gecco/scripts/gecco_loto.py /home/fleck/scripts/clust/test/test.embed.tsv -o /home/fleck/scripts/clust/test/test
-
 # MAIN
 if __name__ == "__main__":
     args = scripts_interface()
