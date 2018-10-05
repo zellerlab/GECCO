@@ -5,10 +5,17 @@ import argparse
 def main_interface():
     parser = argparse.ArgumentParser(description="Predicts biosynthetic gene clusters from a genome FASTA/Genbank file.")
 
-    parser.add_argument("GENOME",
+    parser.add_argument("-g", "--genome",
+                        dest="GENOME",
                         type=str,
                         metavar="<f>",
                         help="A genome FASTA/Genbank file as input.")
+
+    parser.add_argument("-p", "--proteins",
+                        dest="PROTEINS",
+                        type=str,
+                        metavar="<f>",
+                        help="A protein FASTA file as input.")
 
     parser.add_argument("-o", "--output-dir",
                         dest="out",
@@ -30,7 +37,7 @@ def main_interface():
                         metavar="<e_filter>",
                         help="E-value cutoff for pfam domains to be included [1e-5].")
 
-    parser.add_argument("--thresh", "-p",
+    parser.add_argument("--thresh", "-m",
                         dest="thresh",
                         type=float,
                         default="0.4",

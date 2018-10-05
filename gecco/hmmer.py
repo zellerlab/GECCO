@@ -22,13 +22,17 @@ class HMMER(object):
             dom_out, self.hmms, self.fasta]
         std_out = os.path.join(self.out_dir, base + ".hmmer.out")
         err_out = os.path.join(self.out_dir, base + ".hmmer.err")
+        
+        # Run HMMER
         subprocess.run(cmd,
             stdout = open(std_out, "wt"),
             stderr = open(err_out, "wt"))
 
+        # Convert to TSV
         tsv_out = os.path.join(self.out_dir, base + ".hmmer.tsv")
         self._to_tsv(dom_out, tsv_out)
 
+        # Sort table properly
         out_df = pd.read_csv(tsv_out, sep = "\t")
         out_df = (out_df.sort_values(["sequence_id", "start", "domain_start"])
                         .reset_index(drop=True))

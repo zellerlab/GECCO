@@ -62,26 +62,33 @@ if __name__ == "__main__":
 
     logging.info(f"GECCO is running with these parameters:\n{args.__dict__}")
 
-    genome = args.GENOME
-    base = ".".join(os.path.basename(genome).split(".")[:-1])
-
     e_filter = min(1, args.e_filter)
     threads = args.threads
     if not threads:
         threads = multiprocessing.cpu_count()
 
-
     # PRODIGAL
-    logging.info("Predicting ORFs with PRODIGAL.")
+    # If input is a genome, run prodigal to extract ORFs/proteins
+    if args.GENOME:
+        genome = args.GENOME
+        base = ".".join(os.path.basename(genome).split(".")[:-1])
 
-    prodigal_out = os.path.join(out_dir, "prodigal/")
-    if not os.path.exists(prodigal_out):
-        os.makedirs(prodigal_out)
+        # PRODIGAL
+        logging.info("Predicting ORFs with PRODIGAL.")
+        prodigal_out = os.path.join(out_dir, "prodigal/")
+        if not os.path.exists(prodigal_out):
+            os.makedirs(prodigal_out)
 
-    # Extract ORFs from genome
-    prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
-    orf_file = prodigal.run()
+        # Extract ORFs from genome
+        prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
+        orf_file = prodigal.run()
+        prodigal = True
 
+    # If input is a fasta with proteins, treat it as ORFs in given order
+    else:
+        orf_file = args.PROTEINS
+        base = ".".join(os.path.basename(orf_file).split(".")[:-1])
+        prodigal = False
 
     # HMMER
     logging.info("Running Pfam domain annotation.")
@@ -91,7 +98,7 @@ if __name__ == "__main__":
         os.makedirs(hmmer_out)
 
     # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-    hmmer = HMMER(orf_file, hmmer_out, hmms=PFAM)
+    hmmer = HMMER(orf_file, hmmer_out, hmms=PFAM, prodigal=prodigal)
     pfam_df = hmmer.run()
 
     # Filter i-Evalue
@@ -113,8 +120,11 @@ if __name__ == "__main__":
     with open(MODEL, "rb") as f:
         crf = pickle.load(f)
 
-    # Split input dataframe and predict marginal probabilitites
-    pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
+    # If extracted from genome split input dataframe into sequences
+    if prodigal:
+        pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
+    else:
+        pfam_df = [pfam_df]
     pfam_df = crf.predict_marginals(data=pfam_df)
 
     # Write predictions to file
