@@ -23,6 +23,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from Bio import SeqIO
 
 from gecco.crf import ClusterCRF
 from gecco.hmmer import HMMER
@@ -181,12 +182,30 @@ if __name__ == "__main__":
     knn = ClusterKNN(metric=args.dist, n_neighbors=args.k)
     knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
-    # Write predicted clusters to file
+
+    # WRITE RESULTS
+    logging.info("Writing final results to file.")
+
+    # Write predicted cluster coordinates to file
     cluster_out = os.path.join(out_dir, base + ".clusters.tsv")
     with open(cluster_out, "wt") as f:
         for c, t in zip(clusters, knn_pred):
             c.type = t[0]
             c.type_prob = t[1]
             c.write_to_file(f, long=True)
+
+
+    # Write predicted cluster sequences to file
+    for c in clusters:
+        prots = c.prot_ids
+        cid = c.name
+        prot_list = []
+        proteins = SeqIO.parse(orf_file, "fasta")
+        for p in proteins:
+            if p.id in prots:
+                p.description = cid + " # " + p.description
+                prot_list.append(p)
+        with open(os.path.join(out_dir, cid + ".proteins.faa"), "wt") as fout:
+            SeqIO.write(prot_list, fout, "fasta")
 
     logging.info("DONE.\n")
