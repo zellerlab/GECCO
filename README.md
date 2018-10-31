@@ -1,3 +1,5 @@
+![](gecco.png)
+
 # Hi, I'm GECCO!
 
 ## Requirements
@@ -25,7 +27,7 @@ This should install all Python dependencies and download the Pfam database. Also
 export PATH=$(pwd):$PATH
 ```
 
-If you're on a remote server without root access, it might be useful to install GECCO inside a conda environment because otherwise pip probably won't be able to install the Python dependencies. 
+If you're on a remote server without root access, it might be useful to install GECCO inside a conda environment because otherwise pip probably won't be able to install the Python dependencies.
 
 
 ## Running GECCO
