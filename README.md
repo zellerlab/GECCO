@@ -16,7 +16,7 @@ Both HMMER and Prodigal can be installed through [conda](https://anaconda.org/).
 To install GECCO, just run
 
 ```bash
-git clone https://gitlab.com/astair/gecco.git
+git clone https://git.embl.de/fleck/GECCO.git
 cd GECCO
 python setup.py install
 ```
