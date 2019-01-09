@@ -1,4 +1,5 @@
 data/pfam/
+data/db_config.txt
 test/
 *.pyc
 *.DS_Store
@@ -8,3 +9,4 @@ conda/
 GECCO.egg-info/
 dist/
 build/
+*.log
