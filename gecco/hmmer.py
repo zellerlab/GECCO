@@ -60,8 +60,8 @@ class HMMER(object):
                         if self.prodigal:
                             sid = "_".join(l[0].split("_")[:-1])
                             pid = l[0]
-                            start = min(l[23], l[25])
-                            end = max(l[23], l[25])
+                            start = min(int(l[23]), int(l[25]))
+                            end = max(int(l[23]), int(l[25]))
                             strand = "+" if l[27] == "1" else "-"
                         else:
                             sid = "NA"
@@ -72,7 +72,7 @@ class HMMER(object):
                         acc = l[4]
                         if not acc:
                             acc = l[3]
-                        row = [sid, pid, start, end, strand, acc, l[12]] + l[17:19]
+                        row = [sid, pid, str(start), str(end), strand, acc, l[12]] + l[17:19]
                         fout.write("\t".join(row) + "\n")
 
     def _get_protein_order(self):
