@@ -25,13 +25,13 @@ class HMMER(object):
         base, _ = os.path.splitext(os.path.basename(self.fasta))
         dom_out = os.path.join(self.out_dir, f"{base}.hmmer.dom")
 
-        cmd = ["hmmsearch", "--domtblout", dom_out, self.hmms, self.fasta]
         stdout = os.path.join(self.out_dir, f"{base}.hmmer.out")
         stderr = os.path.join(self.out_dir, f"{base}.hmmer.err")
+        cmd = ["hmmsearch", "-o", stdout, "--domtblout", dom_out, self.hmms, self.fasta]
 
         # Run HMMER
-        with open(stdout, "w") as out, open(stderr, "w") as err:
-            subprocess.run(cmd, stdout=out, stderr=err)
+        with open(stderr, "w") as err:
+            subprocess.run(cmd, stderr=err)
 
         # Convert to TSV
         tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")
