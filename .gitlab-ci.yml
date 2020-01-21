@@ -6,11 +6,11 @@ stages:
 .test: &test
   stage: test
   before_script:
-    - uname -a
-    - python --version
+    - apt update
+    - apt install -y prodigal hmmer
   script:
     - pip install .
-    - gecco --help
+    - gecco -l VERBOSE --traceback run -o /tmp -g tests/data/SRR492066.faa
 
 # --- Stages -------------------------------------------------------------------
 
