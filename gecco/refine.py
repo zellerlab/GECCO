@@ -103,7 +103,7 @@ class ClusterRefiner(object):
 
         return BGC(prot_list, name=cluster_name)
 
-    def extract_segments(self, df: pd.DataFrame) -> Optional[List[pd.Dataframe]]:
+    def extract_segments(self, df: pd.DataFrame) -> Optional[List[pd.DataFrame]]:
         """
         Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
