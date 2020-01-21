@@ -1,0 +1,19 @@
+stages:
+  - test
+
+# --- Stage Templates ----------------------------------------------------------
+
+.test: &test
+  stage: test
+  before_script:
+    - uname -a
+    - python --version
+  script:
+    - pip install .
+    - gecco --help
+
+# --- Stages -------------------------------------------------------------------
+
+test:python3.7:
+    image: python:3.7
+    <<: *test
