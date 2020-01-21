@@ -14,12 +14,15 @@ class ClusterKNN(object):
     def __init__(self, metric="jsd", **kwargs):
         self.metric = metric
 
-        if self.metric == "jsd":
+        if metric == "jsd":
             self.dist = jsd_pairwise
-
-        # Doesn't work, really
-        if self.metric == "tanimoto":
+        elif metric == "tanimoto":
+            # Doesn't work, really
+            # NB(@althonos): Tanimoto distance seems to be mostly for boolean
+            #                vectors, not probability vectors.
             self.dist = tanimoto_pairwise
+        else:
+            raise ValueError(f"unexpected metric: {metric!r}")
 
         self.knn = KNeighborsClassifier(
             metric = self.dist,

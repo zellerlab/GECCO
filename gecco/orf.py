@@ -5,16 +5,16 @@ class ORFFinder(object):
     """Finds ORFs given a FASTA file and writes the results to out_dir"""
 
     def __init__(self, fasta, out_dir, method="prodigal",
-            out_formats=["genes", "coords"],
-            other_args=[]):
+            out_formats=None,
+            other_args=None):
         self.fasta = fasta
         self.base = ".".join(os.path.basename(fasta).split(".")[:-1])
         self.out_dir = out_dir
         self.method = method
         self._check_method()
 
-        self.out_formats = out_formats
-        self.other_args = other_args
+        self.out_formats =  ["genes", "coords"] if out_formats is None else out_formats
+        self.other_args = [] if other_args is None else other_args
 
     def run(self):
         """Find ORFs"""

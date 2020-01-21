@@ -40,12 +40,12 @@ class ClusterCRF(object):
     """
 
     def __init__(self, Y_col=None,
-        feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
+        feature_cols=None, weight_cols=None, group_col="protein_id", feature_type="single",
         algorithm="lbsgf", overlap=2, weights_prefix=None, **kwargs):
 
         self.Y_col = Y_col
-        self.features = feature_cols
-        self.weights = weight_cols
+        self.features = feature_cols or []
+        self.weights = weight_cols or []
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
@@ -295,13 +295,16 @@ class ClusterCRF(object):
         else:
             return X, None
 
-    def _make_feature_dict(self, row, feat_dict=dict()):
+    def _make_feature_dict(self, row, feat_dict=None):
         """
         Constructs a dict with key:value pairs from
         row: input row or dict
         self.features: either name of feature or name of column in row/dict
         self.weights: either numerical weight or name of column in row/dict
         """
+
+        feat_dict = feat_dict or {}
+
         for f, w in zip(self.features, self.weights):
             if isinstance(w, numbers.Number):
                 key, val = row[f], w

@@ -110,7 +110,7 @@ def filter_repeats(pfam_df):
     out_df = pfam_df[~pfam_df["pfam"].isin(repeats)]
     return out_df
 
-def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
+def extract_features(table, Y_col=None, feature_col=None, weight_col=None):
     """
     Prepares class labels Y and features from a table
     given
@@ -120,6 +120,9 @@ def extract_features(table, Y_col=None, feature_col=[], weight_col=[]):
     weight_col: either name of a column with numerical values or a numerical weight
     """
     X = []
+    feature_col = feature_col or []
+    weight_col = weight_col or []
+
     for _, row in table.iterrows():
         feat_dict = dict()
         feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
@@ -154,7 +157,7 @@ def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="pr
     else:
         return X, None
 
-def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[],
+def extract_overlapping_features(table, Y_col=None, feature_col=None, weight_col=None,
         overlap=1):
     """
     Prepares class labels Y and features from a table
@@ -165,6 +168,8 @@ def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[
     weight_col: either name of a column with numerical values or a numerical weight
     """
     X = []
+    feature_col = feature_col or []
+    weight_col = weight_col or []
     for idx, _ in table.iterrows():
         wind = table.iloc[idx - overlap : idx + overlap + 1]
         feat_dict = dict()
@@ -177,13 +182,17 @@ def extract_overlapping_features(table, Y_col=None, feature_col=[], weight_col=[
     else:
         return X, None
 
-def make_feature_dict(row, features=[], weights=[], feat_dict=dict()):
+def make_feature_dict(row, features=None, weights=None, feat_dict=None):
     """
     Constructs a dict with feature:value pairs from
     row: input row or dict
     features: either name of feature or name of column in row/dict
     weights: either numerical weight or name of column in row/dict
     """
+    features = features or []
+    weights = weights or []
+    feat_dict = feat_dict or {}
+
     for f, w in zip(features, weights):
         if isinstance(w, numbers.Number):
             feat_dict[row[f]] = w

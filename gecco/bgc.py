@@ -3,12 +3,12 @@ from gecco.preprocessing import flatten
 
 class Protein(object):
     """Definition of a Protein"""
-    def __init__(self, seq_id, start, end, name, p=0.0, domains=[], weights=None):
+    def __init__(self, seq_id, start, end, name, p=0.0, domains=None, weights=None):
         self.seq_id = seq_id
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = np.array(name)
-        self.domains = np.array(domains)
+        self.domains = np.array(domains or [])
         if weights is not None:
             self.weights = np.array(weights)
         else:
