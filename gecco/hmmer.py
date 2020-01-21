@@ -30,9 +30,8 @@ class HMMER(object):
         stderr = os.path.join(self.out_dir, f"{base}.hmmer.err")
 
         # Run HMMER
-        with open(stdout, "w") as out:
-            with open(stderr, "w") as err:
-                subprocess.run(cmd, stdout=out, stderr=err)
+        with open(stdout, "w") as out, open(stderr, "w") as err:
+            subprocess.run(cmd, stdout=out, stderr=err)
 
         # Convert to TSV
         tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")

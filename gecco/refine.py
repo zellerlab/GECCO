@@ -142,7 +142,6 @@ class ClusterRefiner(object):
                 # pass
         return cluster_list or None
 
-
     def segment(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Determines coordinates of segments determined by p_col over

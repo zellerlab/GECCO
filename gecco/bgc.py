@@ -21,7 +21,7 @@ class Protein(object):
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = np.array(name)
-        self.domains = np.array(domains or [])
+        self.domains = np.array([] if domains is None else domains)
         if weights is not None:
             self.weights: np.ndarray = np.array(weights)
         else:

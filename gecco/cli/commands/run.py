@@ -3,6 +3,7 @@
 import logging
 import os
 import pickle
+import typing
 
 import numpy
 import pandas
@@ -53,6 +54,29 @@ class Run(Command):
                                       (antismash or gecco). [default: gecco]
     """
 
+    def _check(self) -> typing.Optional[int]:
+        retcode = super()._check()
+        if retcode is not None:
+            return retcode
+
+        # Check value of numeric arguments
+        self.args["--neighbors"] = int(self.args["--neighbors"])
+        self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
+        if e_filter < 0 or e_filter > 1:
+            self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
+            return 1
+
+        # Use default threshold value dependeing on postprocessing method
+        if self.args["--threshold"] is None:
+            if self.args["--postproc"] == "gecco":
+                self.args["--threshold"] = 0.4
+            elif self.args["--postproc"] == "antismash":
+                self.args["--threshold"] = 0.6
+        else:
+            self.args["--threshold"] = float(self.args["--threshold"])
+
+        return None
+
     def __call__(self) -> int:
         # Check CLI arguments
         retcode = self._check()
@@ -94,9 +118,8 @@ class Run(Command):
         pfam_df = hmmer.run()
 
         # Filter i-evalue
-        e_filter = max(min(float(self.args["--e-filter"]), 1), 0)
-        self.logger.debug("Filtering results with e-value under {}", e_filter)
-        pfam_df = pfam_df[pfam_df["i_Evalue"] < e_filter]
+        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        pfam_df = pfam_df[pfam_df["i_Evalue"] < self.args["--e-filter"]]
 
         # Reformat pfam IDs
         pfam_df = pfam_df.assign(
@@ -111,24 +134,24 @@ class Run(Command):
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
-        with data.open("model/feat_v8_param_v2.crf.model", "rb"):
-            crf = pickle.load(f)
+        with data.open("model/feat_v8_param_v2.crf.model", "rb") as bin:
+            crf = pickle.load(bin)
 
         # If extracted from genome, split input dataframe into sequence
         if prodigal:
             pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
         else:
             pfam_df = [pfam_df]
-        predict_df = crf.predict_marginals(data=pfam_df)
+        pfam_df = crf.predict_marginals(data=pfam_df)
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
-        predict_df.to_csv(pred_out, sep="\t", index=False)
+        pfam_df.to_csv(pred_out, sep="\t", index=False)
 
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
-        refiner = ClusterRefiner(threshold=float(self.args["--threshold"]))
+        refiner = ClusterRefiner(threshold=self.args["--threshold"])
 
         clusters = []
         for sid, subdf in pfam_df.groupby("sequence_id"):
@@ -144,7 +167,7 @@ class Run(Command):
                 clusters.extend(found_clusters)
 
         if not clusters:
-            logging.warning("Unfortunately, no clusters were found.")
+            self.logger.warning("Unfortunately, no clusters were found.")
             return 0
 
         # --- KNN ------------------------------------------------------------
@@ -153,13 +176,13 @@ class Run(Command):
         # Reformat training matrix
         training_matrix = data.realpath("knn/domain_composition.tsv")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[1:].values
+        train_comp = train_df.iloc[:,1:].values
         id_array = train_df["BGC_id"].values
         pfam_array = train_df.columns.values[1:]
 
         # Reformat type labels
         labels = data.realpath("knn/type_labels.tsv")
-        types_df = pandas.read_csv(labels, sep="\t", ecoding="utf-8")
+        types_df = pandas.read_csv(labels, sep="\t", encoding="utf-8")
         types_array = types_df["cluster_type"].values
         subtypes_array = types_df["subtype"].values
 
@@ -169,7 +192,7 @@ class Run(Command):
         )
 
         # Inititate kNN and predict types
-        knn = ClusterKNN(metric=self.args["--dist"], n_neighbors=int(self.args["--neighbors"]))
+        knn = ClusterKNN(metric=self.args["--distance"], n_neighbors=self.args["--neighbors"])
         knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
         # --- RESULTS --------------------------------------------------------
@@ -197,5 +220,5 @@ class Run(Command):
                 SeqIO.write(prot_list, out, "fasta")
 
         # Exit gracefully
-        logging.info("Successfully found {} clusters!", len(clusters))
+        self.logger.info("Successfully found {} clusters!", len(clusters))
         return 0

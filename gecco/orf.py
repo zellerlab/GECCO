@@ -21,10 +21,8 @@ class ORFFinder(object):
         """Find ORFs"""
         cmd = self._make_commandline()
         log_out = os.path.join(self.out_dir, self.base + f".{self.method}.log")
-        subprocess.run(cmd,
-            stdout = open(log_out, "wt"),
-            stderr = open(log_out, "wt"))
-
+        with open(log_out, "w") as out:
+            subprocess.run(cmd, stdout=out, stderr=out)
         return self.main_out
 
     def _check_method(self):
