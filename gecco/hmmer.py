@@ -5,7 +5,13 @@ import pandas as pd
 class HMMER(object):
     """Searches a HMM library against protein sequences."""
 
-    def __init__(self, fasta, out_dir, hmms, prodigal=True):
+    def __init__(
+            self,
+            fasta: str,
+            out_dir: str,
+            hmms: str,
+            prodigal: bool = True
+    ) -> None:
         self.fasta = fasta
         self.prodigal = prodigal
         if not self.prodigal:
@@ -16,20 +22,20 @@ class HMMER(object):
 
     def run(self):
         """Runs HMMER. Converts output to tsv."""
-        base = ".".join(os.path.basename(self.fasta).split(".")[:-1])
-        dom_out = os.path.join(self.out_dir, base + ".hmmer.dom")
-        cmd =  ["hmmsearch", "--domtblout",
-            dom_out, self.hmms, self.fasta]
-        std_out = os.path.join(self.out_dir, base + ".hmmer.out")
-        err_out = os.path.join(self.out_dir, base + ".hmmer.err")
-        
+        base, _ = os.path.splitext(os.path.basename(self.fasta))
+        dom_out = os.path.join(self.out_dir, f"{base}.hmmer.dom")
+
+        cmd = ["hmmsearch", "--domtblout", dom_out, self.hmms, self.fasta]
+        stdout = os.path.join(self.out_dir, f"{base}.hmmer.out")
+        stderr = os.path.join(self.out_dir, f"{base}.hmmer.err")
+
         # Run HMMER
-        subprocess.run(cmd,
-            stdout = open(std_out, "wt"),
-            stderr = open(err_out, "wt"))
+        with open(stdout, "w") as out:
+            with open(stderr, "w") as err:
+                subprocess.run(cmd, stdout=out, stderr=err)
 
         # Convert to TSV
-        tsv_out = os.path.join(self.out_dir, base + ".hmmer.tsv")
+        tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")
         self._to_tsv(dom_out, tsv_out)
 
         # Sort table properly
@@ -47,7 +53,7 @@ class HMMER(object):
             if e.errno == os.errno.ENOENT:
                 raise OSError("HMMER does not seem to be installed. Please install it and re-run GECCO.")
 
-    def _to_tsv(self, dom_file, out_file):
+    def _to_tsv(self, dom_file: str, out_file: str) -> None:
         """Converts HMMER --domtblout output to regular TSV"""
         header = ["sequence_id", "protein_id", "start", "end", "strand", "pfam",
             "i_Evalue", "domain_start", "domain_end"]

@@ -11,7 +11,7 @@ class ClusterKNN(object):
     (MDS and TSNE maybe later)
     """
 
-    def __init__(self, metric="jsd", **kwargs):
+    def __init__(self, metric: str = "jsd", **kwargs):
         self.metric = metric
 
         if metric == "jsd":

@@ -1,21 +1,34 @@
+import typing
+
 import numpy as np
 from gecco.preprocessing import flatten
 
 class Protein(object):
-    """Definition of a Protein"""
-    def __init__(self, seq_id, start, end, name, p=0.0, domains=None, weights=None):
+    """Definition of a Protein
+    """
+
+    def __init__(
+            self,
+            seq_id: str,
+            start: int,
+            end: int,
+            name,
+            p: float = 0.0,
+            domains = None,
+            weights: typing.Optional[typing.List[float]] = None
+    ) -> None:
         self.seq_id = seq_id
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = np.array(name)
         self.domains = np.array(domains or [])
         if weights is not None:
-            self.weights = np.array(weights)
+            self.weights: np.ndarray = np.array(weights)
         else:
             self.weights = np.ones(len(domains))
-        self.probs = np.array(p)
+        self.probs: np.ndarray = np.array(p)
 
-    def is_potential_cluster(self, thresh=0.3):
+    def is_potential_cluster(self, thresh: float = 0.3) -> bool:
         return self.probs.mean() > thresh
 
 
