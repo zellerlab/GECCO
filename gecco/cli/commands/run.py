@@ -9,6 +9,7 @@ import pandas
 from Bio import SeqIO
 
 from ._base import Command
+from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
@@ -88,8 +89,8 @@ class Run(Command):
         os.makedirs(hmmer_out, exist_ok=True)
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-        PFAM=os.path.realpath(os.path.join(__file__, "..", "..", "..", "data", "hmms", "Pfam-A.hmm.gz" ))
-        hmmer = HMMER(orf_file, hmmer_out, hmms=PFAM, prodigal=prodigal)
+        hmms = data.realpath("hmms/Pfam-A.hmm.gz")
+        hmmer = HMMER(orf_file, hmmer_out, hmms=hmms, prodigal=prodigal)
         pfam_df = hmmer.run()
 
         # Filter i-evalue
@@ -110,8 +111,7 @@ class Run(Command):
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
-        MODEL = os.path.realpath(os.path.join(__file__, "..", "..", "..", "data", "model", "feat_v8_param_v2.crf.model" ))
-        with open(MODEL, "rb") as f:
+        with data.open("model/feat_v8_param_v2.crf.model", "rb"):
             crf = pickle.load(f)
 
         # If extracted from genome, split input dataframe into sequence
@@ -151,15 +151,15 @@ class Run(Command):
         self.logger.info("Predicting BGC types")
 
         # Reformat training matrix
-        TRAINING_MATRIX = os.path.realpath(os.path.join(__file__, "..", "..", "..", "data", "knn", "domain_composition.tsv" ))
-        train_df = pandas.read_csv(TRAINING_MATRIX, sep="\t", encoding="utf-8")
+        training_matrix = data.realpath("knn/domain_composition.tsv")
+        train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
         train_comp = train_df.iloc[1:].values
         id_array = train_df["BGC_id"].values
         pfam_array = train_df.columns.values[1:]
 
         # Reformat type labels
-        LABELS = os.path.realpath(os.path.join(__file__, "..", "..", "..", "data", "knn", "type_labels.tsv" ))
-        types_df = pandas.read_csv(LABELS, sep="\t", ecoding="utf-8")
+        labels = data.realpath("knn/type_labels.tsv")
+        types_df = pandas.read_csv(labels, sep="\t", ecoding="utf-8")
         types_array = types_df["cluster_type"].values
         subtypes_array = types_df["subtype"].values
 
