@@ -1,23 +1,10 @@
 # coding: utf-8
-import abc
-import functools
-import logging
-import sys
 import textwrap
-import traceback
 import typing
-import warnings
-import xml.etree.ElementTree as etree
 
 import better_exceptions
-import bs4
-import contexter
-import coloredlogs
 import docopt
-import fs
 import pkg_resources
-import tqdm
-import verboselogs
 
 from ... import __version__
 from .._meta import classproperty, wrap_warnings

@@ -1,29 +1,14 @@
 # coding: utf-8
 import abc
-import functools
-import io
 import logging
 import multiprocessing.pool
-import posixpath
-import subprocess
 import sys
 import textwrap
-import traceback
 import typing
-import urllib.parse
-import warnings
-import xml.etree.ElementTree as etree
 
-import bs4
-import contexter
 import coloredlogs
 import docopt
-import fs
-import requests
-import tenacity
-import tqdm
 import verboselogs
-from tenacity import stop_after_attempt, wait_exponential
 
 from ... import __version__, __name__ as __progname__
 from .._meta import BraceAdapter
@@ -72,11 +57,6 @@ class Command(metaclass=abc.ABCMeta):
         except docopt.DocoptExit as de:
             self.args = de
             loglevel = "INFO"
-        else:
-            # Launch a thread pool if the comand is multithreaded
-            if self.args.get("--jobs") is not None:
-                jobs = int(self.args["--jobs"]) or multiprocessing.cpu_count()
-                self.pool = multiprocessing.pool.ThreadPool(jobs)
 
         # Create a new colored logger if needed
         if logger is None:
