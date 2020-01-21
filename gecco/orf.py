@@ -1,4 +1,5 @@
 import os
+import errno
 import subprocess
 
 class ORFFinder(object):
@@ -32,8 +33,9 @@ class ORFFinder(object):
             devnull = open(os.devnull)
             subprocess.run([self.method], stdout=devnull, stderr=devnull)
         except OSError as err:
-            if err.errno == os.errno.ENOENT:
-                raise OSError(f"{self.method} does not seem to be installed. Please install it and re-run GECCO.")
+            if err.errno == errno.ENOENT:
+                raise RuntimeError(f"{self.method} does not seem to be installed. Please install it and re-run GECCO.") from None
+            raise
 
     def _make_commandline(self):
         """Makes commandline for subprocess"""
