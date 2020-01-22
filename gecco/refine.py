@@ -115,9 +115,8 @@ class ClusterRefiner(object):
             if row[self.p_col] >= self.lower_thresh:
                 # non-cluster -> cluster
                 if not cluster_state:
-                    cluster_name = f"{row[self.seq_col]}_cluster_{str(cluster_num)}"
-                    row = (pd.DataFrame(row)
-                        .transpose())
+                    cluster_name = f"{row[self.seq_col]}_cluster_{cluster_num}"
+                    row = pd.DataFrame(row).transpose()
                     cluster_start = row["start"]
                     cluster_df = row
                     cluster_state = True
@@ -125,7 +124,7 @@ class ClusterRefiner(object):
                 else:
                     cluster_df = cluster_df.append(row)
                     # Check if last row
-                    if n == range(len(df))[-1]:
+                    if n == len(df) - 1:
                         cluster_list.append(
                             cluster_df.assign(idx=n, cluster_id=cluster_name)
                         )

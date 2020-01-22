@@ -129,10 +129,12 @@ class Run(Command):
         hmms = data.realpath("hmms/Pfam-A.hmm.gz")
         hmmer = HMMER(orf_file, hmmer_out, hmms, prodigal, self.args["--jobs"])
         pfam_df = hmmer.run()
+        self.logger.debug("Found {} domains across all proteins", len(pfam_df))
 
         # Filter i-evalue
         self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
         pfam_df = pfam_df[pfam_df["i_Evalue"] < self.args["--e-filter"]]
+        self.logger.debug("Using remaining {} domains", len(pfam_df))
 
         # Reformat pfam IDs
         pfam_df = pfam_df.assign(
@@ -151,11 +153,9 @@ class Run(Command):
             crf = pickle.load(bin)
 
         # If extracted from genome, split input dataframe into sequence
-        if prodigal:
-            pfam_df = [seq for _, seq in pfam_df.groupby("sequence_id")]
-        else:
-            pfam_df = [pfam_df]
-        pfam_df = crf.predict_marginals(data=pfam_df)
+        pfam_df = crf.predict_marginals(
+            data=[seq for _, seq in pfam_df.groupby("sequence_id")]
+        )
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
@@ -164,6 +164,7 @@ class Run(Command):
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
+        self.logger.debug("Using threshold of {}", self.args["--threshold"])
         refiner = ClusterRefiner(threshold=self.args["--threshold"])
 
         clusters = []

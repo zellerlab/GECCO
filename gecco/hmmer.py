@@ -90,15 +90,15 @@ class HMMER(object):
                     end = max(int(l[23]), int(l[25]))
                     strand = "+" if l[27] == "1" else "-"
                 else:
-                    sid = "NA"
+                    sid = "_".join(l[0].split("_")[:-1])
                     pid = l[0]
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
-                    strand = "NA"
+                    strand = "unknown"
                 pfam = l[4] or l[3]
                 writer.writerow([sid, pid, start, end, strand, pfam, l[12]] + l[17:19])
 
     def _get_protein_order(self):
         with open(self.fasta, "r") as f:
             pids = [line[1:].split()[0] for line in f if line.startswith(">")]
-        return dict(enumerate(pids))
+        return {pid:i for i, pid in enumerate(pids)}
