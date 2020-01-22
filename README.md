@@ -36,8 +36,8 @@ Once `gecco.py` is available in your `PATH`, you can run it from everywhere by
 giving it a FASTA or GenBank file with the genome you want to analyze, as well
 as an output directory.
 
-```bash
-gecco run --genome some_genome.fna -o some_output_dir
+```console
+$ gecco run --genome some_genome.fna -o some_output_dir
 ```
 
 For more info, you could check the wiki... if there was one.
