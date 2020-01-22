@@ -77,7 +77,7 @@ class HMMER(object):
             "domain_start",
             "domain_end"
         ]
-        with open(dom_file, "rt") as f, open(out_file, "wt") as fout:
+        with open(dom_file, "r") as f, open(out_file, "w") as fout:
             writer = csv.writer(fout, dialect="excel-tab")
             writer.writerow(header)
 
@@ -95,10 +95,8 @@ class HMMER(object):
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "NA"
-                acc = l[4]
-                if not acc:
-                    acc = l[3]
-                writer.writerow([sid, pid, start, end, acc, l[12]] + l[17:19])
+                pfam = l[4] or l[3]
+                writer.writerow([sid, pid, start, end, strand, pfam, l[12]] + l[17:19])
 
     def _get_protein_order(self):
         with open(self.fasta, "r") as f:
