@@ -1,7 +1,6 @@
 # coding: utf-8
 import abc
 import logging
-import multiprocessing.pool
 import sys
 import textwrap
 import typing
