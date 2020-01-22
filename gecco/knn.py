@@ -13,23 +13,20 @@ class ClusterKNN(object):
     (MDS and TSNE maybe later)
     """
 
+    _METRICS = {
+        # Doesn't work, really
+        # NB(@althonos): Tanimoto distance seems to be mostly for boolean
+        #                vectors, not probability vectors.
+        "tanimoto": tanimoto_pairwise,
+        "jensenshannon": jsd_pairwise,
+    }
+
     def __init__(self, metric: str = "jensenshannon", **kwargs):
         self.metric = metric
-
-        if metric == "jensenshannon":
-            self.dist = jsd_pairwise
-        elif metric == "tanimoto":
-            # Doesn't work, really
-            # NB(@althonos): Tanimoto distance seems to be mostly for boolean
-            #                vectors, not probability vectors.
-            self.dist = tanimoto_pairwise
-        else:
+        self.dist = dist = self._METRICS.get(metric)
+        if dist is None:
             raise ValueError(f"unexpected metric: {metric!r}")
-
-        self.knn = KNeighborsClassifier(
-            metric = self.dist,
-            **kwargs
-        )
+        self.knn = KNeighborsClassifier(metric=dist, **kwargs)
 
     def fit_predict(self, train_matrix, new_matrix, y):
         self.knn.fit(train_matrix, y=y)
