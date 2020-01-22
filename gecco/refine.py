@@ -44,13 +44,12 @@ class ClusterRefiner(object):
         self.prefix = prefix
         if method == "antismash":
             self.lower_thresh = 0.3
-            clusters = self._antismash_refine(pfam_df)
+            return self._antismash_refine(pfam_df)
         elif method == "gecco":
             self.lower_thresh = self.thresh
-            clusters = self._gecco_refine(pfam_df)
+            return self._gecco_refine(pfam_df)
         else:
             raise ValueError(f"unexpected method: {method!r}")
-        return clusters
 
     def _gecco_refine(self, dataframe: pd.DataFrame) -> Optional[List[BGC]]:
         """

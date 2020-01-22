@@ -124,7 +124,7 @@ class BGC(object):
         doms = list(np.hstack(self.domains))
         if all_possible is None:
             all_possible = np.unique(doms)
-        return numpy.array([doms.count(d) for d in all_possible])
+        return np.array([doms.count(d) for d in all_possible])
 
     def _antismash_check(self, n_biopfams=5, p_thresh=0.6, n_cds=5) -> bool:
         """
