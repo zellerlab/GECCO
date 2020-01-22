@@ -27,7 +27,7 @@ class Run(Command):
 
     Usage:
         gecco run --genome <file>  [options]
-        gecco run --protein <file> [options]
+        gecco run --proteins <file> [options]
         gecco run (-h | --help)
 
     Arguments:
@@ -81,6 +81,12 @@ class Run(Command):
         self.args["--jobs"] = jobs = int(self.args["--jobs"])
         if jobs == 0:
             self.args["--jobs"] = multiprocessing.cpu_count()
+
+        # Check the input exists
+        input = self.args["--genome"] or self.args["--proteins"]
+        if not os.path.exists(input):
+            self.logger.critical("could not locate input file: {!r}", input)
+            return 1
 
         return None
 
