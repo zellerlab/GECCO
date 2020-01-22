@@ -116,7 +116,7 @@ class Run(Command):
             prodigal = True
 
         else:
-            orf_file = self.args["--protein"]
+            orf_file = self.args["--proteins"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
             prodigal = False
 
@@ -159,8 +159,8 @@ class Run(Command):
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
+        self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
         pfam_df.to_csv(pred_out, sep="\t", index=False)
-
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
@@ -169,7 +169,7 @@ class Run(Command):
         clusters = []
         for sid, subdf in pfam_df.groupby("sequence_id"):
             if len(subdf["protein_id"].unique()) < 5:
-                self.logger.warn("Skipping sequence {} because it is too short", sid)
+                self.logger.warn("Skipping sequence {!r} because it is too short", sid)
                 continue
             found_clusters = refiner.find_clusters(
                 subdf,
@@ -180,13 +180,14 @@ class Run(Command):
                 clusters.extend(found_clusters)
 
         if not clusters:
-            self.logger.warning("Unfortunately, no clusters were found.")
+            self.logger.warning("No gene clusters were found")
             return 0
 
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
 
         # Reformat training matrix
+        self.logger.debug("Reading embedded training matrix")
         training_matrix = data.realpath("knn/domain_composition.tsv")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
         train_comp = train_df.iloc[:,1:].values
@@ -194,18 +195,20 @@ class Run(Command):
         pfam_array = train_df.columns.values[1:]
 
         # Reformat type labels
+        self.logger.debug("Reading embedded type labels")
         labels = data.realpath("knn/type_labels.tsv")
         types_df = pandas.read_csv(labels, sep="\t", encoding="utf-8")
         types_array = types_df["cluster_type"].values
         subtypes_array = types_df["subtype"].values
 
         # Calculate new domain composition
-        new_comp = numpy.array(
-            [c.domain_composition(all_possible=pfam_array) for c in clusters]
-        )
+        self.logger.debug("Calulating domain composition for each cluster")
+        new_comp = numpy.array([c.domain_composition(pfam_array) for c in clusters])
 
         # Inititate kNN and predict types
-        knn = ClusterKNN(metric=self.args["--distance"], n_neighbors=self.args["--neighbors"])
+        distance = self.args["--distance"]
+        self.logger.debug("Running kNN classifier with metric: {!r}", distance)
+        knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
         knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
         # --- RESULTS --------------------------------------------------------
@@ -213,24 +216,24 @@ class Run(Command):
 
         # Write predicted cluster coordinates to file
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
+        self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
             for cluster, ty in zip(clusters, knn_pred):
-                cluster.type = ty[0]
-                cluster.type_prob = ty[1]
+                cluster.type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
         for cluster in clusters:
-            prots = cluster.prot_ids
-            cid = cluster.name
-            prot_list = []
-            proteins = SeqIO.parse(orf_file, "fasta")
-            for p in proteins:
-                if p.id in prots:
-                    p.description = f"{cid} # {p.description}"
-                    prot_list.append(p)
-            with open(os.path.join(out_dir, f"{cid}.proteins.faa"), "wt") as out:
-                SeqIO.write(prot_list, out, "fasta")
+            prots = []
+            for p in SeqIO.parse(orf_file, "fasta"):
+                if p.id in cluster.prot_ids:
+                    p.description = f"{cluster.name} # {p.description}"
+                    prots.append(p)
+
+            prots_out = os.path.join(out_dir, f"{cluster.name}.proteins.faa")
+            self.logger.debug("Writing proteins of {} to {!r}", cluster.name, prots_out)
+            with open(prots_out, "w") as out:
+                SeqIO.write(prots, out, "fasta")
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))
