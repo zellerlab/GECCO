@@ -43,7 +43,7 @@ class HMMER(object):
 
         # Run HMMER
         with open(stderr, "w") as err:
-            subprocess.run(cmd, stderr=err)
+            subprocess.run(cmd, stderr=err).check_returncode()
 
         # Convert to TSV
         tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")
@@ -58,7 +58,7 @@ class HMMER(object):
     def _check_hmmer(self):
         """Checks wether hmmsearch is available. Raises error if not."""
         try:
-            devnull = open(os.devnull)
+            devnull = subprocess.DEVNULL
             subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
         except OSError as e:
             if e.errno == os.errno.ENOENT:

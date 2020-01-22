@@ -44,7 +44,7 @@ class ORFFinder(object):
         cmd = self._make_commandline()
         log_out = os.path.join(self.out_dir, self.base + f".{self.method}.log")
         with open(log_out, "w") as out:
-            subprocess.run(cmd, stdout=out, stderr=out)
+            subprocess.run(cmd, stdout=out, stderr=out).check_returncode()
         return self.main_out
 
     def _check_method(self) -> None:
