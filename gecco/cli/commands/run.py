@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import logging
+import multiprocessing
 import os
 import pickle
 import typing
@@ -16,6 +17,7 @@ from ...hmmer import HMMER
 from ...knn import ClusterKNN
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
+
 
 class Run(Command):
 
@@ -75,6 +77,11 @@ class Run(Command):
         else:
             self.args["--threshold"] = float(self.args["--threshold"])
 
+        # Check the `--cpu`flag
+        self.args["--jobs"] = jobs = int(self.args["--jobs"])
+        if jobs == 0:
+            self.args["--jobs"] = multiprocessing.cpu_count()
+
         return None
 
     def __call__(self) -> int:
@@ -114,7 +121,7 @@ class Run(Command):
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
         hmms = data.realpath("hmms/Pfam-A.hmm.gz")
-        hmmer = HMMER(orf_file, hmmer_out, hmms=hmms, prodigal=prodigal)
+        hmmer = HMMER(orf_file, hmmer_out, hmms, prodigal, self.args["--jobs"])
         pfam_df = hmmer.run()
 
         # Filter i-evalue
