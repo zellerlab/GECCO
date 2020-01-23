@@ -17,7 +17,7 @@ They have to be in the `$PATH` variable before running GECCO.
 
 To install GECCO, just run:
 ```console
-$ pip install https://git.embl.de/grp-zeller/GECCO/-/archive/refactor/GECCO-refactor.zip
+$ pip install git+https://git.embl.de/grp-zeller/GECCO/
 ```
 
 Note that this command can take a long time to complete as it need to download
