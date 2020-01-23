@@ -1,6 +1,7 @@
-![](gecco.png)
+![](static/gecco.png)
 
 # Hi, I'm GECCO!
+
 
 ## Requirements
 
@@ -8,34 +9,36 @@
 * [HMMER](http://hmmer.org/) v3.2 or higher
 * [Prodigal](https://github.com/hyattpd/Prodigal) v2.6.3 or higher
 
-Both HMMER and Prodigal can be installed through [conda](https://anaconda.org/). They have to be in the `PATH` variable before running GECCO.
+Both HMMER and Prodigal can be installed through [conda](https://anaconda.org/).
+They have to be in the `$PATH` variable before running GECCO.
 
 
 ## Installation
 
-To install GECCO, just run
-
-```bash
-git clone https://git.embl.de/fleck/GECCO.git
-cd GECCO
-python setup.py install
+To install GECCO, just run:
+```console
+$ pip install https://git.embl.de/grp-zeller/GECCO/-/archive/refactor/GECCO-refactor.zip
 ```
 
-This should install all Python dependencies and download the Pfam database. Also, it should add `gecco.py` to your `PATH` variable. If that did not work for some reason, you can do this manually by typing
+Note that this command can take a long time to complete as it need to download
+around 250MB of data from the EBI FTP server. You will need to have writing
+rights to the site folder of Python; if this is not the case, use `pip` with
+the `--user` flag to install it to a local folder. Another option is to use
+a virtual environment, either with `virtualenv` or with `conda`.
 
-```bash
-export PATH=$(pwd):$PATH
-```
-
-If you're on a remote server without root access, it might be useful to install GECCO inside a conda environment because otherwise pip probably won't be able to install the Python dependencies.
+Once the install is finished, a `gecco` command will be available in your path
+automatically.
 
 
 ## Running GECCO
 
-Once `gecco.py` is available in your `PATH`, you can run it from everywhere by giving it a FASTA or GenBank file with the genome you want to analyze, as well as an output directory.
+Once `gecco.py` is available in your `PATH`, you can run it from everywhere by
+giving it a FASTA or GenBank file with the genome you want to analyze, as well
+as an output directory.
 
-```bash
-python gecco.py -o some_output_dir some_genome.fna
+```console
+$ gecco run --genome some_genome.fna -o some_output_dir
 ```
 
-For more info, you could check the wiki... if there was one. So far, you're out of luck because I haven't gotten aroud to write one yet ;)
+For more info, you could check the wiki... if there was one.
+So far, you're out of luck because I haven't gotten aroud to write one yet ;)

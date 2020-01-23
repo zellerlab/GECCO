@@ -1,14 +1,26 @@
+import typing
+from typing import List, Optional
+
 import pandas as pd
 import numpy as np
 from gecco.bgc import Protein, BGC
 
 class ClusterRefiner(object):
 
-    def __init__(self, threshold=0.4, lower_thresh=0.3, biosynthetic_pfams=5,
-            seq_col="sequence_id", prot_col="protein_id",
-            p_col="p_pred", domain_col="pfam", weight_col="log_i_Evalue",
-            min_domains=1, min_proteins=5, join_width=1):
-
+    def __init__(
+            self,
+            threshold: float = 0.4,
+            lower_thresh: float = 0.3,
+            biosynthetic_pfams: int = 5,
+            seq_col: str ="sequence_id",
+            prot_col: str ="protein_id",
+            p_col: str ="p_pred",
+            domain_col: str = "pfam",
+            weight_col: str = "log_i_Evalue",
+            min_domains: int = 1,
+            min_proteins: int = 5,
+            join_width: int = 1
+    ) -> None:
         self.thresh = threshold
         self.lower_thresh = lower_thresh
         self.n_biopfams = biosynthetic_pfams
@@ -23,35 +35,32 @@ class ClusterRefiner(object):
         self.p_col = p_col
         self.grouping = [seq_col, prot_col]
 
-    def find_clusters(self, pfam_df, method="gecco", prefix="cluster"):
+    def find_clusters(
+            self,
+            pfam_df: pd.DataFrame,
+            method: str = "gecco",
+            prefix: str = "cluster"
+    ) -> typing.List[BGC]:
         self.prefix = prefix
         if method == "antismash":
             self.lower_thresh = 0.3
-            clusters = self._antismash_refine(pfam_df)
-            return clusters
-        if method == "gecco":
+            return self._antismash_refine(pfam_df)
+        elif method == "gecco":
             self.lower_thresh = self.thresh
-            clusters = self._gecco_refine(pfam_df)
-            return clusters
+            return self._gecco_refine(pfam_df)
+        else:
+            raise ValueError(f"unexpected method: {method!r}")
 
-
-    def _gecco_refine(self, dataframe):
+    def _gecco_refine(self, dataframe: pd.DataFrame) -> Optional[List[BGC]]:
         """
         So far, this implements a very basic extraction procedure:
         1) Extract segments with p_pred > self.thresh
         ...thats it.
         """
-        bgc_list = []
         segments = self.extract_segments(dataframe)
-        if not segments:
-            return
-        for seg in segments:
-            bgc = self._extract_cluster(dataframe, seg)
-            bgc_list.append(bgc)
-
-        return bgc_list
-
-
+        if segments:
+            return [self._extract_cluster(dataframe, seg) for seg in segments]
+        return None
 
     def _antismash_refine(self, dataframe):
         """
@@ -73,7 +82,7 @@ class ClusterRefiner(object):
 
         return bgc_list
 
-    def _extract_cluster(self, dataframe, segment):
+    def _extract_cluster(self, dataframe: pd.DataFrame, segment) -> BGC:
         """Takes a DataFrame and a segement and returns a BGC object"""
         cluster_name = segment["cluster_id"].values[0]
         cluster_prots = set(segment[self.prot_col])
@@ -93,7 +102,7 @@ class ClusterRefiner(object):
 
         return BGC(prot_list, name=cluster_name)
 
-    def extract_segments(self, df):
+    def extract_segments(self, df: pd.DataFrame) -> Optional[List[pd.DataFrame]]:
         """
         Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
@@ -106,9 +115,8 @@ class ClusterRefiner(object):
             if row[self.p_col] >= self.lower_thresh:
                 # non-cluster -> cluster
                 if not cluster_state:
-                    cluster_name = f"{row[self.seq_col]}_cluster_{str(cluster_num)}"
-                    row = (pd.DataFrame(row)
-                        .transpose())
+                    cluster_name = f"{row[self.seq_col]}_cluster_{cluster_num}"
+                    row = pd.DataFrame(row).transpose()
                     cluster_start = row["start"]
                     cluster_df = row
                     cluster_state = True
@@ -116,7 +124,7 @@ class ClusterRefiner(object):
                 else:
                     cluster_df = cluster_df.append(row)
                     # Check if last row
-                    if n == range(len(df))[-1]:
+                    if n == len(df) - 1:
                         cluster_list.append(
                             cluster_df.assign(idx=n, cluster_id=cluster_name)
                         )
@@ -130,14 +138,9 @@ class ClusterRefiner(object):
                     cluster_state = False
                 # non-cluster -> non-cluster
                 # pass
+        return cluster_list or None
 
-        if len(cluster_list) > 0:
-            return cluster_list
-        else:
-            return
-
-
-    def segment(self, df):
+    def segment(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Determines coordinates of segments determined by p_col over
         a lower_thresh.

@@ -1,15 +1,17 @@
+import functools
 import math
-import random
+import multiprocessing.pool
 import numbers
+import random
 import warnings
+
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
-from itertools import zip_longest
-from gecco.cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
-from gecco.preprocessing import flatten, truncate
+
+from .cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
+from .preprocessing import flatten, truncate
 
 
 # CLASS
@@ -39,13 +41,21 @@ class ClusterCRF(object):
         **kwargs: other parameters you want to pass to the CRF model.
     """
 
-    def __init__(self, Y_col=None,
-        feature_cols=[], weight_cols=[], group_col="protein_id", feature_type="single",
-        algorithm="lbsgf", overlap=2, weights_prefix=None, **kwargs):
-
+    def __init__(
+            self,
+            Y_col=None,
+            feature_cols=None,
+            weight_cols=None,
+            group_col="protein_id",
+            feature_type="single",
+            algorithm="lbsgf",
+            overlap=2,
+            weights_prefix=None,
+            **kwargs
+    ) -> None:
         self.Y_col = Y_col
-        self.features = feature_cols
-        self.weights = weight_cols
+        self.features = feature_cols or []
+        self.weights = weight_cols or []
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
@@ -56,22 +66,27 @@ class ClusterCRF(object):
             algorithm = self.alg,
             all_possible_transitions = True,
             all_possible_states = True,
-            **kwargs)
+            **kwargs
+        )
 
     def fit(self, X=None, Y=None, data=None):
-        """
-        Fits the model.
+        """Fits the model to the given data.
+
         If X and Y are defined, it fits the model on the corresponding vectors.
         If data is defined, it takes a dataframe to extract features and labels for
-        fitting
+        fitting.
         """
-        if (X is not None) and (Y is not None):
-            self.model.fit(X, Y)
-        elif data is not None:
+        if X is not None and Y is not None and data is not None:
+            raise ValueError("either X and Y or data must be given, not both")
+
+        if data is not None:
             samples = [self._extract_features(s) for s in data]
             X = np.array([x for x, _ in samples])
             Y = np.array([y for _, y in samples])
             self.model.fit(X, Y)
+        else:
+            self.model.fit(X, Y)
+
         if self.weights_prefix:
             # Random integer to avoid overriding.
             # Hacky, but 1/10000 is enough for now
@@ -81,8 +96,8 @@ class ClusterCRF(object):
 
 
     def predict_marginals(self, data=None, X=None):
-        """
-        Predicts marginals for your data.
+        """Predicts marginals for your data.
+
         If X (a feature vector) is defined, it outputs a probability vector.
         If data (a dataframe) is defined, it outputs the same dataframe with the
         probability vector concatenated to it as the column p_pred.
@@ -130,9 +145,11 @@ class ClusterCRF(object):
             cv_split = PredefinedSplit(folds)
 
         # Run one job per split and collects the result in a list
-        results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(data, train_idx, test_idx, trunc=trunc)
-                for train_idx, test_idx in cv_split.split())
+        with multiprocessing.pool.ThreadPool(threads) as pool:
+            results = pool.starmap(
+                functools.partial(self._single_fold_cv, data, trunc=trunc),
+                list(cv_split.split())
+            )
         return results
 
     def loto_cv(self, data, type_col, threads=1, trunc=None):
@@ -142,10 +159,11 @@ class ClusterCRF(object):
         cv_split = LotoSplit(types)
 
         # Run one job per split and collects the result in a list
-        results = Parallel(n_jobs=threads)(
-            delayed(self._single_fold_cv)(data, train_idx, test_idx,
-                round_id=typ, trunc=trunc)
-                for train_idx, test_idx, typ in cv_split.split())
+        with multiprocessing.pool.ThreadPool(threads) as pool:
+            results = pool.starmap(
+                functools.partial(self._single_fold_cv, data, trunc=trunc),
+                list(cv_split.split())
+            )
         return results
 
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None,
@@ -214,19 +232,16 @@ class ClusterCRF(object):
         grouping levels.
         """
         # Little hacky this, but... meh...
-        if X_only:
-            Y_col = None
-        else:
-            Y_col = self.Y_col
+        Y_col = None if X_only else self.Y_col
 
         if self.feature_type == "single":
             return self._extract_single_features(sample, Y_col)
-
-        if self.feature_type == "overlap":
+        elif self.feature_type == "overlap":
             return self._extract_overlapping_features(sample, Y_col)
-
-        if self.feature_type == "group":
+        elif self.feature_type == "group":
             return self._extract_protein_features(sample, Y_col)
+        else:
+            raise ValueError(f"unexpected feature type: {self.feature_type!r}")
 
     def _merge(self, df, **cols):
         unidf = pd.DataFrame(cols)
@@ -295,13 +310,16 @@ class ClusterCRF(object):
         else:
             return X, None
 
-    def _make_feature_dict(self, row, feat_dict=dict()):
+    def _make_feature_dict(self, row, feat_dict=None):
         """
         Constructs a dict with key:value pairs from
         row: input row or dict
         self.features: either name of feature or name of column in row/dict
         self.weights: either numerical weight or name of column in row/dict
         """
+
+        feat_dict = feat_dict or {}
+
         for f, w in zip(self.features, self.weights):
             if isinstance(w, numbers.Number):
                 key, val = row[f], w
@@ -318,6 +336,9 @@ class ClusterCRF(object):
 
     def save_weights(self, fileprefix):
         with open(fileprefix + ".trans.tsv", "wt") as f:
+
+
+
             f.write("from\tto\tweight\n")
             for (label_from, label_to), weight in self.model.transition_features_.items():
                 f.write(f"{label_from}\t{label_to}\t{weight}\n")

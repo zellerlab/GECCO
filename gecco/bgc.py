@@ -1,34 +1,61 @@
+import csv
+import typing
+from typing import List, Optional
+
 import numpy as np
 from gecco.preprocessing import flatten
 
 class Protein(object):
-    """Definition of a Protein"""
-    def __init__(self, seq_id, start, end, name, p=0.0, domains=[], weights=None):
+    """Definition of a Protein
+    """
+
+    def __init__(
+            self,
+            seq_id: str,
+            start: int,
+            end: int,
+            name,
+            p: float = 0.0,
+            domains = None,
+            weights: Optional[List[float]] = None
+    ) -> None:
         self.seq_id = seq_id
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = np.array(name)
-        self.domains = np.array(domains)
+        self.domains = np.array([] if domains is None else domains)
         if weights is not None:
-            self.weights = np.array(weights)
+            self.weights: np.ndarray = np.array(weights)
         else:
             self.weights = np.ones(len(domains))
-        self.probs = np.array(p)
+        self.probs: np.ndarray = np.array(p)
 
-    def is_potential_cluster(self, thresh=0.3):
+    def is_potential_cluster(self, thresh: float = 0.3) -> bool:
         return self.probs.mean() > thresh
 
 
 class BGC(object):
-    """A biosynthetic gene cluster with multiple proteins"""
-    def __init__(self, proteins=None, name=None, bgc_type=None, type_prob=None,
-        seq_id=None, start=None, end=None, domains=None, weights=None):
+    """A biosynthetic gene cluster with multiple proteins.
+    """
+
+    def __init__(
+            self,
+            proteins: Optional[List[Protein]] = None,
+            name: Optional[str] = None,
+            bgc_type: Optional[str] = None,
+            type_prob: Optional[float] = None,
+            seq_id: Optional [str] = None,
+            start: Optional[int] = None,
+            end: Optional[int] = None,
+            domains=None,
+            weights: Optional[List[float]] = None
+    ) -> None:
         self.proteins = proteins
         if proteins:
             self.seq_id = self.proteins[0].seq_id
             self.prot_ids = np.array([p.name for p in proteins])
-            self.start = min([p.start for p in proteins])
-            self.end = max([p.end for p in proteins])
+            self.start = min(p.start for p in proteins)
+            self.end = max(p.end for p in proteins)
             self.domains = np.array([p.domains for p in proteins])
             self.weights = np.array([p.weights for p in proteins])
             self.probs = np.array([p.probs for p in proteins])
@@ -42,7 +69,7 @@ class BGC(object):
         self.type = bgc_type
         self.type_prob = type_prob
 
-    def is_valid(self, criterion="antismash", thresh=0.6):
+    def is_valid(self, criterion: str ="antismash", thresh: float =0.6) -> bool:
         if criterion == "antismash":
             # These are the default options only
             return self._antismash_check(
@@ -50,25 +77,31 @@ class BGC(object):
                 p_thresh = 0.6,
                 n_cds = 5
             )
-        if criterion == "gecco":
+        elif criterion == "gecco":
             return self._gecco_check()
+        else:
+            raise ValueError(f"invalid criterion: {criterion!r}")
 
-    def write_to_file(self, handle, long=False):
+    def write_to_file(self, handle: typing.TextIO, long: bool = False) -> None:
         if self.proteins:
-            p_mean = np.hstack(self.probs).mean()
-            p_max = np.hstack(self.probs).max()
-            if not long:
-                row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                    self.type, self.type_prob]
-            else:
-                prot = ",".join(np.hstack(self.prot_ids))
-                pfam = ",".join(np.hstack(self.domains))
-                row = [self.seq_id, self.name, self.start, self.end, p_mean, p_max,
-                    self.type, self.type_prob, prot, pfam]
+            probs = np.hstack(self.probs)
+            row = [
+                self.seq_id,
+                self.name,
+                self.start,
+                self.end,
+                probs.mean(),
+                probs.max(),
+                self.type,
+                self.type_prob
+            ]
+            if long:
+                row.append(",".join(np.hstack(self.prot_ids))) # prots
+                row.append(",".join(np.hstack(self.domains))) # pfam
         else:
             row = [self.seq_id, self.name, self.type]
         row = map(str, row)
-        handle.write("\t".join(row) + "\n")
+        csv.writer(handle, dialect="excel-tab").writerow(row)
 
     def domain_composition(self, all_possible=None):
         """Computes weighted domain composition with respect to all_possible.
@@ -78,12 +111,9 @@ class BGC(object):
         if all_possible is None:
             all_possible = np.unique(doms)
         comp_arr = np.zeros(len(all_possible))
-        for i in range(len(all_possible)):
-            n = list(doms).count(all_possible[i])
-            if n > 0:
-                weight = w[doms == all_possible[i]].mean()
-            else:
-                weight = 0
+        for i, dom in enumerate(all_possible):
+            n = list(doms).count(dom)
+            weight = w[doms == dom].mean() if n > 0 else 0
             comp_arr[i] = n * weight
         comp_arr = comp_arr / comp_arr.sum()
         return np.nan_to_num(comp_arr, copy=False)
@@ -91,16 +121,12 @@ class BGC(object):
     def domain_counts(self, all_possible=None):
         """Computes domain counts with respect to all_possible.
         """
-        doms = np.hstack(self.domains)
+        doms = list(np.hstack(self.domains))
         if all_possible is None:
             all_possible = np.unique(doms)
-        comp_arr = np.zeros(len(all_possible))
-        for i in range(len(all_possible)):
-            n = list(doms).count(all_possible[i])
-            comp_arr[i] = n
-        return comp_arr
+        return np.array([doms.count(d) for d in all_possible])
 
-    def _antismash_check(self, n_biopfams=5, p_thresh=0.6, n_cds=5):
+    def _antismash_check(self, n_biopfams=5, p_thresh=0.6, n_cds=5) -> bool:
         """
         Checks for cluster validity using antiSMASH criteria:
         1) MEAN p over thresh
@@ -113,7 +139,8 @@ class BGC(object):
             "PF08545", "PF02803", "PF00108", "PF02706", "PF03364", "PF08990", "PF00501",
             "PF00668", "PF08415", "PF00975", "PF03061", "PF00432", "PF00494", "PF03936",
             "PF01397", "PF00432", "PF04275", "PF00348", "PF02401", "PF04551", "PF00368",
-            "PF00534", "PF00535", "PF02922", "PF01041","PF00128", "PF00908","PF02719", "PF04321", "PF01943", "PF02806", "PF02350", "PF02397", "PF04932","PF01075",
+            "PF00534", "PF00535", "PF02922", "PF01041","PF00128", "PF00908","PF02719",
+            "PF04321", "PF01943", "PF02806", "PF02350", "PF02397", "PF04932","PF01075",
             "PF00953","PF01050", "PF03033", "PF01501", "PF05159", "PF04101", "PF02563",
             "PF08437", "PF02585", "PF01721", "PF02052", "PF02674","PF03515", "PF04369",
             "PF08109", "PF08129", "PF09221", "PF09683", "PF10439", "PF11420", "PF11632",
@@ -136,5 +163,5 @@ class BGC(object):
 
         return (bio_crit and p_crit and cds_crit)
 
-    def _gecco_check(self):
+    def _gecco_check(self) -> bool:
         return True

@@ -1,0 +1,19 @@
+stages:
+  - test
+
+# --- Stage Templates ----------------------------------------------------------
+
+.test: &test
+  stage: test
+  before_script:
+    - apt update
+    - apt install -y prodigal hmmer
+  script:
+    - pip install .
+    - gecco -l VERBOSE --traceback run -o /tmp -g tests/data/SRR492066.fna
+
+# --- Stages -------------------------------------------------------------------
+
+test:python3.7:
+    image: python:3.7
+    <<: *test

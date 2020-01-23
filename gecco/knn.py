@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE, MDS
 from sklearn.neighbors import KNeighborsClassifier
+
 from gecco.utils import jsd_pairwise, tanimoto_pairwise
+
 
 class ClusterKNN(object):
     """
@@ -11,20 +13,20 @@ class ClusterKNN(object):
     (MDS and TSNE maybe later)
     """
 
-    def __init__(self, metric="jsd", **kwargs):
-        self.metric = metric
-
-        if self.metric == "jsd":
-            self.dist = jsd_pairwise
-
+    _METRICS = {
         # Doesn't work, really
-        if self.metric == "tanimoto":
-            self.dist = tanimoto_pairwise
+        # NB(@althonos): Tanimoto distance seems to be mostly for boolean
+        #                vectors, not probability vectors.
+        "tanimoto": tanimoto_pairwise,
+        "jensenshannon": jsd_pairwise,
+    }
 
-        self.knn = KNeighborsClassifier(
-            metric = self.dist,
-            **kwargs
-        )
+    def __init__(self, metric: str = "jensenshannon", **kwargs):
+        self.metric = metric
+        self.dist = dist = self._METRICS.get(metric)
+        if dist is None:
+            raise ValueError(f"unexpected metric: {metric!r}")
+        self.knn = KNeighborsClassifier(metric=dist, **kwargs)
 
     def fit_predict(self, train_matrix, new_matrix, y):
         self.knn.fit(train_matrix, y=y)

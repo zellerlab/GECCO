@@ -1,6 +1,8 @@
-import numpy as np
-from scipy.stats import entropy
 from itertools import product
+
+import numpy
+from scipy.stats import entropy
+from scipy.spatial.distance import jensenshannon
 
 def coerce_numeric(s):
     """Tries to coerce string to numeric and returns number if possible"""
@@ -13,12 +15,7 @@ def jsd_pairwise(p, q, base=2):
     """
     Computes Janson-Shannon Distance given two probability vectors p and q.
     """
-    p, q = np.asarray(p), np.asarray(q)
-
-    # Normalize p, q to probabilities
-    p, q = p / p.sum(), q / q.sum()
-    m = 1.0 / 2 * (p + q)
-    return np.sqrt(entropy(p, m, base=base) / 2.0 + entropy(q, m, base=base) / 2.0)
+    return jensenshannon(p, q, base=2)
 
 def jsd(mat, base=2):
     """
@@ -28,7 +25,7 @@ def jsd(mat, base=2):
     for p, q in product(mat, mat):
         dist = jsd_pairwise(p, q)
         dist_vec.append(dist)
-    return np.array(dist_vec).reshape(len(mat), len(mat))
+    return numpy.array(dist_vec).reshape(len(mat), len(mat))
 
 def tanimoto_pairwise(p, q):
     """
@@ -48,4 +45,4 @@ def tanimoto(mat):
     for p, q in product(mat, mat):
         dist = tanimoto_pairwise(p, q)
         dist_vec.append(dist)
-    return np.array(dist_vec).reshape(len(mat), len(mat))
+    return numpy.array(dist_vec).reshape(len(mat), len(mat))
