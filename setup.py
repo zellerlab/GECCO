@@ -100,7 +100,10 @@ class sdist(_sdist):
 
 if __name__ == "__main__":
     setuptools.setup(
-        cmdclass={"build_ext": build_ext},
+        cmdclass={
+            "build_ext": build_ext,
+            "sdist": sdist,
+        },
         ext_modules=[
             Resource(
                 "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam31.0/Pfam-A.hmm.gz",
