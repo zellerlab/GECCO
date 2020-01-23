@@ -75,7 +75,7 @@ class Main(Command):
 
         # Exit if no command was found
         if self.args["<cmd>"] is not None and subcmd_cls is None:
-            self.logger.critical("Unknown subcommand: {!r}", self.args["<cmd>"])
+            self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
             return 1
 
         # Setup better exceptions if traceback is rendered
@@ -106,7 +106,7 @@ class Main(Command):
         try:
             exitcode = subcmd()
         except KeyboardInterrupt:
-            self.logger.critical("Interrupted")
+            self.logger.error("Interrupted")
             return 2
         except Exception as e:
             self.logger.critical("{}", e)

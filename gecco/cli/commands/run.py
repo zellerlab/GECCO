@@ -85,7 +85,7 @@ class Run(Command):
         # Check the input exists
         input = self.args["--genome"] or self.args["--proteins"]
         if not os.path.exists(input):
-            self.logger.critical("could not locate input file: {!r}", input)
+            self.logger.error("could not locate input file: {!r}", input)
             return 1
 
         return None
