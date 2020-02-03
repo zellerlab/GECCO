@@ -47,13 +47,13 @@ class HMMER(object):
 
         # Convert to TSV
         tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")
-        self._to_tsv(dom_out, tsv_out)
+        #self._to_tsv(dom_out, tsv_out)
 
-        # Sort table properly
-        out_df = pd.read_csv(tsv_out, sep = "\t")
-        out_df = (out_df.sort_values(["sequence_id", "start", "domain_start"])
-                        .reset_index(drop=True))
-        return out_df
+        return (
+            self._to_dataframe(dom_out)
+                .sort_values(["sequence_id", "start", "domain_start"])
+                .reset_index(drop=True)
+        )
 
     def _check_hmmer(self):
         """Checks wether hmmsearch is available. Raises error if not."""
@@ -97,6 +97,40 @@ class HMMER(object):
                     strand = "unknown"
                 pfam = l[4] or l[3]
                 writer.writerow([sid, pid, start, end, strand, pfam, l[12]] + l[17:19])
+
+    def _to_dataframe(self, dom_file: str) -> None:
+        """Converts a HMMER domain table to a `pandas.DataFrame`.
+        """
+        rows = []
+        with open(dom_file, "r") as f:
+            for line in filter(lambda line: not line.startswith("#"), f):
+                l = list(filter(None, line.split(" ")))
+                if self.prodigal:
+                    sid = "_".join(l[0].split("_")[:-1])
+                    pid = l[0]
+                    start = min(int(l[23]), int(l[25]))
+                    end = max(int(l[23]), int(l[25]))
+                    strand = "+" if l[27] == "1" else "-"
+                else:
+                    sid = "_".join(l[0].split("_")[:-1])
+                    pid = l[0]
+                    start = self.protein_order[pid]
+                    end = self.protein_order[pid]
+                    strand = "unknown"
+                print(l)
+                rows.append({
+                    "sequence_id": sid,
+                    "protein_id": pid,
+                    "start": start,
+                    "end": end,
+                    "strand": strand,
+                    "pfam": l[4],
+                    "i_Evalue": float(l[12]),
+                    "domain_start": int(l[17]),
+                    "domain_end": int(l[19]),
+                })
+        return pd.DataFrame(rows)
+
 
     def _get_protein_order(self):
         with open(self.fasta, "r") as f:

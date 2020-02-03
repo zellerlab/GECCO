@@ -40,7 +40,12 @@ class ORFFinder(object):
         self.other_args: List[str] = [] if other_args is None else other_args
 
     def run(self) -> str:
-        """Find ORFs"""
+        """Launch the ORF finder with the arguments passed at initialisation.
+
+        Returns:
+            str: the path to the file containing the translated ORFs that were
+            discovered in the input.
+        """
         cmd = self._make_commandline()
         log_out = os.path.join(self.out_dir, self.base + f".{self.method}.log")
         with open(log_out, "w") as out:
