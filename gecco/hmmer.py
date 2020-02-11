@@ -117,7 +117,6 @@ class HMMER(object):
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
-                print(l)
                 rows.append({
                     "sequence_id": sid,
                     "protein_id": pid,
