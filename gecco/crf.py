@@ -1,3 +1,4 @@
+import csv
 import functools
 import math
 import multiprocessing.pool
@@ -94,7 +95,6 @@ class ClusterCRF(object):
             prfx = f"{self.weights_prefix}.{rnd:05}"
             self.save_weights(prfx)
 
-
     def predict_marginals(self, data=None, X=None):
         """Predicts marginals for your data.
 
@@ -166,8 +166,7 @@ class ClusterCRF(object):
             )
         return results
 
-    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None,
-            trunc=None):
+    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None):
         """Performs a single CV round with the given train_idx and test_idx
         """
 
@@ -317,32 +316,23 @@ class ClusterCRF(object):
         self.features: either name of feature or name of column in row/dict
         self.weights: either numerical weight or name of column in row/dict
         """
-
         feat_dict = feat_dict or {}
-
         for f, w in zip(self.features, self.weights):
             if isinstance(w, numbers.Number):
                 key, val = row[f], w
             else:
-                try:
-                    key, val = row[f], row[w]
-                except KeyError:
-                    key, val = f, row[w]
-            if key in feat_dict.keys():
-                feat_dict[key] = max(val, feat_dict[key])
-            else:
-                feat_dict[key] = val
+                key, val = row.get(f, f), row[w]
+            feat_dict[key] = max(val, feat_dict.get(key, val))
         return feat_dict
 
-    def save_weights(self, fileprefix):
-        with open(fileprefix + ".trans.tsv", "wt") as f:
-
-
-
-            f.write("from\tto\tweight\n")
+    def save_weights(self, basename: str) -> None:
+        with open(f"{basename}.trans.tsv", "w") as f:
+            writer = csv.writer(f, dialect="excel-tab")
+            writer.writerow(["from", "to", "weight"])
             for (label_from, label_to), weight in self.model.transition_features_.items():
-                f.write(f"{label_from}\t{label_to}\t{weight}\n")
-        with open(fileprefix + ".state.tsv", "wt") as f:
-            f.write("attr\tlabel\tweight\n")
+                writer.writerow([label_from, label_to, weight])
+        with open(f"{basename}.state.tsv", "w") as f:
+            writer = csv.writer(f, dialect="excel-tab")
+            writer.writerow(["attr", "label", "weight"])
             for (attr, label), weight in self.model.state_features_.items():
-                f.write(f"{attr}\t{label}\t{weight}\n")
+                writer.writerow([attr, label, weight])
