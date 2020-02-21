@@ -83,7 +83,7 @@ class Main(Command):
             better_exceptions.hook()
 
         # Print a help message if asked for
-        if self.args["--help"]:
+        if self.args["--help"] or "-h" in self.args["<args>"]:
             doc = self.doc if subcmd_cls is None else subcmd_cls.doc
             print(textwrap.dedent(doc).lstrip(), file=self.stream)
             return 0
