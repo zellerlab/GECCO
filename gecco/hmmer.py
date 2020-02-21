@@ -112,8 +112,7 @@ class HMMER(object):
                     end = max(int(l[23]), int(l[25]))
                     strand = "+" if l[27] == "1" else "-"
                 else:
-                    sid = "_".join(l[0].split("_")[:-1])
-                    pid = l[0]
+                    sid = pid = l[0]
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
