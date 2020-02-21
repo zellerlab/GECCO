@@ -129,7 +129,6 @@ class HMMER(object):
                 })
         return pd.DataFrame(rows)
 
-
     def _get_protein_order(self):
         with open(self.fasta, "r") as f:
             pids = [line[1:].split()[0] for line in f if line.startswith(">")]
