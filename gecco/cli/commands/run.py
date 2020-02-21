@@ -26,9 +26,9 @@ class Run(Command):
     gecco run - {summary}
 
     Usage:
-        gecco run --genome <file>  [options]
-        gecco run --proteins <file> [options]
         gecco run (-h | --help)
+        gecco run --genome <file> [options]
+        gecco run --proteins <file> [options]
 
     Arguments:
         -g <file>, --genome <file>    a FASTA or GenBank file containing a
@@ -42,18 +42,24 @@ class Run(Command):
         -j <jobs>, --jobs <jobs>      the number of CPUs to use for
                                       multithreading. Use 0 to use all of the
                                       available CPUs. [default: 0]
+
+    Parameters - Domain Annotation:
         -e <e>, --e-filter <e>        the e-value cutoff for PFam domains to
-                                      be included [default: 1e-5]
+                                      be included. [default: 1e-5]
+
+    Parameters - Cluster Detection:
         -m <m>, --threshold <m>       the probability threshold for cluster
                                       detection. Default depends on the
                                       post-processing method (0.4 for gecco,
                                       0.6 for antismash).
-        -k <n>, --neighbors <n>       the number of neighbors to use for
-                                      kNN type prediction [default: 5]
-        -d <d>, --distance <d>        the distance metric to use for kNN type
-                                      prediction. [default: jensenshannon]
         --postproc <method>           the method to use for cluster extraction
                                       (antismash or gecco). [default: gecco]
+
+    Parameters - BGC Type Prediction:
+        -d <d>, --distance <d>        the distance metric to use for kNN type
+                                      prediction. [default: jensenshannon]
+        -k <n>, --neighbors <n>       the number of neighbors to use for
+                                      kNN type prediction [default: 5]
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -121,30 +127,30 @@ class Run(Command):
             prodigal = False
 
         # --- HMMER ----------------------------------------------------------
-        self.logger.info("Running PFam domain annotation")
+        self.logger.info("Running domain annotation")
         hmmer_out = os.path.join(out_dir, "hmmer")
         os.makedirs(hmmer_out, exist_ok=True)
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
         hmms = data.realpath("hmms/Pfam-A.hmm.gz")
         hmmer = HMMER(orf_file, hmmer_out, hmms, prodigal, self.args["--jobs"])
-        pfam_df = hmmer.run()
-        self.logger.debug("Found {} domains across all proteins", len(pfam_df))
+        feats_df = hmmer.run()
+        self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
         self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
-        pfam_df = pfam_df[pfam_df["i_Evalue"] < self.args["--e-filter"]]
-        self.logger.debug("Using remaining {} domains", len(pfam_df))
+        feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
+        self.logger.debug("Using remaining {} domains", len(feats_df))
 
         # Reformat pfam IDs
-        pfam_df = pfam_df.assign(
-            pfam=pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+        feats_df = feats_df.assign(
+            domain=feats_df["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
         )
 
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
-        pfam_df.to_csv(feat_out, sep="\t", index=False)
+        feats_df.to_csv(feat_out, sep="\t", index=False)
 
 
         # --- CRF ------------------------------------------------------------
@@ -153,22 +159,22 @@ class Run(Command):
             crf = pickle.load(bin)
 
         # If extracted from genome, split input dataframe into sequence
-        pfam_df = crf.predict_marginals(
-            data=[seq for _, seq in pfam_df.groupby("sequence_id")]
+        feats_df = crf.predict_marginals(
+            data=[seq for _, seq in feats_df.groupby("sequence_id")]
         )
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
         self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
-        pfam_df.to_csv(pred_out, sep="\t", index=False)
+        feats_df.to_csv(pred_out, sep="\t", index=False)
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
-        self.logger.debug("Using threshold of {}", self.args["--threshold"])
+        self.logger.debug("Using probability threshold of {}", self.args["--threshold"])
         refiner = ClusterRefiner(threshold=self.args["--threshold"])
 
         clusters = []
-        for sid, subdf in pfam_df.groupby("sequence_id"):
+        for sid, subdf in feats_df.groupby("sequence_id"):
             if len(subdf["protein_id"].unique()) < 5:
                 self.logger.warn("Skipping sequence {!r} because it is too short", sid)
                 continue

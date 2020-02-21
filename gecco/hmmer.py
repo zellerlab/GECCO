@@ -72,7 +72,7 @@ class HMMER(object):
             "start",
             "end",
             "strand",
-            "pfam",
+            "domain",
             "i_Evalue",
             "domain_start",
             "domain_end"
@@ -95,8 +95,8 @@ class HMMER(object):
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
-                pfam = l[4] or l[3]
-                writer.writerow([sid, pid, start, end, strand, pfam, l[12]] + l[17:19])
+                domain = l[4] or l[3]
+                writer.writerow([sid, pid, start, end, strand, domain, l[12]] + l[17:19])
 
     def _to_dataframe(self, dom_file: str) -> None:
         """Converts a HMMER domain table to a `pandas.DataFrame`.
@@ -123,7 +123,7 @@ class HMMER(object):
                     "start": start,
                     "end": end,
                     "strand": strand,
-                    "pfam": l[4],
+                    "domain": l[4],
                     "i_Evalue": float(l[12]),
                     "domain_start": int(l[17]),
                     "domain_end": int(l[19]),

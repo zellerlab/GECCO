@@ -10,18 +10,18 @@ class ClusterRefiner(object):
     def __init__(
             self,
             threshold: float = 0.4,
-            biosynthetic_pfams: int = 5,
+            biosynthetic_domains: int = 5,
             seq_col: str ="sequence_id",
             prot_col: str ="protein_id",
             p_col: str ="p_pred",
-            domain_col: str = "pfam",
+            domain_col: str = "domain",
             weight_col: str = "log_i_Evalue",
             min_domains: int = 1,
             min_proteins: int = 5,
             join_width: int = 1
     ) -> None:
         self.threshold = threshold
-        self.n_biopfams = biosynthetic_pfams
+        self.n_biodomains = biosynthetic_domains
         self.n_domains = min_domains
         self.n_proteins = min_proteins
         self.n_proteins = min_proteins
@@ -35,7 +35,7 @@ class ClusterRefiner(object):
 
     def find_clusters(
         self,
-        pfam_df: pd.DataFrame,
+        domains_df: pd.DataFrame,
         method: str = "gecco",
         prefix: str = "cluster",
         lower_threshold: Optional[float] = None,
@@ -46,7 +46,7 @@ class ClusterRefiner(object):
             lt = self.threshold if lower_threshold is None else lower_threshold
         else:
             raise ValueError(f"unexpected method: {method!r}")
-        return self._refine(method, pfam_df, lower_threshold=lt)
+        return self._refine(method, domains_df, lower_threshold=lt)
 
     def _refine(
         self,
