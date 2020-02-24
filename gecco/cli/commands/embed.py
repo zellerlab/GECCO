@@ -18,7 +18,6 @@ from .._utils import numpy_error_context
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
-from ...knn import ClusterKNN
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
 from ...preprocessing import truncate
