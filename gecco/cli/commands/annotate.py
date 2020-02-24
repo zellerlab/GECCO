@@ -115,14 +115,17 @@ class Annotate(Command):
 
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running PFam domain annotation")
-        hmmer_out = os.path.join(out_dir, "hmmer")
-        os.makedirs(hmmer_out, exist_ok=True)
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-        feats_df = pandas.DataFrame()
+        features = []
         for hmm in self.args["--hmm"]:
+            hmmer_out = os.path.join(out_dir, "hmmer", os.path.basename(hmm))
+            os.makedirs(hmmer_out, exist_ok=True)
             hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
-            feats_df.append(hmmer.run())
+            features.append(hmmer.run())
+
+        feats_df = pandas.concat(features, ignore_index=True)
+        print(feats_df)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
