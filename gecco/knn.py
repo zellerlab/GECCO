@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE, MDS
 from sklearn.neighbors import KNeighborsClassifier
-
-from gecco.utils import jsd_pairwise, tanimoto_pairwise
+from scipy.spatial.distance import jensenshannon
 
 
 class ClusterKNN(object):
@@ -17,8 +16,8 @@ class ClusterKNN(object):
         # Doesn't work, really
         # NB(@althonos): Tanimoto distance seems to be mostly for boolean
         #                vectors, not probability vectors.
-        "tanimoto": tanimoto_pairwise,
-        "jensenshannon": jsd_pairwise,
+        "tanimoto": lambda p,q: p*q / (p - q)**2,
+        "jensenshannon": jensenshannon,
     }
 
     def __init__(self, metric: str = "jensenshannon", **kwargs):
