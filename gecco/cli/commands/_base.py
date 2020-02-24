@@ -54,16 +54,17 @@ class Command(metaclass=abc.ABCMeta):
                 version=self._version,
                 options_first=self._options_first,
             )
-            loglevel = self.args.get("--log")
+            loglevel = self._get_log_level()
         except docopt.DocoptExit as de:
             self.args = de
-            loglevel = "INFO"
+            loglevel = None
 
         # Create a new colored logger if needed
         if logger is None:
             logger = verboselogs.VerboseLogger(__progname__)
             logger.addHandler(logging.StreamHandler())
             loglevel = (loglevel or "INFO").upper()
+            print(loglevel)
             coloredlogs.install(
                 level=int(loglevel) if loglevel.isdigit() else loglevel,
                 stream=stream,
@@ -73,7 +74,6 @@ class Command(metaclass=abc.ABCMeta):
         # Use a loggin adapter to use new-style formatting
         self.logger = BraceAdapter(logger)
 
-
     def _check(self) -> typing.Optional[int]:
         # Assert CLI arguments were parsed Successfully
         if isinstance(self.args, docopt.DocoptExit):
@@ -81,7 +81,15 @@ class Command(metaclass=abc.ABCMeta):
             return 1
         # Display help if needed
         elif self.args["--help"]:
-            print(textwrap.dedent(self.doc).lstrip(), file=self.stream)
+            print(textwrap.dedent(self.doc).lstrip())
             return 0
         else:
             return None
+
+    def _get_log_level(self) -> typing.Optional[str]:
+        if self.args.get("--verbose"):
+            return "VERBOSE" if self.args.get("--verbose") == 1 else "DEBUG"
+        elif self.args.get("--quiet"):
+            return "ERROR"
+        else:
+            return self.args.get("--log")
