@@ -37,7 +37,7 @@ def truncate(df, length, Y_col="BGC", grouping="protein_id"):
     df0 = df[df[Y_col] == 0]
     df1 = df[df[Y_col] == 1]
     df0 = [df for _, df in df0.groupby(grouping, sort=False)]
-    trunc_len = int((len(df0) - 2 * length) / 2)
+    trunc_len = (len(df0) - 2 * length) // 2
 
     try:
         df_trunc = pd.concat(df0[trunc_len : -trunc_len])
@@ -91,7 +91,7 @@ def prepare_split_samples(table_list, split_col, X_col="pfam",
     X = []
     Y = []
     for tbl in list(table_list):
-        samples =  [prepare_sample(s, X_col, Y_col) for _, s in total.groupby(split_col)]
+        samples =  [prepare_sample(s, X_col, Y_col) for _, s in tbl.groupby(split_col)]
         X += [x for x, _ in samples]
         Y += [y for _, y in samples]
     return np.array(X), np.array(Y)
