@@ -64,7 +64,6 @@ class Command(metaclass=abc.ABCMeta):
             logger = verboselogs.VerboseLogger(__progname__)
             logger.addHandler(logging.StreamHandler())
             loglevel = (loglevel or "INFO").upper()
-            print(loglevel)
             coloredlogs.install(
                 level=int(loglevel) if loglevel.isdigit() else loglevel,
                 stream=stream,
