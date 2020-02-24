@@ -4,6 +4,7 @@ import typing
 
 import better_exceptions
 import docopt
+import operator
 import pkg_resources
 
 from ... import __version__
@@ -34,12 +35,16 @@ class Main(Command):
     @classproperty
     def doc(cls):
         commands = (
-            "    {:27}{}".format(name, cmd.summary) for name, cmd in cls._get_subcommands().items()
+            "    {:12}{}".format(name, cmd.summary)
+            for name, cmd in sorted(
+                cls._get_subcommands().items(),
+                key=operator.itemgetter(0)
+            )
         )
         return (
             textwrap.dedent(
                 """
-        gecco - gene cluster prediction with conditional random fields
+        gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
             gecco [options] <cmd> [<args>...]

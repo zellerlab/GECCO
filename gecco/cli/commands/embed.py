@@ -26,7 +26,7 @@ from ...preprocessing import truncate
 
 class Embed(Command):
 
-    summary = "embed BGC annotations into non-BGC contigs"
+    summary = "embed BGC annotations into non-BGC contigs for training."
     doc = f"""
     gecco embed - {summary}
 

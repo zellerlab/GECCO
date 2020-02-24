@@ -22,7 +22,7 @@ from ...preprocessing import truncate
 
 class Train(Command):
 
-    summary = "train the CRF model"
+    summary = "train the CRF model on an embedded feature table."
     doc = f"""
     gecco train - {summary}
 

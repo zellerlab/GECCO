@@ -21,7 +21,7 @@ from ...refine import ClusterRefiner
 
 class Run(Command):
 
-    summary = "predict Biosynthetic Gene Clusters from a genome file."
+    summary = "predict BGC from a genome or from individual proteins."
     doc = f"""
     gecco run - {summary}
 

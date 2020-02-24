@@ -22,7 +22,7 @@ from ...preprocessing import truncate
 
 class Annotate(Command):
 
-    summary = "annotate proteins"
+    summary = "use HMMs to annotate features for some proteins."
     doc = f"""
     gecco annotate - {summary}
 
