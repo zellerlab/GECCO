@@ -193,7 +193,7 @@ class Train(Command):
             #weight_cols = self.args["--weight-cols"],
             weight_cols = ["rev_i_Evalue"],
             feature_type = self.args["--feature-type"],
-            weights_prefix = self.args["--output"],
+            #weights_prefix = self.args["--output"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
             c1 = self.args["--c1"],

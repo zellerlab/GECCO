@@ -6,6 +6,7 @@ import os
 import pickle
 import random
 import typing
+import warnings
 
 import numpy
 import pandas
@@ -13,6 +14,7 @@ import tqdm
 from Bio import SeqIO
 
 from ._base import Command
+from .._utils import numpy_error_context
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
@@ -97,10 +99,19 @@ class Embed(Command):
         bgc_df = bgc_df.sort_values(by=["BGC_id", "start", "domain_start"])
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
+        # Checking we have enough non-BGC contigs to fit the BGCs into
+        no_bgc_count, bgc_count = len(no_bgc_count), len(bgc_count)
+        if no_bgc_count < bgc_count:
+            msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
+            warnings.warn(msg.format(no_bgc_count, bgc_count))
+            embedding_count = bgc_count
+        else:
+            embedding_count = no_bgc_count
+
         # Make the embeddings
         self.logger.info("Creating the embeddings")
-        embeds = []
-        for no_bgc, bgc in tqdm.tqdm(zip(no_bgc_list, bgc_list), total=min(len(no_bgc_list), len(bgc_list))):
+        embedding = []
+        for no_bgc, bgc in tqdm.tqdm(zip(no_bgc_list, bgc_list), total=embedding_count):
             no_bgc = no_bgc.groupby("protein_id", sort=False)
             start, end = pandas.DataFrame(), pandas.DataFrame()
             for n, (_, t) in enumerate(tqdm.tqdm(no_bgc, leave=False)):
@@ -109,26 +120,29 @@ class Embed(Command):
                 else:
                     end = pandas.concat([end, t])
 
-            embed = pandas.concat([start, bgc, end])
+            embed = pandas.concat([start, bgc, end], sort=False)
             embed = embed.reset_index(drop=True)
             embed = embed[embed["i_Evalue"] < self.args["--e-filter"]]
 
             #
-            embed = embed.assign(
-                domain=embed["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
-                sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
-                BGC_id=bgc["BGC_id"].values[0],
-                #BGC_type=bgc["BGC_type"].values[0].split(","),
-                pseudo_pos=range(len(embed)),
-                rev_i_Evalue = 1 - embed["i_Evalue"],
-                log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
-                strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
-                shift = "shift"
-            )
-            embeds.append(embed)
+            with numpy_error_context(divide="ignore"):
+                embed = embed.assign(
+                    domain=embed["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
+                    sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
+                    BGC_id=bgc["BGC_id"].values[0],
+                    # FIXME: really needed ? if so we must also extract the
+                    # metadata from the `mibig.json` metadata listing
+                    # BGC_type=bgc["BGC_type"].values[0].split(","),
+                    pseudo_pos=range(len(embed)),
+                    rev_i_Evalue = 1 - embed["i_Evalue"],
+                    log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
+                    strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
+                    shift = "shift"
+                )
+                embedding.append(embed)
 
         # Write the resulting table
         self.logger.info("Writing embedding table")
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
-        pandas.concat(embeds).to_csv(out_file, sep="\t", index=False)
+        pandas.concat(embedding).to_csv(out_file, sep="\t", index=False)

@@ -125,7 +125,6 @@ class Annotate(Command):
             features.append(hmmer.run())
 
         feats_df = pandas.concat(features, ignore_index=True)
-        print(feats_df)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
