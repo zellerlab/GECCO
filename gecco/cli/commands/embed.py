@@ -14,7 +14,7 @@ import tqdm
 from Bio import SeqIO
 
 from ._base import Command
-from .._utils import numpy_error_context
+from .._meta import numpy_error_context
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER

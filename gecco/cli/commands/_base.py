@@ -14,6 +14,8 @@ from .._meta import BraceAdapter
 
 
 class Command(metaclass=abc.ABCMeta):
+    """An abstract base class for ``gecco`` subcommands.
+    """
 
     # -- Abstract methods ----------------------------------------------------
 
