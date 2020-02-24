@@ -83,11 +83,6 @@ class Annotate(Command):
         return None
 
     def __call__(self) -> int:
-        # Check CLI arguments
-        retcode = self._check()
-        if retcode is not None:
-            return retcode
-
         # Make output directory
         out_dir = self.args["--output-dir"]
         self.logger.debug("Using output folder: {!r}", out_dir)

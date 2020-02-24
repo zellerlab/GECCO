@@ -71,11 +71,6 @@ class Embed(Command):
         return None
 
     def __call__(self) -> int:
-        # Check CLI arguments
-        retcode = self._check()
-        if retcode is not None:
-            return retcode
-
         self.logger.info("Reading BGC and non-BGC feature tables")
 
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape

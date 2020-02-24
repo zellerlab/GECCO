@@ -14,6 +14,10 @@ from . import __name__ as __parent__
 
 
 class Main(Command):
+    """The *main* command launched before processing the given subcommand.
+    """
+
+
     @classmethod
     def _get_subcommands(cls) -> typing.Mapping[str, Command]:
         return {
@@ -69,8 +73,7 @@ class Main(Command):
     _options_first = True
 
     def __call__(self) -> int:
-
-        # Assert CLI arguments were parsed Successfully
+        # Assert CLI arguments were parsed successfully
         if isinstance(self.args, docopt.DocoptExit):
             print(self.args, file=self.stream)
             return 1
@@ -109,7 +112,7 @@ class Main(Command):
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            exitcode = subcmd()
+            exitcode = subcmd._check() or subcmd()
         except KeyboardInterrupt:
             self.logger.error("Interrupted")
             return 2

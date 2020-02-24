@@ -143,11 +143,6 @@ class Train(Command):
         return None
 
     def __call__(self) -> int:
-        # Check CLI arguments
-        retcode = self._check()
-        if retcode is not None:
-            return retcode
-
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
