@@ -40,12 +40,22 @@ class Train(Command):
         -j <jobs>, --jobs <jobs>       the number of CPUs to use for
                                        multithreading. Use 0 to use all of the
                                        available CPUs. [default: 0]
+
+    Parameters - Domain Annotation:
         -e <e>, --e-filter <e>         the e-value cutoff for domains to
                                        be included [default: 1e-5]
+
+    Parameters - Cluster Detection:
+        --min-orfs <N>                 how many ORFs are required for a
+                                       sequence to be considered. [default: 5]
         -m <m>, --threshold <m>        the probability threshold for cluster
                                        prediction. Default depends on the
                                        post-processing method (0.4 for gecco,
                                        0.6 for antismash).
+        --postproc <method>            the method used for cluster extraction
+                                       (antismash or gecco). [default: gecco]
+
+    Parameters - Training:
         --c1 <C1>                      parameter for L1 regularisation.
                                        [default: 0.15]
         --c2 <C2>                      parameter for L2 regularisation.
@@ -57,10 +67,6 @@ class Train(Command):
                                        the training set.
         --overlap <N>                  how much overlap to consider if
                                        features overlap. [default: 2]
-        --min-orfs <N>                 how many ORFs are required for a
-                                       sequence to be considered. [default: 5]
-        --postproc <method>            the method used for cluster extraction
-                                       (antismash or gecco). [default: gecco]
 
     Parameters - Column Names:
         -y <col>, --y-col <col>        column with class label. [default: BGC]

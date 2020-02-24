@@ -48,6 +48,8 @@ class Run(Command):
                                       be included. [default: 1e-5]
 
     Parameters - Cluster Detection:
+        --min-orfs <N>                how many ORFs are required for a
+                                      sequence to be considered. [default: 5]
         -m <m>, --threshold <m>       the probability threshold for cluster
                                       detection. Default depends on the
                                       post-processing method (0.4 for gecco,
@@ -69,6 +71,7 @@ class Run(Command):
 
         # Check value of numeric arguments
         self.args["--neighbors"] = int(self.args["--neighbors"])
+        self.args["--min-orfs"] = int(self.args["--min-orfs"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
@@ -170,7 +173,7 @@ class Run(Command):
 
         clusters = []
         for sid, subdf in feats_df.groupby("sequence_id"):
-            if len(subdf["protein_id"].unique()) < 5:
+            if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
                 self.logger.warn("Skipping sequence {!r} because it is too short", sid)
                 continue
             found_clusters = refiner.find_clusters(
