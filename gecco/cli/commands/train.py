@@ -188,7 +188,6 @@ class Train(Command):
             #weight_cols = self.args["--weight-cols"],
             weight_cols = ["rev_i_Evalue"],
             feature_type = self.args["--feature-type"],
-            #weights_prefix = self.args["--output"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
             c1 = self.args["--c1"],
@@ -201,18 +200,7 @@ class Train(Command):
         with open(f"{self.args['--output']}.crf.model", "wb") as f:
             pickle.dump(crf, f, protocol=3)
 
-        self.logger.info("Writing transitions to {}.trans.tsv", self.args["--output"])
-        with open(f"{self.args['--output']}.trans.tsv", "w") as f:
-            writer = csv.writer(f, dialect="excel-tab")
-            writer.writerow(["from", "to", "weight"])
-            for labels, weight in crf.model.transition_features_.items():
-                writer.writerow([*labels, weight])
-
-        self.logger.info("Writing states to {}.state.tsv", self.args["--output"])
-        with open(f"{self.args['--output']}.state.tsv", "w") as f:
-            writer = csv.writer(f, dialect="excel-tab")
-            writer.writerow(["attr", "label", "weight"])
-            for attrs, weight in crf.model.state_features_.items():
-                writer.writerow([*attrs, weight])
+        self.logger.info("Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"])
+        crf.save_weights(self.args["--output"])
 
         return 0

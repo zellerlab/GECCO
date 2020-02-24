@@ -334,10 +334,10 @@ class ClusterCRF(object):
         with open(f"{basename}.trans.tsv", "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["from", "to", "weight"])
-            for (label_from, label_to), weight in self.model.transition_features_.items():
-                writer.writerow([label_from, label_to, weight])
+            for labels, weight in self.model.transition_features_.items():
+                writer.writerow([*labels, weight])
         with open(f"{basename}.state.tsv", "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["attr", "label", "weight"])
-            for (attr, label), weight in self.model.state_features_.items():
-                writer.writerow([attr, label, weight])
+            for attrs, weight in self.model.state_features_.items():
+                writer.writerow([*attrs, weight])
