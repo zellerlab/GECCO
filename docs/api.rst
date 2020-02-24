@@ -6,9 +6,6 @@ API Reference
 .. automodule:: gecco
 
 
-BGC
----
-
 .. autosummary::
    :nosignatures:
    :template: summary.rst
