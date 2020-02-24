@@ -45,20 +45,21 @@ class ClusterCRF(object):
                 categorical features.
             weight_cols (list of `str`): The name of the column(s) with
                 weights for categorical features. *These are applied locally
-                and don't correspond to the actual weights the model learns.
+                and don't correspond to the actual weights the model learns.*
                 See also the `~sklearn_crfsuite.CRFSuite` documentation.
             group_col (str): In case of `feature_type = "group"`,  defines the
                 grouping column to use.
             feature_type (str): Defines how features should be extracted. The
                 following values are accepted:
-                    * ``single``: features are extracted on a domain/row level
-                    * ``overlap``: features are extracted in overlapping windows
-                    * ``group``: features are extracted in groupings determined
-                      by a column in the data frame. *This is most useful when
-                      dealing with proteins, but can handle arbitrary grouping
-                      levels*.
+                - ``single``: features are extracted on a domain/row level
+                - ``overlap``: features are extracted in overlapping windows
+                - ``group``: features are extracted in groupings determined
+                  by a column in the data frame. *This is most useful when
+                  dealing with proteins, but can handle arbitrary grouping
+                  levels*.
+
             algorithm (str): The optimization algorithm for the model. See
-                `https://sklearn-crfsuite.readthedocs.io/en/latest/api.html`_
+                https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
             overlap (int): In case of `feature_type = "overlap"`, defines the
                 window size to use.

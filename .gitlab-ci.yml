@@ -1,5 +1,6 @@
 stages:
   - test
+  - pages
 
 # --- Stage Templates ----------------------------------------------------------
 
@@ -17,3 +18,14 @@ stages:
 test:python3.7:
     image: python:3.7
     <<: *test
+
+docs:
+    image: python:3.7
+    stage: pages
+    script:
+      - pip install .
+      - pip install -r docs/requirements.txt
+      - sphinx-build -b html docs public
+    artifacts:
+      paths:
+        - public
