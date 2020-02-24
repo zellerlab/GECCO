@@ -76,7 +76,7 @@ class ClusterRefiner(object):
                 name = pid,
                 domains = subdf.get(self.domain_col),
                 weights = subdf.get(self.weight_col),
-                p = subdf.get(self.p_col)
+                probability = subdf.get(self.p_col)
             )
             prot_list.append(protein)
         return BGC(prot_list, name=cluster_name)

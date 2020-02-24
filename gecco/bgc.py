@@ -16,7 +16,7 @@ class Protein(object):
         start: int,
         end: int,
         name: str,
-        p: float = 0.0,
+        probability: float = 0.0,
         domains: Optional[List[str]] = None,
         weights: Optional[List[float]] = None,
     ) -> None:
@@ -32,7 +32,8 @@ class Protein(object):
             start (int): The location where the protein starts.
             end (int): The location where the protein ends.
             name (str): The identifier of the protein itself.
-            p (float): The probability with which the protein was predicted.
+            probability (float): The probability with which the protein was
+                predicted.
             domains (iterable of `str`): The domains of the protein, if any
                 were predicted.
             weights (iterable of `flaot`): The prediction weights associated
@@ -45,13 +46,13 @@ class Protein(object):
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = name
-        self.p: np.ndarray = np.array(p)
+        self.probability: float = probability
 
         self.domains = np.array([] if domains is None else list(domains))
         if weights is not None:
             self.weights: np.ndarray = np.array(list(weights))
         else:
-            self.weights = np.ones(len(domains))
+            self.weights = np.ones(len(self.domains))
         if len(self.weights) != len(self.domains):
             raise ValueError("length of `domains` and `weights` differs")
 
@@ -62,7 +63,7 @@ class Protein(object):
             thresh (float): The probability threshold above which a protein is
                 considered a potential cluster. Defaults to `0.3`.
         """
-        return self.probs.mean() > thresh
+        return self.probability > thresh
 
 
 class BGC(object):
@@ -95,7 +96,7 @@ class BGC(object):
         self.end = max(p.end for p in proteins)
         self.domains = np.array([p.domains for p in proteins])
         self.weights = np.array([p.weights for p in proteins])
-        self.probs = np.array([p.probs for p in proteins])
+        self.probabilities = np.array([p.probability for p in proteins])
         self.name = name if name else self.seq_id
         self.bgc_type = bgc_type
         self.type_prob = type_prob
@@ -110,25 +111,22 @@ class BGC(object):
             raise ValueError(f"invalid criterion: {criterion!r}")
 
     def write_to_file(self, handle: typing.TextIO, long: bool = False) -> None:
-        if self.proteins:
-            probs = np.hstack(self.probs)
-            row = [
-                self.seq_id,
-                self.name,
-                self.start,
-                self.end,
-                probs.mean(),
-                probs.max(),
-                self.bgc_type,
-                self.type_prob,
-            ]
-            if long:
-                row.append(",".join(np.hstack(self.prot_ids)))  # prots
-                row.append(",".join(np.hstack(self.domains)))  # pfam
-        else:
-            row = [self.seq_id, self.name, self.bgc_type]
-        row = map(str, row)
-        csv.writer(handle, dialect="excel-tab").writerow(row)
+        probs = np.hstack(self.probabilities)
+        row = [
+            self.seq_id,
+            self.name,
+            self.start,
+            self.end,
+            probs.mean(),
+            probs.max(),
+            self.bgc_type,
+            self.type_prob,
+        ]
+        if long:
+            row.append(",".join(np.hstack(self.prot_ids)))  # prots
+            row.append(",".join(np.hstack(self.domains)))  # pfam
+        row_str = [str(item) for item in row]
+        csv.writer(handle, dialect="excel-tab").writerow(row_str)
 
     def domain_composition(self, all_possible=None):
         """Computes weighted domain composition with respect to ``all_possible``.
@@ -189,7 +187,7 @@ class BGC(object):
         }
 
         bio_crit = len(set(np.hstack(self.domains)) & bio_pfams) >= n_biopfams
-        p_crit = np.mean([p.mean() for p in self.probs]) >= p_thresh
+        p_crit = np.mean([p.mean() for p in self.probabilities]) >= p_thresh
         cds_crit = len(np.hstack(self.prot_ids)) >= n_cds
 
         return bio_crit and p_crit and cds_crit
