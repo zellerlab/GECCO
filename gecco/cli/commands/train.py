@@ -196,8 +196,9 @@ class Train(Command):
         self.logger.info("Fitting the model")
         crf.fit(data=data_tbl)
 
-        self.logger.info("Writing the model to {}.crf.model", self.args["--output"])
-        with open(f"{self.args['--output']}.crf.model", "wb") as f:
+        model_out = f"{self.args['--output']}.crf.model"
+        self.logger.info("Writing the model to {!r}", model_out)
+        with open(model_out, "wb") as f:
             pickle.dump(crf, f, protocol=3)
 
         self.logger.info("Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"])
