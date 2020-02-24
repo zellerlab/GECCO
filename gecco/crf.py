@@ -5,6 +5,7 @@ import multiprocessing.pool
 import numbers
 import random
 import warnings
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -17,54 +18,65 @@ from .preprocessing import flatten, truncate
 
 # CLASS
 class ClusterCRF(object):
-    """
-    ClusterCRF is a wrapper around CRFSuite and enables predition and cross validation
-    for dataframes. This is handy for sequence prediction in e.g. annotated genomic
-    sequences.
-    Initiated with the columns defining the respective properties in the dataframe:
-        Y_col: column with class labels
-        feature_cols: column(s) with categorical features
-        weight_cols: column(s) with 'weights' for categorical features. These are applied
-            locally and don't correspont to the actual weights the model learns. You can read up on how this is used inside CRFSuite on the CRFSuite website.
-        group_col: in case of feature_type = 'group', this defines the grouping column
-        feature_type: defines how features should be extracted:
-            single: Features are extractd on a domain (row) level
-            overlap: Features are extracted in overlapping windows
-            group: Features are extracted in groupings determined by a column in the data
-            frame. This is most useful when dealing with proteins, but can handle
-            arbitrary grouping levels
-        algorithm: the optimization algorithm for the model
-            (again, check the CRFSuite website)
-        overlap: in case of feature_type='overlap', by how much the windows should
-            overlap
-        weights_prefix: prefix for writing transition and state feature weights after
-            each fitting
-        **kwargs: other parameters you want to pass to the CRF model.
+    """A wrapper for `sklearn_crfsuite.CRF` taking `~pandas.DataFrame` inputs.
+
+    `ClusterCRF` enables prediction and cross-validation for dataframes. This
+    is handy to use with feature tables obtained from `~gecco.hmmer.HMMER`.
     """
 
     def __init__(
             self,
-            Y_col=None,
-            feature_cols=None,
+            Y_col: Optional[str] = None,
+            feature_cols: Optional[List[str]] = None,
             weight_cols=None,
             group_col="protein_id",
             feature_type="single",
             algorithm="lbsgf",
             overlap=2,
-            weights_prefix=None,
             **kwargs
     ) -> None:
+        """Create a new `ClusterCRF` instance.
+
+        Arguments:
+            Y_col (`str`): The name of the column containing class labels. Must
+                be given if the model is going to be trained, but not needed
+                when only making predictions.
+            feature_cols (list of `str`): The name of the column(s) with
+                categorical features.
+            weight_cols (list of `str`): The name of the column(s) with
+                weights for categorical features. *These are applied locally
+                and don't correspond to the actual weights the model learns.
+                See also the `~sklearn_crfsuite.CRFSuite` documentation.
+            group_col (str): In case of `feature_type = "group"`,  defines the
+                grouping column to use.
+            feature_type (str): Defines how features should be extracted. The
+                following values are accepted:
+                    * ``single``: features are extracted on a domain/row level
+                    * ``overlap``: features are extracted in overlapping windows
+                    * ``group``: features are extracted in groupings determined
+                      by a column in the data frame. *This is most useful when
+                      dealing with proteins, but can handle arbitrary grouping
+                      levels*.
+            algorithm (str): The optimization algorithm for the model. See
+                `https://sklearn-crfsuite.readthedocs.io/en/latest/api.html`_
+                for available values.
+            overlap (int): In case of `feature_type = "overlap"`, defines the
+                window size to use.
+
+        Keyword Arguments:
+            Any additional keyword argument is passed as argument to the
+            internal `~sklearn_crfsuite.CRF` constructor.
+        """
         self.Y_col = Y_col
         self.features = feature_cols or []
         self.weights = weight_cols or []
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
-        self.weights_prefix = weights_prefix
 
-        self.alg = algorithm
+        self.algorithm = algorithm
         self.model = CRF(
-            algorithm = self.alg,
+            algorithm = algorithm,
             all_possible_transitions = True,
             all_possible_states = True,
             **kwargs
@@ -87,13 +99,6 @@ class ClusterCRF(object):
             self.model.fit(X, Y)
         else:
             self.model.fit(X, Y)
-
-        if self.weights_prefix:
-            # Random integer to avoid overriding.
-            # Hacky, but 1/10000 is enough for now
-            rnd = random.randint(1, 10000)
-            prfx = f"{self.weights_prefix}.{rnd:05}"
-            self.save_weights(prfx)
 
     def predict_marginals(self, data=None, X=None):
         """Predicts marginals for your data.
