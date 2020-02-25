@@ -29,12 +29,15 @@ class Annotate(Command):
         gecco annotate (-h | --help)
         gecco annotate --genome <file> [--hmm <hmm>]... [options]
         gecco annotate --proteins <file> [--hmm <hmm>]...  [options]
+        gecco annotate --mibig <file> [--hmm <hmm>]...  [options]
 
     Arguments:
-        -g <file>, --genome <file>    a FASTA or GenBank file containing a
-                                      genome as input.
-        -p <file>, --proteins <file>  a FASTA file containing proteins as
-                                      input.
+        -g <file>, --genome <file>    a FASTA file containing a genome
+                                      sequence as input.
+        -p <file>, --proteins <file>  a FASTA file containing proteins
+                                      sequences as input.
+        --mibig <file>                a FASTA file containing BGC sequences
+                                      obtained from MIBiG.
 
     Parameters:
         -o <out>, --output-dir <out>  the directory in which to write the
@@ -68,7 +71,7 @@ class Annotate(Command):
             self.args["--jobs"] = multiprocessing.cpu_count()
 
         # Check the input exists
-        input = self.args["--genome"] or self.args["--proteins"]
+        input = next(filter(None, (self.args[x] for x in ("--genome", "--proteins", "--mibig"))))
         if not os.path.exists(input):
             self.logger.error("could not locate input file: {!r}", input)
             return 1
@@ -103,7 +106,7 @@ class Annotate(Command):
             prodigal = True
 
         else:
-            orf_file = self.args["--proteins"]
+            orf_file = self.args["--proteins"] or self.args["--mibig"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
             prodigal = False
 
@@ -130,6 +133,22 @@ class Annotate(Command):
         feats_df = feats_df.assign(
             domain=feats_df["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
         )
+
+        # Patching if given MIBiG input since missing information about the
+        # sequence can be extracted from the protein IDs
+        if self.args["--mibig"] is not None:
+            sid = [row[0] for row in feats_df["sequence_id"].str.split("|")]
+            strand = [row[3] for row in feats_df["sequence_id"].str.split("|")]
+            locs = [
+                tuple(map(int, row[2].split("-")))
+                for row in feats_df["sequence_id"].str.split("|")
+            ]
+            feats_df = feats_df.assign(
+                sequence_id=sid,
+                strand=strand,
+                start=list(map(min, locs)),
+                end=list(map(max, locs)),
+            )
 
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
