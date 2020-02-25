@@ -153,8 +153,7 @@ class Run(Command):
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
-        with data.open("model/feat_v8_param_v2.crf.model", "rb") as bin:
-            crf = pickle.load(bin)
+        crf = data.load("model/feat_v8_param_v2.crf.model", "rb")
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
