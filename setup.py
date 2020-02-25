@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import configparser
+import distutils.cmd
+import distutils.log
 import hashlib
 import io
 import os
@@ -98,11 +100,51 @@ class sdist(_sdist):
         _sdist.run(self)
 
 
+class update_model(distutils.cmd.Command):
+    """A custom command to update the internal CRF model."""
+
+    description = 'update the CRF model embedded in the source'
+    user_options = [
+      ('model=', 'm', 'the path to the new CRF model to use'),
+    ]
+
+    def initialize_options(self):
+        self.model = None
+
+    def finalize_options(self):
+        if self.model is None:
+            raise ValueError("--model argument must be given")
+        elif not os.path.exists(self.model):
+            raise FileNotFoundError(self.model)
+
+    def info(self, msg):
+        self.announce(msg, level=distutils.log.INFO)
+
+    def run(self):
+        import gecco.data
+
+        # Copy the file to the new in-source location and compute its hash.
+        hasher = hashlib.md5()
+        self.info("Copying the model to the in-source location")
+        with open(self.model, "rb") as src:
+            with open(gecco.data.realpath("model/crf.model"), "wb") as dst:
+                read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
+                for chunk in iter(read, b''):
+                    hasher.update(chunk)
+                    dst.write(chunk)
+
+        # Write the hash to the signature file next to the model
+        self.info("Writing the MD5 signature file")
+        with open(gecco.data.realpath("model/crf.model.md5"), "w") as sig:
+            sig.write(hasher.hexdigest())
+
+
 if __name__ == "__main__":
     setuptools.setup(
         cmdclass={
             "build_ext": build_ext,
             "sdist": sdist,
+            "update_model": update_model,
         },
         ext_modules=[
             Resource(
