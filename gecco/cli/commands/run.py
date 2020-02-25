@@ -153,7 +153,7 @@ class Run(Command):
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
-        crf = data.load("model/crf.model", "rb")
+        crf = data.load("model/crf.model")
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
