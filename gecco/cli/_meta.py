@@ -37,6 +37,10 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
     def __init__(self, logger, extra=None):
         super(BraceAdapter, self).__init__(logger, extra or {})
 
+    @property
+    def level(self):
+        return self.logger.level
+
     def log(self, level, msg, *args, **kwargs):
         if self.isEnabledFor(level):
             msg, kwargs = self.process(msg, kwargs)
