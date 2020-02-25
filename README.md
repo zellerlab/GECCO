@@ -62,11 +62,13 @@ With your training sequences ready, first build a feature table using the
 
 ```console
 $ gecco annotate --genome reference_genome.fna -o nobgc
-$ gecco annotate --proteins mibig_prot_seqs_xx.faa -o bgc
+$ gecco annotate --mibig mibig_prot_seqs_xx.faa -o bgc
 ```
 
 Use the `--hmm` flag to give other HMMs instead of using the internal one
-(PFam v31.0 only at the moment).
+(PFam v31.0 only at the moment). **Make sure to use the `--mibig` input flag
+and not `--proteins` when annotating MIBiG sequences to ensure additional
+metadata are properly extracted from the sequence id of each protein.**
 
 *This step will probably take ages, count about 5 minutes to annotate
 1M amino acids with PFam.*

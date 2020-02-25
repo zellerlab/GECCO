@@ -126,7 +126,9 @@ class Main(Command):
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            exitcode = subcmd._check() or subcmd()
+            exitcode = subcmd._check()
+            if exitcode is None:
+                exitcode = subcmd()
         except KeyboardInterrupt:
             self.logger.error("Interrupted")
             return 2
