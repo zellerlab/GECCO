@@ -10,7 +10,7 @@ stages:
     - apt update
     - apt install -y prodigal hmmer
   script:
-    - pip install .
+    - pip install --upgrade .
     - gecco --traceback -vv run -o /tmp -g tests/data/SRR492066.fna
     - gecco --traceback -vv annotate -o /tmp -g tests/data/SRR492066.fna
 
