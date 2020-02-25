@@ -82,7 +82,7 @@ class Embed(Command):
         no_bgc_df = no_bgc_df.groupby("sequence_id", sort=False)
         no_bgc_list = [s for _, s in no_bgc_df if s.shape[0] > self.args["--min-size"]]
 
-        # Read the BGC table, assign the Y column to `0`, and sort
+        # Read the BGC table, assign the Y column to `1`, and sort
         self.logger.debug("Reading BGC table from {!r}", self.args["--bgc"])
         bgc_df = pandas.read_csv(self.args["--bgc"], sep="\t")
         bgc_df = bgc_df.assign(
@@ -93,22 +93,25 @@ class Embed(Command):
         bgc_df = bgc_df.sort_values(by=["BGC_id", "start", "domain_start"])
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
-        # Checking we have enough non-BGC contigs to fit the BGCs into
-        no_bgc_count, bgc_count = len(no_bgc_count), len(bgc_count)
+        # Check we have enough non-BGC contigs to fit the BGCs into
+        no_bgc_count, bgc_count = len(no_bgc_list), len(bgc_list)
         if no_bgc_count < bgc_count:
             msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
             warnings.warn(msg.format(no_bgc_count, bgc_count))
-            embedding_count = bgc_count
+
+
+        if self.stream.isatty() and self.logger.level != 0:
+            pbar = lambda it, **kwargs: tqdm.tqdm(it, file=self.stream, **kwargs)
         else:
-            embedding_count = no_bgc_count
+            pbar = lambda it, **kwargs: it
 
         # Make the embeddings
         self.logger.info("Creating the embeddings")
         embedding = []
-        for no_bgc, bgc in tqdm.tqdm(zip(no_bgc_list, bgc_list), total=embedding_count):
+        for no_bgc, bgc in pbar(list(zip(no_bgc_list, bgc_list)), leave=False):
             no_bgc = no_bgc.groupby("protein_id", sort=False)
             start, end = pandas.DataFrame(), pandas.DataFrame()
-            for n, (_, t) in enumerate(tqdm.tqdm(no_bgc, leave=False)):
+            for n, (_, t) in enumerate(pbar(no_bgc, leave=False)):
                 if n <= math.ceil(len(no_bgc) / 2):
                     start = pandas.concat([start, t])
                 else:
