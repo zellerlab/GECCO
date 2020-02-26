@@ -45,8 +45,8 @@ class ORFFinder(object):
         """Launch the ORF finder with the arguments passed at initialisation.
 
         Returns:
-            str: the path to the file containing the translated ORFs that were
-            discovered in the input.
+            `str`: the path to the file containing the translated ORFs that
+            were discovered in the input file.
         """
         cmd = self._make_commandline()
         log_out = os.path.join(self.out_dir, self.base + f".{self.method}.log")

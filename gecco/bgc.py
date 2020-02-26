@@ -36,7 +36,7 @@ class Protein(object):
                 predicted.
             domains (iterable of `str`): The domains of the protein, if any
                 were predicted.
-            weights (iterable of `flaot`): The prediction weights associated
+            weights (iterable of `float`): The prediction weights associated
                 with each domain of the protein.
 
         Raises:
@@ -111,6 +111,14 @@ class BGC(object):
             raise ValueError(f"invalid criterion: {criterion!r}")
 
     def write_to_file(self, handle: typing.TextIO, long: bool = False) -> None:
+        """Write the BGC as a single row to a text file.
+
+        Arguments:
+            handle (file handle): A file handle open in text mode.
+            long (bool, optional): Whether or not to include additional
+                information (such as the ids of the proteins or of the domains
+                within the BGC). Defaults to `False`.
+        """
         probs = np.hstack(self.probabilities)
         row = [
             self.seq_id,
@@ -128,8 +136,17 @@ class BGC(object):
         row_str = [str(item) for item in row]
         csv.writer(handle, dialect="excel-tab").writerow(row_str)
 
-    def domain_composition(self, all_possible=None):
+    def domain_composition(self, all_possible: Optional[np.ndarray] = None) -> np.ndarray:
         """Computes weighted domain composition with respect to ``all_possible``.
+
+        Arguments:
+            all_possible (`~numpy.ndarray`): An array containing all domain
+                names to consider when computing domain composition for the
+                BGC. If `None` given, then all domains are taken into account.
+
+        Returns:
+            `~numpy.ndarray`: A numerical array containing the relative domain
+            composition of the BGC.
         """
         doms = np.hstack(self.domains)
         w = np.hstack(self.weights)
@@ -144,7 +161,7 @@ class BGC(object):
         return np.nan_to_num(comp_arr, copy=False)
 
     def domain_counts(self, all_possible=None) -> np.ndarray:
-        """Computes domain counts with respect to all_possible.
+        """Computes domain counts with respect to ``all_possible``.
         """
         doms = list(np.hstack(self.domains))
         if all_possible is None:

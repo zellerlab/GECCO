@@ -51,6 +51,7 @@ class ClusterCRF(object):
                 grouping column to use.
             feature_type (str): Defines how features should be extracted. The
                 following values are accepted:
+
                 - ``single``: features are extracted on a domain/row level
                 - ``overlap``: features are extracted in overlapping windows
                 - ``group``: features are extracted in groupings determined
@@ -64,9 +65,8 @@ class ClusterCRF(object):
             overlap (int): In case of `feature_type = "overlap"`, defines the
                 window size to use.
 
-        Keyword Arguments:
-            Any additional keyword argument is passed as argument to the
-            internal `~sklearn_crfsuite.CRF` constructor.
+        Any additional keyword argument is passed as-is to the internal
+        `~sklearn_crfsuite.CRF` constructor.
         """
         self.Y_col = Y_col
         self.features = feature_cols or []
