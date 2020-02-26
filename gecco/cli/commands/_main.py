@@ -4,6 +4,7 @@ import typing
 
 import better_exceptions
 import docopt
+import operator
 import pkg_resources
 
 from ... import __version__
@@ -13,6 +14,9 @@ from . import __name__ as __parent__
 
 
 class Main(Command):
+    """The *main* command launched before processing the given subcommand.
+    """
+
     @classmethod
     def _get_subcommands(cls) -> typing.Mapping[str, Command]:
         return {
@@ -34,22 +38,32 @@ class Main(Command):
     @classproperty
     def doc(cls):
         commands = (
-            "    {:27}{}".format(name, cmd.summary) for name, cmd in cls._get_subcommands().items()
+            "    {:12}{}".format(name, cmd.summary)
+            for name, cmd in sorted(
+                cls._get_subcommands().items(),
+                key=operator.itemgetter(0)
+            )
         )
         return (
             textwrap.dedent(
                 """
-        gecco - gene cluster prediction with conditional random fields
+        gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
-            gecco [options] <cmd> [<args>...]
-            gecco [options] (-h | --help) [<cmd>]
+            gecco [-v | -vv | -q | -l <level>] [options] (-h | --help) [<cmd>]
+            gecco [-v | -vv | -q | -l <level>] [options] <cmd> [<args>...]
 
         Commands:
         {commands}
 
         Parameters:
-            -h, --help                 show this message
+            -h, --help                 show the message for ``gecco`` or
+                                       for a given subcommand.
+            -q, --quiet                silence any output other than errors
+                                       (corresponds to the log level ERROR).
+            -v, --verbose              control the verbosity of the output
+                                       (corresponds to the log level DEBUG).
+            -V, --version              show the program version and exit.
 
         Parameters - Debug:
             --traceback                display full traceback on error.
@@ -64,8 +78,7 @@ class Main(Command):
     _options_first = True
 
     def __call__(self) -> int:
-
-        # Assert CLI arguments were parsed Successfully
+        # Assert CLI arguments were parsed successfully
         if isinstance(self.args, docopt.DocoptExit):
             print(self.args, file=self.stream)
             return 1
@@ -73,7 +86,7 @@ class Main(Command):
         # Get the subcommand class
         subcmd_cls = self._get_subcommand(self.args["<cmd>"])
 
-        # Exit if no command was found
+        # Exit if no known command was found
         if self.args["<cmd>"] is not None and subcmd_cls is None:
             self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
             return 1
@@ -83,9 +96,18 @@ class Main(Command):
             better_exceptions.hook()
 
         # Print a help message if asked for
-        if self.args["--help"]:
-            doc = self.doc if subcmd_cls is None else subcmd_cls.doc
-            print(textwrap.dedent(doc).lstrip(), file=self.stream)
+        if self.args["--help"] or "-h" in self.args["<args>"]:
+            subcmd = self._get_subcommand("help")(
+                argv=["help"] + self.args["<args>"],
+                stream=self.stream,
+                logger=self.logger,
+                options=self.args,
+                config=self.config,
+            )
+
+        # Print version information
+        elif self.args["--version"]:
+            print("gecco", __version__)
             return 0
 
         # Initialize the command if is valid
@@ -104,7 +126,9 @@ class Main(Command):
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            exitcode = subcmd()
+            exitcode = subcmd._check()
+            if exitcode is None:
+                exitcode = subcmd()
         except KeyboardInterrupt:
             self.logger.error("Interrupted")
             return 2

@@ -7,19 +7,6 @@ from typing import Optional, List
 
 class ORFFinder(object):
     """Finds ORFs given a FASTA file containing a genome.
-
-    Arguments:
-        fasta (str): The path to the FASTA file containing the input genome.
-        out_dir (str): The path to the directory in which to write the
-            results files.
-        method (str): The method to use to extract the ORFs. Only *prodigal*
-            is supported at the moment. [default: prodigal]
-        out_formats (list, optional): A list of output formats to produce in
-            supplement of the FASTA file containing the proteins.
-            [default: ["genes", "coords"]]
-        other_args (list, optional): A list of arbitrary arguments to pass to
-            the invoked binary. [default: []].
-
     """
 
     def __init__(
@@ -30,6 +17,21 @@ class ORFFinder(object):
             out_formats: Optional[List[str]] = None,
             other_args: Optional[List[str]] = None
     ) -> None:
+        """Create a new `ORFFinder` to launch PRODIGAL on ``fasta``.
+
+        Arguments:
+            fasta (str): The path to the FASTA file containing the input genome.
+            out_dir (str): The path to the directory in which to write the
+                results files.
+            method (str): The method to use to extract the ORFs. Only
+                *prodigal* is actually supported at the moment.
+            out_formats (list, optional): A list of output formats to produce
+                in supplement of the FASTA file containing the proteins.
+                Defaults to ``["genes", "coords"]``.
+            other_args (list, optional): A list of arbitrary arguments to pass
+                to the invoked binary. Defaults to ``[]``,
+        """
+
         self.fasta = fasta
         self.base, _ = os.path.splitext(os.path.basename(fasta))
         self.out_dir = out_dir
@@ -40,7 +42,12 @@ class ORFFinder(object):
         self.other_args: List[str] = [] if other_args is None else other_args
 
     def run(self) -> str:
-        """Find ORFs"""
+        """Launch the ORF finder with the arguments passed at initialisation.
+
+        Returns:
+            `str`: the path to the file containing the translated ORFs that
+            were discovered in the input file.
+        """
         cmd = self._make_commandline()
         log_out = os.path.join(self.out_dir, self.base + f".{self.method}.log")
         with open(log_out, "w") as out:

@@ -1,5 +1,6 @@
 stages:
   - test
+  - pages
 
 # --- Stage Templates ----------------------------------------------------------
 
@@ -9,11 +10,23 @@ stages:
     - apt update
     - apt install -y prodigal hmmer
   script:
-    - pip install .
-    - gecco -l VERBOSE --traceback run -o /tmp -g tests/data/SRR492066.fna
+    - pip install --upgrade .
+    - gecco --traceback -vv run -o /tmp -g tests/data/SRR492066.fna
+    - gecco --traceback -vv annotate -o /tmp -g tests/data/SRR492066.fna
 
 # --- Stages -------------------------------------------------------------------
 
 test:python3.7:
     image: python:3.7
     <<: *test
+
+docs:
+    image: python:3.7
+    stage: pages
+    script:
+      - pip install .
+      - pip install -r docs/requirements.txt
+      - sphinx-build -b html docs public
+    artifacts:
+      paths:
+        - public

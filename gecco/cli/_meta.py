@@ -1,7 +1,13 @@
+"""A module containing some metaprogramming helpers.
+"""
+
+import contextlib
 import functools
 import logging
+import typing
 import warnings
 
+import numpy
 import verboselogs
 
 
@@ -17,7 +23,7 @@ class classproperty(object):
 
 
 class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
-    """An logging adapter for `VerboseLogger` to use new-style formatting.
+    """A logging adapter for `VerboseLogger` to use new-style formatting.
     """
 
     class Message(object):
@@ -30,6 +36,10 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
 
     def __init__(self, logger, extra=None):
         super(BraceAdapter, self).__init__(logger, extra or {})
+
+    @property
+    def level(self):
+        return self.logger.level
 
     def log(self, level, msg, *args, **kwargs):
         if self.isEnabledFor(level):
@@ -61,27 +71,66 @@ def wrap_warnings(logger: logging.Logger):
     """Have the function patch `warnings.showwarning` with the given logger.
 
     Arguments:
-        logger (~logging.logger): the logger to wrap warnings with when
+        logger (~logging.Logger): the logger to wrap warnings with when
             the decorated function is called.
 
     Returns:
-        `function`: a decorator function.
+        `function`: a decorator function that will wrap a callable and
+        redirect any warning raised by that callable to the given logger.
+
+    Example:
+        >>> logger = logging.Logger()
+        >>> @wrap_warnings(logger)
+        ... def divide_by_zero(x):
+        ...     return numpy.array(x) / 0
 
     """
 
-    def new_showwarning(message, category, filename, lineno, file=None, line=None):
-        logger.warning(message)
+    class _WarningsWrapper(object):
 
-    def decorator(func):
-        @functools.wraps(func)
-        def new_func(*args, **kwargs):
+        def __init__(self, logger, func):
+            self.logger = logger
+            self.func = func
+            functools.update_wrapper(self, func)
+
+        def showwarning(self, message, category, filename, lineno, file=None, line=None):
+            self.logger.warning(message)
+
+        def __call__(self, *args, **kwargs):
             old_showwarning = warnings.showwarning
-            warnings.showwarning = new_showwarning
+            warnings.showwarning = self.showwarning
             try:
-                return func(*args, **kwargs)
+                return self.func(*args, **kwargs)
             finally:
                 warnings.showwarning = old_showwarning
 
-        return new_func
+        def __getattr__(self, name):
+            return getattr(self.func, name)
+
+
+    def decorator(func):
+        return _WarningsWrapper(logger, func)
 
     return decorator
+
+
+@contextlib.contextmanager
+def numpy_error_context(**kwargs: typing.Dict[str, str]):
+    """A context manager to modify the `numpy` error behaviour locally.
+
+    Example:
+        >>> with numpy_error_context(divide="ignore"):
+        ...     numpy.log10(0)
+        -inf
+        >>> with numpy_error_context(divide="error"):
+        ...     numpy.log10(0)
+        Traceback (most recent call last):
+          File "<stdin>", line 1, in <module>
+        FloatingPointError: divide by zero encountered in log10
+
+    """
+    try:
+        old_settings = numpy.seterr(**kwargs)
+        yield
+    finally:
+        numpy.seterr(**old_settings)

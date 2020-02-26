@@ -10,20 +10,18 @@ class ClusterRefiner(object):
     def __init__(
             self,
             threshold: float = 0.4,
-            lower_thresh: float = 0.3,
-            biosynthetic_pfams: int = 5,
+            biosynthetic_domains: int = 5,
             seq_col: str ="sequence_id",
             prot_col: str ="protein_id",
             p_col: str ="p_pred",
-            domain_col: str = "pfam",
+            domain_col: str = "domain",
             weight_col: str = "log_i_Evalue",
             min_domains: int = 1,
             min_proteins: int = 5,
             join_width: int = 1
     ) -> None:
-        self.thresh = threshold
-        self.lower_thresh = lower_thresh
-        self.n_biopfams = biosynthetic_pfams
+        self.threshold = threshold
+        self.n_biodomains = biosynthetic_domains
         self.n_domains = min_domains
         self.n_proteins = min_proteins
         self.n_proteins = min_proteins
@@ -36,53 +34,35 @@ class ClusterRefiner(object):
         self.grouping = [seq_col, prot_col]
 
     def find_clusters(
-            self,
-            pfam_df: pd.DataFrame,
-            method: str = "gecco",
-            prefix: str = "cluster"
+        self,
+        domains_df: pd.DataFrame,
+        method: str = "gecco",
+        prefix: str = "cluster",
+        lower_threshold: Optional[float] = None,
     ) -> typing.List[BGC]:
-        self.prefix = prefix
         if method == "antismash":
-            self.lower_thresh = 0.3
-            return self._antismash_refine(pfam_df)
+            lt = 0.3 if lower_threshold is None else lower_threshold
         elif method == "gecco":
-            self.lower_thresh = self.thresh
-            return self._gecco_refine(pfam_df)
+            lt = self.threshold if lower_threshold is None else lower_threshold
         else:
             raise ValueError(f"unexpected method: {method!r}")
+        return self._refine(method, domains_df, lower_threshold=lt)
 
-    def _gecco_refine(self, dataframe: pd.DataFrame) -> Optional[List[BGC]]:
-        """
-        So far, this implements a very basic extraction procedure:
-        1) Extract segments with p_pred > self.thresh
-        ...thats it.
-        """
-        segments = self.extract_segments(dataframe)
-        if segments:
-            return [self._extract_cluster(dataframe, seg) for seg in segments]
-        return None
+    def _refine(
+        self,
+        method: str,
+        dataframe: pd.DataFrame,
+        lower_threshold: float,
+    ) -> List[BGC]:
+        segments = self.extract_segments(dataframe, lower_threshold)
+        clusters = (self._extract_cluster(dataframe, seg) for seg in segments)
+        return [bgc for bgc in clusters if bgc.is_valid(criterion=method)]
 
-    def _antismash_refine(self, dataframe):
-        """
-        This method reimplements the way ClusterFinder hits are refined and
-        extracted in antiSMASH:
-        1) Extract segments with p_pred > 0.3 (lower_thresh)
-        2) Find the proteins spanning this segment
-        3) Validate if cluster meets criteria
-        """
-
-        bgc_list = []
-        segments = self.extract_segments(dataframe)
-        if not segments:
-            return
-        for seg in segments:
-            bgc = self._extract_cluster(dataframe, seg)
-            if bgc.is_valid(criterion="antismash"):
-                bgc_list.append(bgc)
-
-        return bgc_list
-
-    def _extract_cluster(self, dataframe: pd.DataFrame, segment) -> BGC:
+    def _extract_cluster(
+        self,
+        dataframe: pd.DataFrame,
+        segment: pd.DataFrame,
+    ) -> BGC:
         """Takes a DataFrame and a segement and returns a BGC object"""
         cluster_name = segment["cluster_id"].values[0]
         cluster_prots = set(segment[self.prot_col])
@@ -96,13 +76,16 @@ class ClusterRefiner(object):
                 name = pid,
                 domains = subdf.get(self.domain_col),
                 weights = subdf.get(self.weight_col),
-                p = subdf.get(self.p_col)
+                probability = subdf.get(self.p_col)
             )
             prot_list.append(protein)
-
         return BGC(prot_list, name=cluster_name)
 
-    def extract_segments(self, df: pd.DataFrame) -> Optional[List[pd.DataFrame]]:
+    def extract_segments(
+        self,
+        df: pd.DataFrame,
+        lower_threshold: float,
+    ) -> List[pd.DataFrame]:
         """
         Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
@@ -112,7 +95,7 @@ class ClusterRefiner(object):
         cluster_list = []
         for n in range(len(df)):
             row = df.iloc[n]
-            if row[self.p_col] >= self.lower_thresh:
+            if row[self.p_col] >= lower_threshold:
                 # non-cluster -> cluster
                 if not cluster_state:
                     cluster_name = f"{row[self.seq_col]}_cluster_{cluster_num}"
@@ -138,9 +121,14 @@ class ClusterRefiner(object):
                     cluster_state = False
                 # non-cluster -> non-cluster
                 # pass
-        return cluster_list or None
+        return cluster_list
 
-    def segment(self, df: pd.DataFrame) -> pd.DataFrame:
+    def segment(
+        self,
+        df: pd.DataFrame,
+        lower_threshold: float,
+        prefix: str,
+    ) -> pd.DataFrame:
         """
         Determines coordinates of segments determined by p_col over
         a lower_thresh.
@@ -148,14 +136,13 @@ class ClusterRefiner(object):
         cluster_num = 1
         cluster_state = False
         cluster_list = []
-        for n in range(len(df)):
-            row = df.iloc[n]
-            if row[self.p_col] >= self.lower_thresh:
+        for _, row in df.iterrows():
+            if row[self.p_col] >= lower_threshold:
                 # non-cluster -> cluster
                 if not cluster_state:
                     cluster_dict = {}
                     cluster_dict[self.seq_col] = row[self.seq_col]
-                    cluster_dict["cluster_id"] = self.prefix + "_" + str(cluster_num)
+                    cluster_dict["cluster_id"] = prefix + "_" + str(cluster_num)
                     cluster_dict["start"] = min(row["start"], row["end"])
                     cluster_state = True
                 # cluster -> cluster

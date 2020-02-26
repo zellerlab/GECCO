@@ -3,21 +3,35 @@ import os
 import subprocess
 import typing
 
-import pandas as pd
+import pandas
 
 
 class HMMER(object):
-    """Searches a HMM library against protein sequences.
+    """A wrapper for HMMER that scans a HMM library against protein sequences.
     """
 
     def __init__(
-            self,
-            fasta: str,
-            out_dir: str,
-            hmms: str,
-            prodigal: bool = True,
-            cpus: typing.Optional[int] = None,
+        self,
+        fasta: str,
+        out_dir: str,
+        hmms: str,
+        prodigal: bool = True,
+        cpus: typing.Optional[int] = None,
     ) -> None:
+        """Prepare a new `HMMER` annotation run.
+
+        Arguments:
+            fasta (str): The path to the file containing the input sequences.
+            out_dir (str): The path to the directory in which to write output.
+            hmms (str): The path to the file containing the HMMs.
+            prodigal (bool, optional): Whether or not the protein files were
+                obtained with PRODIGAL, in which case the extraction of some
+                features to the final dataframe will be a lot more accurate.
+                Defaults to ``True``.
+            cpus (int, optional): The number of CPUs to allocate for the
+                ``hmmsearch`` command. Give ``None`` to use the default.
+
+        """
         self.fasta = fasta
         self.prodigal = prodigal
         if not self.prodigal:
@@ -27,7 +41,7 @@ class HMMER(object):
         self.cpus = cpus
         self._check_hmmer()
 
-    def run(self):
+    def run(self) -> pandas.DataFrame:
         """Runs HMMER and returns the output as a data frame.
         """
         base, _ = os.path.splitext(os.path.basename(self.fasta))
@@ -45,17 +59,14 @@ class HMMER(object):
         with open(stderr, "w") as err:
             subprocess.run(cmd, stderr=err).check_returncode()
 
-        # Convert to TSV
-        tsv_out = os.path.join(self.out_dir, f"{base}.hmmer.tsv")
-        self._to_tsv(dom_out, tsv_out)
+        # Extract the result as a dataframe
+        return (
+            self._to_dataframe(dom_out)
+                .sort_values(["sequence_id", "start", "domain_start"])
+                .reset_index(drop=True)
+        )
 
-        # Sort table properly
-        out_df = pd.read_csv(tsv_out, sep = "\t")
-        out_df = (out_df.sort_values(["sequence_id", "start", "domain_start"])
-                        .reset_index(drop=True))
-        return out_df
-
-    def _check_hmmer(self):
+    def _check_hmmer(self) -> None:
         """Checks wether hmmsearch is available. Raises error if not."""
         try:
             devnull = subprocess.DEVNULL
@@ -63,6 +74,7 @@ class HMMER(object):
         except OSError as e:
             if e.errno == os.errno.ENOENT:
                 raise OSError("HMMER does not seem to be installed. Please install it and re-run GECCO.")
+            raise
 
     def _to_tsv(self, dom_file: str, out_file: str) -> None:
         """Converts HMMER --domtblout output to regular TSV"""
@@ -72,7 +84,7 @@ class HMMER(object):
             "start",
             "end",
             "strand",
-            "pfam",
+            "domain",
             "i_Evalue",
             "domain_start",
             "domain_end"
@@ -95,10 +107,41 @@ class HMMER(object):
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
-                pfam = l[4] or l[3]
-                writer.writerow([sid, pid, start, end, strand, pfam, l[12]] + l[17:19])
+                domain = l[4] or l[3]
+                writer.writerow([sid, pid, start, end, strand, domain, l[12]] + l[17:19])
 
-    def _get_protein_order(self):
+    def _to_dataframe(self, dom_file: str) -> pandas.DataFrame:
+        """Converts a HMMER domain table to a `pandas.DataFrame`.
+        """
+        rows = []
+        with open(dom_file, "r") as f:
+            for line in filter(lambda line: not line.startswith("#"), f):
+                l = list(filter(None, line.split(" ")))
+                if self.prodigal:
+                    sid = "_".join(l[0].split("_")[:-1])
+                    pid = l[0]
+                    start = min(int(l[23]), int(l[25]))
+                    end = max(int(l[23]), int(l[25]))
+                    strand = "+" if l[27] == "1" else "-"
+                else:
+                    sid = pid = l[0]
+                    start = self.protein_order[pid]
+                    end = self.protein_order[pid]
+                    strand = "unknown"
+                rows.append({
+                    "sequence_id": sid,
+                    "protein_id": pid,
+                    "start": start,
+                    "end": end,
+                    "strand": strand,
+                    "domain": l[4],
+                    "i_Evalue": float(l[12]),
+                    "domain_start": int(l[17]),
+                    "domain_end": int(l[19]),
+                })
+        return pandas.DataFrame(rows)
+
+    def _get_protein_order(self) -> typing.Dict[str, int]:
         with open(self.fasta, "r") as f:
             pids = [line[1:].split()[0] for line in f if line.startswith(">")]
         return {pid:i for i, pid in enumerate(pids)}
