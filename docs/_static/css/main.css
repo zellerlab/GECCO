@@ -12,6 +12,7 @@ p {
 
 .field-list a.reference {
     font-weight: bold;
+    font-style: italic;
     font-size: 90%;
     color: #c7254e;
     box-sizing: border-box;

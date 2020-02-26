@@ -1,6 +1,6 @@
 $(document).ready(function() {
   (function ($) {
-    if (window.location.href.match("/api/pronto.*") !== null) {
+    if (window.location.href.match("/api/gecco.*") !== null) {
       $(".nav-list")
         .children()
         .filter("li")
