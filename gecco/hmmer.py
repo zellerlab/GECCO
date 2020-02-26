@@ -128,16 +128,18 @@ class HMMER(object):
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
+                domain = l[3] if l[4] == "-" else l[4]
+                start, end = int(l[17]), int(l[19]) 
                 rows.append({
                     "sequence_id": sid,
                     "protein_id": pid,
                     "start": start,
                     "end": end,
                     "strand": strand,
-                    "domain": l[4],
+                    "domain": domain,
                     "i_Evalue": float(l[12]),
-                    "domain_start": int(l[17]),
-                    "domain_end": int(l[19]),
+                    "domain_start": min(start, end),
+                    "domain_end": max(start, end),
                 })
         return pandas.DataFrame(rows)
 
