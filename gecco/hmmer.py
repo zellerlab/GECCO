@@ -129,19 +129,22 @@ class HMMER(object):
                     end = self.protein_order[pid]
                     strand = "unknown"
                 domain = l[3] if l[4] == "-" else l[4]
-                start, end = int(l[17]), int(l[19]) 
-                rows.append({
-                    "sequence_id": sid,
-                    "protein_id": pid,
-                    "start": start,
-                    "end": end,
-                    "strand": strand,
-                    "domain": domain,
-                    "i_Evalue": float(l[12]),
-                    "domain_start": min(start, end),
-                    "domain_end": max(start, end),
-                })
-        return pandas.DataFrame(rows)
+                start, end = int(l[17]), int(l[19])
+                rows.append((
+                    sid,
+                    pid,
+                    start,
+                    end,
+                    strand,
+                    domain,
+                    float(l[12]),
+                    min(start, end),
+                    max(start, end),
+                ))
+        return pandas.DataFrame(rows, columns=[
+            "sequence_id", "protein_id", "start", "end", "strand",
+            "domain", "i_Evalue", "domain_start", "domain_end",
+        ])
 
     def _get_protein_order(self) -> typing.Dict[str, int]:
         with open(self.fasta, "r") as f:
