@@ -120,8 +120,8 @@ class HMMER(object):
                 if self.prodigal:
                     sid = "_".join(l[0].split("_")[:-1])
                     pid = l[0]
-                    start = min(int(l[23]), int(l[25]))
-                    end = max(int(l[23]), int(l[25]))
+                    start = int(l[23])
+                    end = int(l[25])
                     strand = "+" if l[27] == "1" else "-"
                 else:
                     sid = pid = l[0]
@@ -129,17 +129,17 @@ class HMMER(object):
                     end = self.protein_order[pid]
                     strand = "unknown"
                 domain = l[3] if l[4] == "-" else l[4]
-                start, end = int(l[17]), int(l[19])
+                domain_start, domain_end = int(l[17]), int(l[19])
                 rows.append((
                     sid,
                     pid,
-                    start,
-                    end,
+                    min(start, end),
+                    max(start, end),
                     strand,
                     domain,
                     float(l[12]),
-                    min(start, end),
-                    max(start, end),
+                    min(domain_start, domain_end),
+                    max(domain_start, domain_end),
                 ))
         return pandas.DataFrame(rows, columns=[
             "sequence_id", "protein_id", "start", "end", "strand",
