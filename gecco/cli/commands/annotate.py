@@ -110,7 +110,7 @@ class Annotate(Command):
             prodigal = False
 
         # --- HMMER ----------------------------------------------------------
-        self.logger.info("Running PFam domain annotation")
+        self.logger.info("Running domain annotation")
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
         features = []
