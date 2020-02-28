@@ -6,6 +6,70 @@ import typing
 import pandas
 
 
+class DomainRow(typing.NamedTuple):
+    """A single row in a domain table created by ``hmmsearch``.
+
+    See also:
+        The description of each field in page 48 of the `HMMER manual
+        <http://eddylab.org/software/hmmer3/3.1b2/Userguide.pdf>`_.
+
+    """
+
+    target_name: str
+    target_accession: typing.Optional[str]
+    target_length: int
+    query_name: str
+    query_accession: typing.Optional[str]
+    query_length: int
+    evalue: float
+    score: float
+    bias: float
+    domain_number: int
+    domain_total: int
+    c_evalue: float
+    i_evalue: float
+    domain_score: float
+    domain_bias: float
+    hmm_from: int
+    hmm_to: int
+    ali_from: int
+    ali_to: int
+    env_from: int
+    env_to: int
+    post: float
+    description: typing.Optional[str]
+
+    @classmethod
+    def from_line(cls, row: str):
+        line = list(filter(None, row.split(" ")))
+        return cls(
+            target_name = line[0],
+            target_accession = None if line[1] == "-" else line[1],
+            target_length = len(line[2]),
+            query_name = line[3],
+            query_accession = None if line[4] == "-" else line[4],
+            query_length = len(line[5]),
+            evalue = float(line[6]),
+            score = float(line[7]),
+            bias = float(line[8]),
+            domain_number = int(line[9]),
+            domain_total = int(line[10]),
+            c_evalue = float(line[11]),
+            i_evalue = float(line[12]),
+            domain_score = float(line[13]),
+            domain_bias = float(line[14]),
+            hmm_from = int(line[15]),
+            hmm_to = int(line[16]),
+            ali_from = int(line[17]),
+            ali_to = int(line[18]),
+            env_from = int(line[19]),
+            env_to = int(line[20]),
+            post = float(line[21]),
+            description = " ".join(line[22:]) if line[22:] else None
+        )
+
+
+
 class HMMER(object):
     """A wrapper for HMMER that scans a HMM library against protein sequences.
     """
@@ -116,20 +180,21 @@ class HMMER(object):
         rows = []
         with open(dom_file, "r") as f:
             for line in filter(lambda line: not line.startswith("#"), f):
-                l = list(filter(None, line.split(" ")))
+                row = DomainRow.from_line(line)
                 if self.prodigal:
-                    sid = "_".join(l[0].split("_")[:-1])
-                    pid = l[0]
-                    start = int(l[23])
-                    end = int(l[25])
-                    strand = "+" if l[27] == "1" else "-"
+                    sid = "_".join(row.target_name)
+                    pid = row.target_name
+                    # extract additional metadata from the target description
+                    info = [x.strip() for x in row.description.split("#") if x]
+                    start = int(info[0])
+                    end = int(info[1])
+                    strand = "+" if info[2] == "1" else "-"
                 else:
-                    sid = pid = l[0]
+                    sid = pid = row.target_name
                     start = self.protein_order[pid]
                     end = self.protein_order[pid]
                     strand = "unknown"
-                domain = l[3] if l[4] == "-" else l[4]
-                domain_start, domain_end = int(l[17]), int(l[19])
+                domain = row.query_accession or row.query_name
                 rows.append((
                     sid,
                     pid,
@@ -137,9 +202,9 @@ class HMMER(object):
                     max(start, end),
                     strand,
                     domain,
-                    float(l[12]),
-                    min(domain_start, domain_end),
-                    max(domain_start, domain_end),
+                    row.i_evalue,
+                    min(row.env_from, row.env_to),
+                    max(row.env_from, row.env_to),
                 ))
         return pandas.DataFrame(rows, columns=[
             "sequence_id", "protein_id", "start", "end", "strand",
