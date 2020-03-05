@@ -138,9 +138,6 @@ class Train(Command):
         else:
             self.args["--threshold"] = float(self.args["--threshold"])
 
-        # Retype the --weight-cols
-        self.args["--weight-cols"] = [int(w) for w in self.args["--weight-cols"]]
-
         # Check the `--jobs`flag
         self.args["--jobs"] = jobs = int(self.args["--jobs"])
         if jobs == 0:
