@@ -182,7 +182,7 @@ class HMMER(object):
             for line in filter(lambda line: not line.startswith("#"), f):
                 row = DomainRow.from_line(line)
                 if self.prodigal:
-                    sid = "_".join(row.target_name)
+                    sid = row.target_name[:row.target_name.rfind("_")]
                     pid = row.target_name
                     # extract additional metadata from the target description
                     info = [x.strip() for x in row.description.split("#") if x]

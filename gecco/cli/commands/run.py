@@ -1,5 +1,4 @@
-# coding: utf-8
-
+import csv
 import logging
 import multiprocessing
 import os
@@ -222,6 +221,18 @@ class Run(Command):
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
+            csv.writer(f, dialect="excel-tab").writerow([
+                "sequence_id",
+                "BGC_id",
+                "start",
+                "end",
+                "average_p",
+                "max_p",
+                "BGC_type",
+                "BGC_type_p",
+                "proteins",
+                "domains",
+            ])
             for cluster, ty in zip(clusters, knn_pred):
                 cluster.type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)
