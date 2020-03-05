@@ -1,4 +1,5 @@
 import csv
+import glob
 import logging
 import multiprocessing
 import os
@@ -125,13 +126,17 @@ class Run(Command):
 
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
-        hmmer_out = os.path.join(out_dir, "hmmer")
-        os.makedirs(hmmer_out, exist_ok=True)
 
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-        hmms = data.realpath("hmms/Pfam-A.hmm.gz")
-        hmmer = HMMER(orf_file, hmmer_out, hmms, prodigal, self.args["--jobs"])
-        feats_df = hmmer.run()
+        features = []
+        for hmm in glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz")):
+            self.logger.debug("Using HMM file {!r}", os.path.basename(hmm))
+            hmmer_out = os.path.join(out_dir, "hmmer", os.path.basename(hmm))
+            os.makedirs(hmmer_out, exist_ok=True)
+            hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
+            features.append(hmmer.run())
+
+        feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
