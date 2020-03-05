@@ -71,7 +71,7 @@ class Train(Command):
     Parameters - Column Names:
         -y <col>, --y-col <col>        column with class label. [default: BGC]
         -w <col>, --weight-cols <col>  columns with local weights on features.
-                                       [default: 1]
+                                       [default: rev_i_Evalue]
         -f <col>, --feature-col <col>  column to be used as features.
                                        [default: domain]
         -s <col>, --split-col <col>    column to be used for splitting into
@@ -189,10 +189,9 @@ class Train(Command):
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
             Y_col = self.args["--y-col"],
-            feature_cols = self.args["--feature-col"],
+            feature_cols = [self.args["--feature-col"]],
             group_col = self.args["--group-col"],
-            #weight_cols = self.args["--weight-cols"],
-            weight_cols = ["rev_i_Evalue"],
+            weight_cols = self.args["--weight-cols"],
             feature_type = self.args["--feature-type"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",

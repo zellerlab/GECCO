@@ -81,7 +81,7 @@ class ResponseProgressBar(object):
             )
             sys.stdout.flush()
 
-    def refresh():
+    def refresh(self):
         pass
 
 
