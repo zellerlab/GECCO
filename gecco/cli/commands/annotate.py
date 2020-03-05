@@ -1,4 +1,5 @@
 import csv
+import glob
 import logging
 import multiprocessing
 import os
@@ -48,7 +49,7 @@ class Annotate(Command):
     Parameters - Domain Annotation:
         --hmm <hmm>                   the path to an HMM file to use for
                                       domain annotation. Defaults to the
-                                      internal PFam HMM.
+                                      internal HMMs.
         -e <e>, --e-filter <e>        the e-value cutoff for domains to
                                       be included. [default: 1e-5]
     """
@@ -76,7 +77,8 @@ class Annotate(Command):
             return 1
 
         # Check the HMM file(s) exist.
-        self.args["--hmm"] = self.args["--hmm"] or [data.realpath("hmms/Pfam-A.hmm.gz")]
+        hmms = glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz"))
+        self.args["--hmm"] = self.args["--hmm"] or hmms
         for hmm in self.args["--hmm"]:
             if not os.path.exists(hmm):
                 self.logger.error("could not locate hmm file: {!r}", hmm)
@@ -115,6 +117,7 @@ class Annotate(Command):
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
         features = []
         for hmm in self.args["--hmm"]:
+            self.logger.debug("Using HMM file {!r}", os.path.basename(hmm))
             hmmer_out = os.path.join(out_dir, "hmmer", os.path.basename(hmm))
             os.makedirs(hmmer_out, exist_ok=True)
             hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
