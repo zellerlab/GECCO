@@ -75,7 +75,7 @@ class Embed(Command):
 
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape
         self.logger.debug("Reading non-BGC table from {!r}", self.args["--no-bgc"])
-        no_bgc_df = pandas.read_csv(self.args["--no-bgc"], sep="\t")
+        no_bgc_df = pandas.read_table(self.args["--no-bgc"], dtype={"domain": str})
         no_bgc_df = no_bgc_df.assign(BGC="0")
         self.logger.debug("Sorting non-BGC table")
         no_bgc_df = no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"])
@@ -84,7 +84,7 @@ class Embed(Command):
 
         # Read the BGC table, assign the Y column to `1`, and sort
         self.logger.debug("Reading BGC table from {!r}", self.args["--bgc"])
-        bgc_df = pandas.read_csv(self.args["--bgc"], sep="\t")
+        bgc_df = pandas.read_table(self.args["--bgc"], dtype={"domain": str})
         bgc_df = bgc_df.assign(
             BGC="1",
             BGC_id=[id_[0] for id_ in bgc_df['protein_id'].str.split("|")]
