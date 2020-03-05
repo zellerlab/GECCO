@@ -7,6 +7,7 @@ import distutils.log
 import gzip
 import hashlib
 import io
+import math
 import os
 import sys
 import tarfile
@@ -39,6 +40,7 @@ class ResponseProgressBar(object):
                 **kwargs
             )
             self.update = self.pbar.update
+            self.refresh = self.pbar.refresh
         else:
             self.pbar = None
             self.current = 0
@@ -79,6 +81,9 @@ class ResponseProgressBar(object):
             )
             sys.stdout.flush()
 
+    def refresh():
+        pass
+
 
 class Resource(setuptools.Extension):
     """A phony `Extension` that will download resource when "compiled".
@@ -95,6 +100,12 @@ class build_ext(_build_ext):
     """An extension to the `build_ext` command that can download resources.
     """
 
+    def _flush(self, pbar):
+        if not sys.stdout.isatty():
+            pbar.refresh()
+            sys.stdout.flush()
+            sys.stdout.write('\n\033[F')
+
     def extract(self, src_url, dst_path):
         hasher = hashlib.md5()
         with ResponseProgressBar(urllib.request.urlopen(src_url)) as src:
@@ -103,8 +114,7 @@ class build_ext(_build_ext):
                 for chunk in iter(read, b''):
                     hasher.update(chunk)
                     dst.write(chunk)
-                    if not sys.stdout.isatty():
-                        sys.stdout.write('\n')
+                    self._flush(src)
         return hasher.hexdigest()
 
     def merge(self, src_url, dst_path):
@@ -117,13 +127,12 @@ class build_ext(_build_ext):
                     iter(tar.next, None)
                 )
                 for member in members:
-                    with tar.extractfile(member) as src:
-                        read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
+                    with tar.extractfile(member) as mem:
+                        read = lambda: mem.read(io.DEFAULT_BUFFER_SIZE)
                         for chunk in iter(read, b""):
                             hasher.update(chunk)
                             dst.write(chunk)
-                            if not sys.stdout.isatty():
-                                sys.stdout.write('\n')
+                            self._flush(src)
         return hasher.hexdigest()
 
     def get_ext_filename(self, ext_name):
