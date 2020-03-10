@@ -240,7 +240,7 @@ class Run(Command):
                 "domains",
             ])
             for cluster, ty in zip(clusters, knn_pred):
-                cluster.type, cluster.type_prob = ty
+                cluster.bgc_type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
