@@ -130,11 +130,12 @@ class Run(Command):
         # Run PFAM HMM DB over ORFs to annotate with Pfam domains
         features = []
         for hmm in glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz")):
-            self.logger.debug("Using HMM file {!r}", os.path.basename(hmm))
-            hmmer_out = os.path.join(out_dir, "hmmer", os.path.basename(hmm))
+            hmm_base = os.path.basename(hmm.replace(".hmm.gz", ""))
+            self.logger.debug("Using HMM file {!r}", hmm_base)
+            hmmer_out = os.path.join(out_dir, "hmmer", hmm_base)
             os.makedirs(hmmer_out, exist_ok=True)
             hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
-            features.append(hmmer.run())
+            features.append(hmmer.run().assign(hmm=hmm_base))
 
         feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
@@ -239,7 +240,7 @@ class Run(Command):
                 "domains",
             ])
             for cluster, ty in zip(clusters, knn_pred):
-                cluster.type, cluster.type_prob = ty
+                cluster.bgc_type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
