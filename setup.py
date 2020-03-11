@@ -4,6 +4,7 @@
 import configparser
 import distutils.cmd
 import distutils.log
+import glob
 import gzip
 import hashlib
 import io
@@ -12,9 +13,10 @@ import os
 import sys
 import tarfile
 import urllib.request
+from functools import partial
 
 import setuptools
-from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.command.build_py import build_py as _build_py
 from setuptools.command.sdist import sdist as _sdist
 
 try:
@@ -84,80 +86,6 @@ class ResponseProgressBar(object):
     def refresh(self):
         pass
 
-
-class Resource(setuptools.Extension):
-    """A phony `Extension` that will download resource when "compiled".
-    """
-
-    def __init__(self, url, name, action):
-        self.url = url
-        self.target = os.path.join(*name.split('.'))
-        self.action = action
-        setuptools.Extension.__init__(self, name, [f"{self.target}.hmm.gz.md5"])
-
-
-class build_ext(_build_ext):
-    """An extension to the `build_ext` command that can download resources.
-    """
-
-    def _flush(self, pbar):
-        if not sys.stdout.isatty():
-            pbar.refresh()
-            sys.stdout.flush()
-            sys.stdout.write('\n\033[F')
-
-    def extract(self, src_url, dst_path):
-        hasher = hashlib.md5()
-        with ResponseProgressBar(urllib.request.urlopen(src_url)) as src:
-            with open(dst_path, "wb") as dst:
-                read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
-                for chunk in iter(read, b''):
-                    hasher.update(chunk)
-                    dst.write(chunk)
-                    self._flush(src)
-        return hasher.hexdigest()
-
-    def merge(self, src_url, dst_path):
-        hasher = hashlib.md5()
-        with ResponseProgressBar(urllib.request.urlopen(src_url)) as src:
-            with gzip.open(dst_path, "wb") as dst:
-                tar = tarfile.open(fileobj=src, mode="r|gz")
-                members = filter(
-                    lambda member: member.name.lower().endswith("hmm"),
-                    iter(tar.next, None)
-                )
-                for member in members:
-                    with tar.extractfile(member) as mem:
-                        read = lambda: mem.read(io.DEFAULT_BUFFER_SIZE)
-                        for chunk in iter(read, b""):
-                            hasher.update(chunk)
-                            dst.write(chunk)
-                            self._flush(src)
-        return hasher.hexdigest()
-
-    def get_ext_filename(self, ext_name):
-        basepath = os.path.join(*ext_name.split("."))
-        return f'{basepath}.hmm.gz'
-
-    def build_extension(self, ext):
-        # Get the destination path where `setuptools` wants the file to be
-        dst_file = self.get_ext_fullpath(ext.name)
-        dst_dir = os.path.dirname(dst_file)
-        self.mkpath(dst_dir)
-
-        # Download the file to the requested location
-        self.announce(f"downloading {ext.url}", 2)
-        actual_md5 = getattr(self, ext.action)(ext.url, dst_file)
-
-        #
-        self.announce(f"checking MD5 checksum of {dst_file}")
-        with open(ext.sources[0]) as f:
-            expected_md5 = f.readline().strip()
-
-        #
-        #assert actual_md5 == expected_md5
-
-
 class sdist(_sdist):
     """An extension to the `sdist` command that generates a `pyproject.toml`.
     """
@@ -176,7 +104,8 @@ class sdist(_sdist):
 
 
 class update_model(distutils.cmd.Command):
-    """A custom command to update the internal CRF model."""
+    """A custom command to update the internal CRF model.
+    """
 
     description = 'update the CRF model embedded in the source'
     user_options = [
@@ -214,23 +143,75 @@ class update_model(distutils.cmd.Command):
             sig.write(hasher.hexdigest())
 
 
+class build_py(_build_py):
+
+    user_options = _build_py.user_options + [
+        ("hmms=", "H", "directory containing HMM metadata")
+    ]
+
+    def initialize_options(self):
+        _build_py.initialize_options(self)
+        section = type(self).__name__
+        self._cfg = configparser.ConfigParser()
+        self._cfg.read_dict({section: {
+            'hmms': os.path.join("gecco", "data", "hmms"),
+        }})
+        self._cfg.read(self.distribution.find_config_files())
+        self.hmms = self._cfg.get(section, 'hmms')
+
+    def finalize_options(self):
+        _build_py.finalize_options(self)
+        self.ensure_dirname('hmms')
+
+    def run(self):
+        _build_py.run(self)
+        for in_ in glob.glob(os.path.join(self.hmms, "*.ini")):
+            cfg = configparser.ConfigParser()
+            cfg.read(in_)
+            action = getattr(self, '_{}'.format(cfg.get('hmm', 'action')))
+            out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
+            try:
+                self.make_file([in_], out, action, [out, dict(cfg.items('hmm'))])
+            except:
+                if os.path.exists(out):
+                    os.remove(out)
+                raise
+
+    def _flush(self, pbar):
+        if not sys.stdout.isatty():
+            pbar.refresh()
+            sys.stdout.flush()
+            sys.stdout.write('\n\033[F')
+
+    def _extract(self, output, options):
+        with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
+            with open(output, "wb") as dst:
+                read = partial(src.read, io.DEFAULT_BUFFER_SIZE)
+                for chunk in iter(read, b''):
+                    dst.write(chunk)
+                    self._flush(src)
+
+    def _merge(self, output, options):
+        with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
+            with gzip.open(output, "wb") as dst:
+                tar = tarfile.open(fileobj=src, mode="r|gz")
+                members = filter(
+                    lambda member: member.name.lower().endswith("hmm"),
+                    iter(tar.next, None)
+                )
+                for member in members:
+                    with tar.extractfile(member) as mem:
+                        read = partial(mem.read, io.DEFAULT_BUFFER_SIZE)
+                        for chunk in iter(read, b""):
+                            dst.write(chunk)
+                            self._flush(src)
+
+
 if __name__ == "__main__":
     setuptools.setup(
         cmdclass={
-            "build_ext": build_ext,
+            "build_py": build_py,
             "sdist": sdist,
             "update_model": update_model,
         },
-        ext_modules=[
-            Resource(
-                "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam31.0/Pfam-A.hmm.gz",
-                "gecco.data.hmms.Pfam",
-                action="extract"
-            ),
-            Resource(
-                "ftp://ftp.jcvi.org/pub/data/TIGRFAMs/14.0_Release/TIGRFAMs_14.0_HMM.tar.gz",
-                "gecco.data.hmms.Tigrfam",
-                action="merge"
-            ),
-        ],
     )
