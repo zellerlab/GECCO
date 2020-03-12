@@ -47,7 +47,7 @@ class ResponseProgressBar(object):
         else:
             self.pbar = None
             self.current = 0
-            self.next_p = 1
+            self.next_p = 5
             self.desc = kwargs.get("desc")
 
     def __enter__(self):
@@ -71,7 +71,7 @@ class ResponseProgressBar(object):
         self.current = c = self.current + n
         p = int(float(c) * 100.0 / self.total)
         if p >= self.next_p:
-            self.next_p = p + 1
+            self.next_p = p + 5
             print(
                 "{} : {:>{}}B / {}B [{}%]".format(
                     self.desc,
@@ -187,7 +187,8 @@ class build_py(_build_py):
                 raise
 
     def _extract(self, output, options):
-        with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
+        res = urllib.request.urlopen(options['url'])
+        with ResponseProgressBar(res, desc=os.path.basename(output)) as src:
             with open(output, "wb") as dst:
                 read = partial(src.read, io.DEFAULT_BUFFER_SIZE)
                 for chunk in iter(read, b''):
@@ -196,7 +197,8 @@ class build_py(_build_py):
 
     def _merge(self, output, options):
         rx = re.compile(options.get("matching", r".*\.hmm"), re.IGNORECASE)
-        with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
+        res = urllib.request.urlopen(options['url'])
+        with ResponseProgressBar(res, desc=os.path.basename(output)) as src:
             with gzip.open(output, "wb") as dst:
                 tar = tarfile.open(fileobj=src, mode="r|gz")
                 members = filter(
