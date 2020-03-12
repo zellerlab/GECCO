@@ -10,6 +10,7 @@ import hashlib
 import io
 import math
 import os
+import re
 import sys
 import tarfile
 import urllib.request
@@ -86,6 +87,7 @@ class ResponseProgressBar(object):
     def refresh(self):
         pass
 
+
 class sdist(_sdist):
     """An extension to the `sdist` command that generates a `pyproject.toml`.
     """
@@ -145,6 +147,13 @@ class update_model(distutils.cmd.Command):
 
 class build_py(_build_py):
 
+    @staticmethod
+    def _flush_progress_bar(pbar):
+        if not sys.stdout.isatty():
+            pbar.refresh()
+            sys.stdout.flush()
+            sys.stdout.write('\n\033[F')
+
     user_options = _build_py.user_options + [
         ("hmms=", "H", "directory containing HMM metadata")
     ]
@@ -177,26 +186,21 @@ class build_py(_build_py):
                     os.remove(out)
                 raise
 
-    def _flush(self, pbar):
-        if not sys.stdout.isatty():
-            pbar.refresh()
-            sys.stdout.flush()
-            sys.stdout.write('\n\033[F')
-
     def _extract(self, output, options):
         with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
             with open(output, "wb") as dst:
                 read = partial(src.read, io.DEFAULT_BUFFER_SIZE)
                 for chunk in iter(read, b''):
                     dst.write(chunk)
-                    self._flush(src)
+                    self._flush_progress_bar(src)
 
     def _merge(self, output, options):
+        rx = re.compile(options.get("matching", r".*\.hmm"), re.IGNORECASE)
         with ResponseProgressBar(urllib.request.urlopen(options['url'])) as src:
             with gzip.open(output, "wb") as dst:
                 tar = tarfile.open(fileobj=src, mode="r|gz")
                 members = filter(
-                    lambda member: member.name.lower().endswith("hmm"),
+                    lambda member: rx.match(member.name),
                     iter(tar.next, None)
                 )
                 for member in members:
@@ -204,7 +208,7 @@ class build_py(_build_py):
                         read = partial(mem.read, io.DEFAULT_BUFFER_SIZE)
                         for chunk in iter(read, b""):
                             dst.write(chunk)
-                            self._flush(src)
+                            self._flush_progress_bar(src)
 
 
 if __name__ == "__main__":
