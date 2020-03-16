@@ -147,14 +147,13 @@ class Run(Command):
 
         # Reformat pfam IDs
         feats_df = feats_df.assign(
-            domain=feats_df["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+            domain=feats_df["domain"].str.replace(r"(PF\d+|PTHR\d+)\.\d+", lambda m: m.group(1))
         )
 
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
         feats_df.to_csv(feat_out, sep="\t", index=False)
-
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
