@@ -6,6 +6,7 @@ import pickle
 import pkg_resources
 import typing
 
+from . import hmms
 
 def realpath(local_path: str) -> str:
     """Get the system path to a data file in the `gecco.data` module.
