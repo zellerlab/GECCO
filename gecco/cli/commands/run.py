@@ -127,15 +127,15 @@ class Run(Command):
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
 
-        # Run PFAM HMM DB over ORFs to annotate with Pfam domains
+        # Run all HMMs over ORFs to annotate with protein domains
         features = []
-        for hmm in glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz")):
-            hmm_base = os.path.basename(hmm.replace(".hmm.gz", ""))
-            self.logger.debug("Using HMM file {!r}", hmm_base)
-            hmmer_out = os.path.join(out_dir, "hmmer", hmm_base)
+        for hmm in data.hmms.iter():
+            self.logger.debug("Using HMM file {!r}", hmm.id)
+            hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
-            features.append(hmmer.run().assign(hmm=hmm_base))
+            hmmer = HMMER(orf_file, hmmer_out, hmm.path, prodigal, self.args["--jobs"])
+            result = hmmer.run().assign(hmm=hmm.id)
+            features.append(result.assign(domain=hmm.relabel(result.domain)))
 
         feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
