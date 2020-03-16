@@ -99,7 +99,7 @@ class Embed(Command):
             msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
-
+        # Make a progress bar if we are printing to a terminal
         if self.stream.isatty() and self.logger.level != 0:
             pbar = lambda it, **kwargs: tqdm.tqdm(it, file=self.stream, **kwargs)
         else:
@@ -124,7 +124,7 @@ class Embed(Command):
             #
             with numpy_error_context(divide="ignore"):
                 embed = embed.assign(
-                    domain=embed["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
+                    # domain=embed["domain"],
                     sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
                     BGC_id=bgc["BGC_id"].values[0],
                     # FIXME: really needed ? if so we must also extract the
@@ -133,8 +133,8 @@ class Embed(Command):
                     pseudo_pos=range(len(embed)),
                     rev_i_Evalue = 1 - embed["i_Evalue"],
                     log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
-                    strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
-                    shift = "shift"
+                    #strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
+                    #shift = "shift"
                 )
                 embedding.append(embed)
 
