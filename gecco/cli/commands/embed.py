@@ -2,7 +2,7 @@ import csv
 import itertools
 import logging
 import math
-import multiprocessing
+import multiprocessing.pool
 import os
 import pickle
 import random
@@ -48,6 +48,9 @@ class Embed(Command):
                                       [default: 500]
         -e <e>, --e-filter <e>        the e-value cutoff for domains to be
                                       included. [default: 1e-5]
+        -j <jobs>, --jobs <jobs>      the number of CPUs to use for
+                                      multithreading. Use 0 to use all of the
+                                      available CPUs. [default: 0]
 
     """
 
@@ -63,6 +66,11 @@ class Embed(Command):
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
 
+        # Check the `--jobs`flag
+        self.args["--jobs"] = jobs = int(self.args["--jobs"])
+        if jobs == 0:
+            self.args["--jobs"] = multiprocessing.cpu_count()
+
         # Check the input exists
         for input_ in itertools.chain(self.args["--bgc"], self.args["--no-bgc"]):
             if not os.path.exists(input_):
@@ -72,30 +80,31 @@ class Embed(Command):
         return None
 
     def __call__(self) -> int:
+        # Load input
         self.logger.info("Reading BGC and non-BGC feature tables")
 
+        def read_table(path):
+            self.logger.debug("Reading table from {!r}", path)
+            return pandas.read_table(path, dtype={"domain": str})
+
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape
-        rows = []
-        for no_bgc_path in self.args["--no-bgc"]:
-            self.logger.debug("Reading non-BGC table from {!r}", no_bgc_path)
-            rows.append(pandas.read_table(no_bgc_path, dtype={"domain": str}))
-        no_bgc_df = pandas.concat(rows).assign(BGC="0")
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            rows = pool.map(read_table, self.args["--no-bgc"])
+            no_bgc_df = pandas.concat(rows).assign(BGC='0')
         self.logger.debug("Sorting non-BGC table")
-        no_bgc_df = no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"])
-        no_bgc_df = no_bgc_df.groupby("sequence_id", sort=False)
-        no_bgc_list = [s for _, s in no_bgc_df if s.shape[0] > self.args["--min-size"]]
+        no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
+        no_bgc_list = [
+            s for _, s in no_bgc_df.groupby("sequence_id", sort=False)
+            if s.shape[0] > self.args["--min-size"]
+        ]
 
         # Read the BGC table, assign the Y column to `1`, and sort
-        rows = []
-        for bgc_path in self.args["--bgc"]:
-            self.logger.debug("Reading BGC table from {!r}", bgc_path)
-            rows.append(pandas.read_table(bgc_path, dtype={"domain": str}))
-        bgc_df = pandas.concat(rows).assign(
-            BGC="1",
-            BGC_id=[id_[0] for id_ in bgc_df['protein_id'].str.split("|")]
-        )
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            rows = pool.map(read_table, self.args["--bgc"])
+            bgc_df = pandas.concat(rows).assign(BGC='1')
+            bgc_df['BGC_id'] = bgc_df.protein_id.str.split("|").str[0]
         self.logger.debug("Sorting BGC table")
-        bgc_df = bgc_df.sort_values(by=["BGC_id", "start", "domain_start"])
+        bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
         # Check we have enough non-BGC contigs to fit the BGCs into
@@ -106,26 +115,23 @@ class Embed(Command):
 
         # Make a progress bar if we are printing to a terminal
         if self.stream.isatty() and self.logger.level != 0:
-            pbar = lambda it, **kwargs: tqdm.tqdm(it, file=self.stream, **kwargs)
+            pbar = tqdm.tqdm(total=min(len(no_bgc_list), len(bgc_list)), leave=False)
         else:
-            pbar = lambda it, **kwargs: it
+            pbar = None
 
         # Make the embeddings
-        self.logger.info("Creating the embeddings")
-        embedding = []
-        for no_bgc, bgc in pbar(list(zip(no_bgc_list, bgc_list)), leave=False):
+        def embed(no_bgc, bgc):
             no_bgc = no_bgc.groupby("protein_id", sort=False)
             start, end = pandas.DataFrame(), pandas.DataFrame()
-            for n, (_, t) in enumerate(pbar(no_bgc, leave=False)):
+            for n, (_, t) in enumerate(no_bgc):
                 if n <= math.ceil(len(no_bgc) / 2):
                     start = pandas.concat([start, t])
                 else:
                     end = pandas.concat([end, t])
-
+            #
             embed = pandas.concat([start, bgc, end], sort=False)
             embed = embed.reset_index(drop=True)
             embed = embed[embed["i_Evalue"] < self.args["--e-filter"]]
-
             #
             with numpy_error_context(divide="ignore"):
                 embed = embed.assign(
@@ -141,10 +147,16 @@ class Embed(Command):
                     #strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
                     #shift = "shift"
                 )
-                embedding.append(embed)
+            if pbar is not None:
+                pbar.update(1)
+            return embed
+
+        self.logger.info("Creating the embeddings")
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            embeddings = pool.starmap(embed, zip(no_bgc_list, bgc_list))
 
         # Write the resulting table
         self.logger.info("Writing embedding table")
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
-        pandas.concat(embedding).to_csv(out_file, sep="\t", index=False)
+        pandas.concat(embeddings).to_csv(out_file, sep="\t", index=False)
