@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import io
 import os
@@ -5,6 +6,7 @@ import pickle
 import pkg_resources
 import typing
 
+from . import hmms
 
 def realpath(local_path: str) -> str:
     """Get the system path to a data file in the `gecco.data` module.
@@ -36,7 +38,7 @@ def load(local_path: str) -> object:
     with open(f"{local_path}.md5") as sig:
         signature = sig.read().strip()
     with open(local_path, "rb") as bin:
-        read = lambda: bin.read(io.DEFAULT_BUFFER_SIZE)
+        read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
         for chunk in iter(read, b''):
             hasher.update(chunk)
     if hasher.hexdigest().upper() != signature.upper():

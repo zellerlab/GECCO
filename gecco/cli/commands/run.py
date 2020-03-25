@@ -127,15 +127,18 @@ class Run(Command):
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
 
-        # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-        features = []
-        for hmm in glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz")):
-            hmm_base = os.path.basename(hmm.replace(".hmm.gz", ""))
-            self.logger.debug("Using HMM file {!r}", hmm_base)
-            hmmer_out = os.path.join(out_dir, "hmmer", hmm_base)
+        # Run all HMMs over ORFs to annotate with protein domains
+        def annotate(hmm):
+            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
-            features.append(hmmer.run().assign(hmm=hmm_base))
+            hmmer = HMMER(orf_file, hmmer_out, hmm.path, prodigal, self.args["--jobs"])
+            result = hmmer.run().assign(hmm=hmm.id)
+            self.logger.debug("Finished running HMM {}", hmm.id)
+            return result.assign(domain=hmm.relabel(result.domain))
+
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            features = pool.map(annotate, data.hmms.iter())
 
         feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
@@ -147,14 +150,13 @@ class Run(Command):
 
         # Reformat pfam IDs
         feats_df = feats_df.assign(
-            domain=feats_df["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
+            domain=feats_df["domain"].str.replace(r"(PF\d+|PTHR\d+)\.\d+", lambda m: m.group(1))
         )
 
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
         feats_df.to_csv(feat_out, sep="\t", index=False)
-
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")

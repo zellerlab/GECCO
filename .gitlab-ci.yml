@@ -5,12 +5,20 @@ stages:
 # --- Stage Templates ----------------------------------------------------------
 
 .test: &test
+
   stage: test
+
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+    - build/lib/gecco/data/hmms
+
   before_script:
     - apt update
     - apt install -y prodigal hmmer
   script:
-    - pip install --upgrade .
+    - python setup.py bdist_wheel
+    - pip install --upgrade dist/*.whl
     - gecco --traceback -vv run -o /tmp -g tests/data/SRR492066.fna
     - gecco --traceback -vv annotate -o /tmp -g tests/data/SRR492066.fna
 

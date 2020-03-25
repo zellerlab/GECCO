@@ -3,4 +3,4 @@ include LICENSE
 include static/gecco.png
 include gecco/_version.txt
 
-recursive-include gecco/data *.md5 *.tsv *.model
+recursive-include gecco/data *.tsv *.model *.md5 *.ini 

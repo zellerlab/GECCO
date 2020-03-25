@@ -1,4 +1,5 @@
 import csv
+import itertools
 import logging
 import math
 import multiprocessing
@@ -31,7 +32,7 @@ class Embed(Command):
 
     Usage:
         gecco embed (-h | --help)
-        gecco embed --bgc <data> --no-bgc <data> [options]
+        gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
 
     Arguments:
         --bgc <data>                  the path to the annotation table
@@ -63,7 +64,7 @@ class Embed(Command):
             return 1
 
         # Check the input exists
-        for input_ in (self.args["--bgc"], self.args["--no-bgc"]):
+        for input_ in itertools.chain(self.args["--bgc"], self.args["--no-bgc"]):
             if not os.path.exists(input_):
                 self.logger.error("could not locate input file: {!r}", input_)
                 return 1
@@ -74,18 +75,22 @@ class Embed(Command):
         self.logger.info("Reading BGC and non-BGC feature tables")
 
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape
-        self.logger.debug("Reading non-BGC table from {!r}", self.args["--no-bgc"])
-        no_bgc_df = pandas.read_table(self.args["--no-bgc"], dtype={"domain": str})
-        no_bgc_df = no_bgc_df.assign(BGC="0")
+        rows = []
+        for no_bgc_path in self.args["--no-bgc"]:
+            self.logger.debug("Reading non-BGC table from {!r}", no_bgc_path)
+            rows.append(pandas.read_table(no_bgc_path, dtype={"domain": str}))
+        no_bgc_df = pandas.concat(rows).assign(BGC="0")
         self.logger.debug("Sorting non-BGC table")
         no_bgc_df = no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"])
         no_bgc_df = no_bgc_df.groupby("sequence_id", sort=False)
         no_bgc_list = [s for _, s in no_bgc_df if s.shape[0] > self.args["--min-size"]]
 
         # Read the BGC table, assign the Y column to `1`, and sort
-        self.logger.debug("Reading BGC table from {!r}", self.args["--bgc"])
-        bgc_df = pandas.read_table(self.args["--bgc"], dtype={"domain": str})
-        bgc_df = bgc_df.assign(
+        rows = []
+        for bgc_path in self.args["--bgc"]:
+            self.logger.debug("Reading BGC table from {!r}", bgc_path)
+            rows.append(pandas.read_table(bgc_path, dtype={"domain": str}))
+        bgc_df = pandas.concat(rows).assign(
             BGC="1",
             BGC_id=[id_[0] for id_ in bgc_df['protein_id'].str.split("|")]
         )
@@ -99,7 +104,7 @@ class Embed(Command):
             msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
-
+        # Make a progress bar if we are printing to a terminal
         if self.stream.isatty() and self.logger.level != 0:
             pbar = lambda it, **kwargs: tqdm.tqdm(it, file=self.stream, **kwargs)
         else:
@@ -124,7 +129,7 @@ class Embed(Command):
             #
             with numpy_error_context(divide="ignore"):
                 embed = embed.assign(
-                    domain=embed["domain"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)),
+                    # domain=embed["domain"],
                     sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
                     BGC_id=bgc["BGC_id"].values[0],
                     # FIXME: really needed ? if so we must also extract the
@@ -133,8 +138,8 @@ class Embed(Command):
                     pseudo_pos=range(len(embed)),
                     rev_i_Evalue = 1 - embed["i_Evalue"],
                     log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
-                    strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
-                    shift = "shift"
+                    #strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
+                    #shift = "shift"
                 )
                 embedding.append(embed)
 
