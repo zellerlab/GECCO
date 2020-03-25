@@ -114,6 +114,7 @@ class Embed(Command):
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
         # Make a progress bar if we are printing to a terminal
+        self.logger.info("Creating the embeddings")
         if self.stream.isatty() and self.logger.level != 0:
             pbar = tqdm.tqdm(total=min(len(no_bgc_list), len(bgc_list)), leave=False)
         else:
@@ -121,42 +122,33 @@ class Embed(Command):
 
         # Make the embeddings
         def embed(no_bgc, bgc):
-            no_bgc = no_bgc.groupby("protein_id", sort=False)
-            start, end = pandas.DataFrame(), pandas.DataFrame()
-            for n, (_, t) in enumerate(no_bgc):
-                if n <= math.ceil(len(no_bgc) / 2):
-                    start = pandas.concat([start, t])
-                else:
-                    end = pandas.concat([end, t])
-            #
-            embed = pandas.concat([start, bgc, end], sort=False)
+            by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
+            # cut the input in half to insert the bgc in the middle
+            index_half = len(by_prots) // 2
+            start, end = by_prots[:index_half], by_prots[index_half:]
+            # concat the embedding together and filter by e_value
+            embed = pandas.concat(start + [bgc] + end, sort=False)
             embed = embed.reset_index(drop=True)
             embed = embed[embed["i_Evalue"] < self.args["--e-filter"]]
-            #
+            # add additional columns based on info from BGC and non-BGC
             with numpy_error_context(divide="ignore"):
                 embed = embed.assign(
-                    # domain=embed["domain"],
                     sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
                     BGC_id=bgc["BGC_id"].values[0],
-                    # FIXME: really needed ? if so we must also extract the
-                    # metadata from the `mibig.json` metadata listing
-                    # BGC_type=bgc["BGC_type"].values[0].split(","),
                     pseudo_pos=range(len(embed)),
                     rev_i_Evalue = 1 - embed["i_Evalue"],
                     log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
-                    #strand_shift = ~embed["strand"].eq(embed["strand"].shift(1)),
-                    #shift = "shift"
                 )
+            # Update the progressbar, if any
             if pbar is not None:
                 pbar.update(1)
             return embed
 
-        self.logger.info("Creating the embeddings")
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            embeddings = pool.starmap(embed, zip(no_bgc_list, bgc_list))
+            embeddings = pandas.concat(pool.starmap(embed, zip(no_bgc_list, bgc_list)))
 
         # Write the resulting table
         self.logger.info("Writing embedding table")
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
-        pandas.concat(embeddings).to_csv(out_file, sep="\t", index=False)
+        embeddings.to_csv(out_file, sep="\t", index=False)
