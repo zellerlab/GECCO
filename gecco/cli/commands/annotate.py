@@ -27,9 +27,9 @@ class Annotate(Command):
 
     Usage:
         gecco annotate (-h | --help)
-        gecco annotate --genome <file> [--hmm <hmm>]... [options]
+        gecco annotate --genome <file>   [--hmm <hmm>]... [options]
         gecco annotate --proteins <file> [--hmm <hmm>]...  [options]
-        gecco annotate --mibig <file> [--hmm <hmm>]...  [options]
+        gecco annotate --mibig <file>    [--hmm <hmm>]...  [options]
 
     Arguments:
         -g <file>, --genome <file>    a FASTA file containing a genome
@@ -47,8 +47,8 @@ class Annotate(Command):
                                       available CPUs. [default: 0]
 
     Parameters - Domain Annotation:
-        --hmm <hmm>                   the path to an HMM file to use for
-                                      domain annotation. Defaults to the
+        --hmm <hmm>                   the path to one or more HMM files to use
+                                      for domain annotation. Defaults to the
                                       internal HMMs.
         -e <e>, --e-filter <e>        the e-value cutoff for domains to
                                       be included. [default: 1e-5]

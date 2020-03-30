@@ -1,5 +1,6 @@
 import configparser
 import glob
+import os
 import re
 import typing
 import pkg_resources
@@ -25,6 +26,26 @@ class Hmm(typing.NamedTuple):
         before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()
         regex = re.compile(before)
         return [regex.sub(after, domain) for domain in domains]
+
+
+class ForeignHmm(typing.NamedTuple):
+
+    path: str
+
+    @property
+    def id(self):
+        path = self.path
+        if self.path.endswith((".gz", ".xz", ".bz2")):
+            path, _ = os.path.splitext(path)
+        return os.path.splitext(os.path.basename(path))[0]
+
+    @property
+    def version(self):
+        return "?"
+
+    def relabel(self, domains):
+        return domains.str.split(".").str[0]
+
 
 
 def iter():

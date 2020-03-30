@@ -12,6 +12,7 @@ from Bio import SeqIO
 
 from ._base import Command
 from ... import data
+from ...data.hmms import ForeignHmm
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
@@ -27,8 +28,8 @@ class Run(Command):
 
     Usage:
         gecco run (-h | --help)
-        gecco run --genome <file> [options]
-        gecco run --proteins <file> [options]
+        gecco run --genome <file>   [--hmm <hmm>]... [options]
+        gecco run --proteins <file> [--hmm <hmm>]... [options]
 
     Arguments:
         -g <file>, --genome <file>    a FASTA or GenBank file containing a
@@ -62,6 +63,12 @@ class Run(Command):
                                       prediction. [default: jensenshannon]
         -k <n>, --neighbors <n>       the number of neighbors to use for
                                       kNN type prediction [default: 5]
+
+    Parameters - Debug:
+        --model <model.crf>           the path to an alternative CRF model
+                                      to use (obtained with `gecco train`).
+        --hmm <lib.hmm.gz>            the path to one or more HMM libraries to
+                                      use instead of the builtin ones.
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -92,10 +99,17 @@ class Run(Command):
             self.args["--jobs"] = multiprocessing.cpu_count()
 
         # Check the input exists
-        input = self.args["--genome"] or self.args["--proteins"]
-        if not os.path.exists(input):
+        input_ = self.args["--genome"] or self.args["--proteins"]
+        if not os.path.exists(input_):
             self.logger.error("could not locate input file: {!r}", input)
             return 1
+
+        # Check the hmms exist or use internal ones
+        if self.args["--hmm"] is None:
+            self.args["--hmm"] = list(data.hmms.iter())
+        else:
+            self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
+
 
         return None
 
@@ -138,7 +152,7 @@ class Run(Command):
             return result.assign(domain=hmm.relabel(result.domain))
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            features = pool.map(annotate, data.hmms.iter())
+            features = pool.map(annotate, self.args["--hmm"])
 
         feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
@@ -148,11 +162,6 @@ class Run(Command):
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
-        # Reformat pfam IDs
-        feats_df = feats_df.assign(
-            domain=feats_df["domain"].str.replace(r"(PF\d+|PTHR\d+)\.\d+", lambda m: m.group(1))
-        )
-
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
@@ -160,7 +169,11 @@ class Run(Command):
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
-        crf = data.load("model/crf.model")
+        if self.args["--model"] is not None:
+            with open(self.args["--model"]) as bin:
+                crf = pickle.load(bin)
+        else:
+            crf = data.load("model/crf.model")
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
