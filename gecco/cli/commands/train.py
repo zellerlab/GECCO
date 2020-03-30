@@ -28,12 +28,13 @@ class Train(Command):
 
     Usage:
         gecco train (-h | --help)
-        gecco train -i <data> [-w <col>]... [--sort-cols <col>]...
-                    [--strat-cols <col>]... [options]
+        gecco train -i <data> [-w <col>]... [-f <col>]...
+                    [--sort-cols <col>]... [--strat-cols <col>]... [options]
 
     Arguments:
-        -i <data>, --input <data>      a FASTA or GenBank file containing a
-                                       genome as input.
+        -i <data>, --input <data>      a domain annotation table with regions
+                                       labeled as BGCs and non-BGCs.
+
     Parameters:
         -o <out>, --output <out>       the basename to use for the output
                                        model. [default: CRF]
@@ -67,6 +68,8 @@ class Train(Command):
                                        the training set.
         --overlap <N>                  how much overlap to consider if
                                        features overlap. [default: 2]
+        --no-shuffle                   disable shuffling of the data before
+                                       fitting the model.
 
     Parameters - Column Names:
         -y <col>, --y-col <col>        column with class label. [default: BGC]
@@ -84,12 +87,6 @@ class Train(Command):
                                        [default: genome_id start domain_start]
         --strat-cols <col>             columns to be used for stratifying the
                                        samples (BGC types).
-
-    Parameters - Cross-Validation:
-        --no-shuffle                   disable shuffling of the data before
-                                       doing the cross-validation.
-        --folds <N>                    the number of folds to use for the
-                                       cross-validation. [default: 10]
 
     Parameters - Type Prediction:
         -d <d>, --distance <d>         the distance metric to use for kNN type
@@ -118,7 +115,6 @@ class Train(Command):
         # Check value of numeric arguments
         if self.args["--truncate"] is not None:
             self.args["--truncate"] = int(self.args["--truncate"])
-        self.args["--folds"] = int(self.args["--folds"])
         self.args["--overlap"] = int(self.args["--overlap"])
         self.args["--min-orfs"] = int(self.args["--min-orfs"])
         self.args["--c1"] = float(self.args["--c1"])
@@ -152,12 +148,6 @@ class Train(Command):
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
         self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
-        self.logger.debug("Reformating PFAM ids in column {}", self.args["--feature-col"])
-        data_tbl = data_tbl.assign(
-            domain = data_tbl[self.args["--feature-col"]]
-                .str
-                .replace(r"(PF\d+)\.\d+", lambda m: m.group(1))
-        )
 
         # Computing reverse i_Evalue
         self.logger.debug("Computing reverse i_Evalue")

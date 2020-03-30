@@ -74,7 +74,6 @@ class ClusterCRF(object):
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
-
         self.algorithm = algorithm
         self.model = CRF(
             algorithm = algorithm,
