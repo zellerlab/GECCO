@@ -105,10 +105,10 @@ class Run(Command):
             return 1
 
         # Check the hmms exist or use internal ones
-        if self.args["--hmm"] is None:
-            self.args["--hmm"] = list(data.hmms.iter())
-        else:
+        if self.args["--hmm"]:
             self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
+        else:
+            self.args["--hmm"] = list(data.hmms.iter())
 
 
         return None
