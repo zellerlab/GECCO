@@ -170,7 +170,7 @@ class Run(Command):
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
         if self.args["--model"] is not None:
-            with open(self.args["--model"]) as bin:
+            with open(self.args["--model"], "rb") as bin:
                 crf = pickle.load(bin)
         else:
             crf = data.load("model/crf.model")
