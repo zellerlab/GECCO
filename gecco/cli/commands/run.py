@@ -185,6 +185,10 @@ class Run(Command):
         self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
         feats_df.to_csv(pred_out, sep="\t", index=False)
 
+        # Compute additional statistics
+        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
+        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
+
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
         self.logger.debug("Using probability threshold of {}", self.args["--threshold"])

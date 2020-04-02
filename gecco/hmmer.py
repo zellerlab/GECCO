@@ -203,12 +203,13 @@ class HMMER(object):
                     strand,
                     domain,
                     row.i_evalue,
+                    1-row.i_evalue,
                     min(row.env_from, row.env_to),
                     max(row.env_from, row.env_to),
                 ))
         return pandas.DataFrame(rows, columns=[
             "sequence_id", "protein_id", "start", "end", "strand",
-            "domain", "i_Evalue", "domain_start", "domain_end",
+            "domain", "i_Evalue", "rev_i_Evalue", "domain_start", "domain_end",
         ])
 
     def _get_protein_order(self) -> typing.Dict[str, int]:
