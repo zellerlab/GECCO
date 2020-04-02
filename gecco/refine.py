@@ -74,9 +74,9 @@ class ClusterRefiner(object):
                 start = subdf["start"].min(),
                 end = subdf["end"].max(),
                 name = pid,
-                domains = subdf.get(self.domain_col),
-                weights = subdf.get(self.weight_col),
-                probability = subdf.get(self.p_col)
+                domains = subdf[self.domain_col].values,
+                weights = subdf[self.weight_col].values,
+                probability = subdf[self.p_col].mean(),
             )
             prot_list.append(protein)
         return BGC(prot_list, name=cluster_name)
