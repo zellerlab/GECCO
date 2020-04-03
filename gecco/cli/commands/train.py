@@ -28,71 +28,71 @@ class Train(Command):
 
     Usage:
         gecco train (-h | --help)
-        gecco train -i <data> [-w <col>]... [-f <col>]...
+        gecco train -i <data> [-w <col>]... [--feature-cols <col>]...
                     [--sort-cols <col>]... [--strat-cols <col>]... [options]
 
     Arguments:
-        -i <data>, --input <data>      a domain annotation table with regions
-                                       labeled as BGCs and non-BGCs.
+        -i <data>, --input <data>       a domain annotation table with regions
+                                        labeled as BGCs and non-BGCs.
 
     Parameters:
-        -o <out>, --output <out>       the basename to use for the output
-                                       model. [default: CRF]
-        -j <jobs>, --jobs <jobs>       the number of CPUs to use for
-                                       multithreading. Use 0 to use all of the
-                                       available CPUs. [default: 0]
+        -o <out>, --output <out>        the basename to use for the output
+                                        model. [default: CRF]
+        -j <jobs>, --jobs <jobs>        the number of CPUs to use for
+                                        multithreading. Use 0 to use all of the
+                                        available CPUs. [default: 0]
 
     Parameters - Domain Annotation:
-        -e <e>, --e-filter <e>         the e-value cutoff for domains to
-                                       be included [default: 1e-5]
+        -e <e>, --e-filter <e>          the e-value cutoff for domains to
+                                        be included [default: 1e-5]
 
     Parameters - Cluster Detection:
-        --min-orfs <N>                 how many ORFs are required for a
-                                       sequence to be considered. [default: 5]
-        -m <m>, --threshold <m>        the probability threshold for cluster
-                                       prediction. Default depends on the
-                                       post-processing method (0.4 for gecco,
-                                       0.6 for antismash).
-        --postproc <method>            the method used for cluster extraction
-                                       (antismash or gecco). [default: gecco]
+        --min-orfs <N>                  how many ORFs are required for a
+                                        sequence to be considered. [default: 5]
+        -m <m>, --threshold <m>         the probability threshold for cluster
+                                        prediction. Default depends on the
+                                        post-processing method (0.4 for gecco,
+                                        0.6 for antismash).
+        --postproc <method>             the method used for cluster extraction
+                                        (antismash or gecco). [default: gecco]
 
     Parameters - Training:
-        --c1 <C1>                      parameter for L1 regularisation.
-                                       [default: 0.15]
-        --c2 <C2>                      parameter for L2 regularisation.
-                                       [default: 0.15]
-        --feature-type <type>          how features should be extracted
-                                       (single, overlap, or group).
-                                       [default: group]
-        --truncate <N>                 the maximum number of rows to use from
-                                       the training set.
-        --overlap <N>                  how much overlap to consider if
-                                       features overlap. [default: 2]
-        --no-shuffle                   disable shuffling of the data before
-                                       fitting the model.
+        --c1 <C1>                       parameter for L1 regularisation.
+                                        [default: 0.15]
+        --c2 <C2>                       parameter for L2 regularisation.
+                                        [default: 0.15]
+        --feature-type <type>           how features should be extracted
+                                        (single, overlap, or group).
+                                        [default: group]
+        --truncate <N>                  the maximum number of rows to use from
+                                        the training set.
+        --overlap <N>                   how much overlap to consider if
+                                        features overlap. [default: 2]
+        --no-shuffle                    disable shuffling of the data before
+                                        fitting the model.
 
     Parameters - Column Names:
-        -y <col>, --y-col <col>        column with class label. [default: BGC]
-        -w <col>, --weight-cols <col>  columns with local weights on features.
-                                       [default: rev_i_Evalue]
-        -f <col>, --feature-col <col>  column to be used as features.
-                                       [default: domain]
-        -s <col>, --split-col <col>    column to be used for splitting into
-                                       samples, i.e different sequences
-                                       [default: sequence_id]
-        -g <col>, --group-col <col>    column to be used for grouping features
-                                       if `--feature-type` is *group*.
-                                       [default: protein_id]
-        --sort-cols <col>              columns to be used for sorting the data
-                                       [default: genome_id start domain_start]
-        --strat-cols <col>             columns to be used for stratifying the
-                                       samples (BGC types).
+        -y <col>, --y-col <col>         column with class label. [default: BGC]
+        -w <col>, --weight-cols <col>   columns with local weights on features.
+                                        [default: rev_i_Evalue]
+        -f <col>, --feature-cols <col>  column to be used as features.
+                                        [default: domain]
+        -s <col>, --split-col <col>     column to be used for splitting into
+                                        samples, i.e different sequences
+                                        [default: sequence_id]
+        -g <col>, --group-col <col>     column to be used for grouping features
+                                        if `--feature-type` is *group*.
+                                        [default: protein_id]
+        --sort-cols <col>               columns to be used for sorting the data
+                                        [default: genome_id start domain_start]
+        --strat-cols <col>              columns to be used for stratifying the
+                                        samples (BGC types).
 
     Parameters - Type Prediction:
-        -d <d>, --distance <d>         the distance metric to use for kNN type
-                                       prediction. [default: jensenshannon]
-        -k <n>, --neighbors <n>        the number of neighbors to use for
-                                       kNN type prediction [default: 5]
+        -d <d>, --distance <d>          the distance metric to use for kNN type
+                                        prediction. [default: jensenshannon]
+        -k <n>, --neighbors <n>         the number of neighbors to use for
+                                        kNN type prediction [default: 5]
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -176,7 +176,7 @@ class Train(Command):
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
             Y_col = self.args["--y-col"],
-            feature_cols = [self.args["--feature-col"]],
+            feature_cols = self.args["--feature-cols"],
             group_col = self.args["--group-col"],
             weight_cols = self.args["--weight-cols"],
             feature_type = self.args["--feature-type"],
