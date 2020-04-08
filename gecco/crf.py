@@ -7,8 +7,9 @@ import random
 import warnings
 from typing import List, Optional
 
-import numpy as np
-import pandas as pd
+import numpy
+import pandas
+import tqdm
 from sklearn.model_selection import PredefinedSplit
 from sklearn_crfsuite import CRF
 
@@ -74,7 +75,6 @@ class ClusterCRF(object):
         self.groups = group_col
         self.feature_type = feature_type
         self.overlap = overlap
-
         self.algorithm = algorithm
         self.model = CRF(
             algorithm = algorithm,
@@ -95,8 +95,8 @@ class ClusterCRF(object):
 
         if data is not None:
             samples = [self._extract_features(s) for s in data]
-            X = np.array([x for x, _ in samples])
-            Y = np.array([y for _, y in samples])
+            X = numpy.array([x for x, _ in samples])
+            Y = numpy.array([y for _, y in samples])
             self.model.fit(X, Y)
         else:
             self.model.fit(X, Y)
@@ -113,119 +113,143 @@ class ClusterCRF(object):
         elif data is not None:
             # Extract features to dict (CRFSuite format)
             samples = [self._extract_features(s, X_only=True) for s in data]
-            X = np.array([x for x, _ in samples])
+            X = numpy.array([x for x, _ in samples])
             marginal_probs = self.model.predict_marginals(X)
             # Extract cluster (1) probs
             cluster_probs = []
             for sample in marginal_probs:
                 try:
-                    sample_probs = np.array([d["1"] for d in [_ for _ in sample]])
+                    sample_probs = numpy.array([d["1"] for d in [_ for _ in sample]])
                 except KeyError:
                     warnings.warn(
                         "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
                     )
-                    sample_probs = np.array([0 for d in [_ for _ in sample]])
+                    sample_probs = numpy.array([0 for d in [_ for _ in sample]])
                 cluster_probs.append(sample_probs)
             # Merge probs vector with the input dataframe. This is tricky if we are
             # dealing with protein features as length of vector does not fit to dataframe
             # To deal with this, we merge by protein_id
             # --> HOWEVER: this requires the protein IDs to be unique among all samples
             if self.feature_type == "group":
-                result_df = [self._merge(df, p_pred=p)
-                    for df, p in zip(data, cluster_probs)]
-                result_df = pd.concat(result_df)
+                result_df = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]
+                result_df = pandas.concat(result_df)
             else:
-                result_df = pd.concat(data)
-                result_df = result_df.assign(p_pred=np.concatenate(cluster_probs))
+                result_df = pandas.concat(data)
+                result_df = result_df.assign(p_pred=numpy.concatenate(cluster_probs))
 
             return result_df
 
-    def cv(self, data, k=10, threads=1, trunc=None, strat_col=None):
-        """Runs stratified k-fold CV using k splits and a stratification column"""
+    def cv(self, data, strat_col=None, k=10, threads=1, trunc=None):
+        """Runs k-fold cross-validation using a stratification column.
 
-        if strat_col:
+        Arguments:
+            data (`~pandas.DataFrame`): A domain annotation table.
+            k (int): The number of cross-validation fold to perform.
+            threads (int): The number of threads to use.
+            trunc (int, optional): The maximum number of rows to use in the
+                training data, or to `None` to use everything.
+            strat_col (str, optional): The name of the column to use to split
+                the data, or `None` to perform a predefined split.
+
+        Returns:
+            `list` of `~pandas.DataFrame`: The list containing one table for
+            each cross-validation fold.
+
+        Todo:
+            * Fix multiprocessing but within `sklearn` to launch each fold in
+              a separate `~multiprocessing.pool.ThreadPool`.
+            * Make progress bar configurable.
+        """
+        if strat_col is not None:
             types = [s[strat_col].values[0].split(",") for s in data]
             cv_split = StratifiedSplit(types, n_splits=k)
         else:
             folds = n_folds(len(data), n=k)
             cv_split = PredefinedSplit(folds)
 
-        # Run one job per split and collects the result in a list
-        with multiprocessing.pool.ThreadPool(threads) as pool:
-            results = pool.starmap(
-                functools.partial(self._single_fold_cv, data, trunc=trunc),
-                list(cv_split.split())
-            )
-        return results
+        # Not running in parallel because sklearn has issues managing the
+        # temporary files in multithreaded mode
+        pbar = tqdm.tqdm(cv_split.split(), total=k, leave=False)
+        return [
+             self._single_fold_cv(data, train_idx, test_idx, f"fold{i}", trunc)
+            for i, (train_idx, test_idx) in enumerate(pbar)
+        ]
 
-    def loto_cv(self, data, type_col, threads=1, trunc=None):
-        """Runs LOTO CV based on a column defining the type of the sample (type_col)"""
+    def loto_cv(self, data, strat_col, threads=1, trunc=None):
+        """Run LOTO cross-validation using a stratification column.
 
-        types = [s[type_col].values[0].split(",") for s in data]
-        cv_split = LotoSplit(types)
+        Arguments:
+            data (`~pandas.DataFrame`): A domain annotation table.
+            strat_col (str): The name of the column to use to split the data.
+            threads (int): The number of threads to use.
+            trunc (int, optional): The maximum number of rows to use in the
+                training data, or to `None` to use everything.
 
-        # Run one job per split and collects the result in a list
-        with multiprocessing.pool.ThreadPool(threads) as pool:
-            results = pool.starmap(
-                functools.partial(self._single_fold_cv, data, trunc=trunc),
-                list(cv_split.split())
-            )
-        return results
+        Returns:
+            `list` of `~pandas.DataFrame`: The list containing one table for
+            each cross-validation fold.
+
+        Todo:
+            * Fix multiprocessing but within `sklearn` to launch each fold in
+              a separate `~multiprocessing.pool.ThreadPool`.
+            * Make progress bar configurable.
+        """
+        labels = [s[strat_col].values[0].split(",") for s in data]
+        cv_split = LotoSplit(labels)
+
+        # Not running in parallel because sklearn has issues managing the
+        # temporary files in multithreaded mode
+        pbar = tqdm.tqdm(list(cv_split.split()), leave=False)
+        return [
+            self._single_fold_cv(data, train_idx, test_idx, label, trunc)
+            for train_idx, test_idx, label in pbar
+        ]
 
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None):
-        """Performs a single CV round with the given train_idx and test_idx
+        """Performs a single CV round with the given train_idx and test_idx.
         """
 
         train_data = [data[i].reset_index() for i in train_idx]
-
-        if trunc:
+        if trunc is not None:
             # Truncate training set from both sides to desired length
-            train_data = [truncate(df, trunc, Y_col=self.Y_col, grouping=self.groups)
-                for df in train_data]
+            train_data = [
+                truncate(df, trunc, Y_col=self.Y_col, grouping=self.groups)
+                for df in train_data
+            ]
 
         # Extract features to CRFSuite format
         train_samples = [self._extract_features(s) for s in train_data]
-        X_train = np.array([x for x, _ in train_samples])
-        Y_train = np.array([y for _, y in train_samples])
+        X_train = numpy.array([x for x, _ in train_samples])
+        Y_train = numpy.array([y for _, y in train_samples])
 
         test_data = [data[i].reset_index() for i in test_idx]
         test_samples = [self._extract_features(s) for s in test_data]
 
-        X_test = np.array([x for x, _ in test_samples])
-        Y_test = np.array([y for _, y in test_samples])
+        X_test = numpy.array([x for x, _ in test_samples])
+        Y_test = numpy.array([y for _, y in test_samples])
 
         self.fit(X=X_train, Y=Y_train)
 
         # Extract cluster (1) probabilities from marginals
         marginal_probs = self.model.predict_marginals(X_test)
-        cluster_probs = []
-        for sample in marginal_probs:
-            try:
-                sample_probs = np.array([d["1"] for d in [_ for _ in sample]])
-            except KeyError:
-                warnings.warn(
-                    "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
-                )
-                sample_probs = np.array([0 for d in [_ for _ in sample]])
-            cluster_probs.append(sample_probs)
+        cluster_probs = [
+            numpy.array([d.get("1", 0) for d in sample])
+            for sample in marginal_probs
+        ]
+
+        # check if any sample has P(1) == 0
+        if any(not prob.all() for prob in cluster_probs):
+            warnings.warn("Cluster probabilities of test set were found to be zero. Something may be wrong with your input data.")
 
         # Merge probs vector with the input dataframe. This is tricky if we are dealing
         # with protein features as length of vector does not fit to dataframe
         # To deal with this, we merge by protein_id
         # --> HOWEVER: this requires the protein IDs to be unique within each sample
         if self.feature_type == "group":
-            result_df = [df.assign(cv_round=round_id) for df in test_data]
-            result_df = [self._merge(df, p_pred=p)
-                for df, p in zip(test_data, cluster_probs)]
-            result_df = pd.concat(result_df)
+            result_df = pandas.concat([self._merge(df, p_pred=p) for df, p in zip(test_data, cluster_probs)])
         else:
-            result_df = (pd.concat(test_data)
-                .assign(
-                    p_pred = np.concatenate(cluster_probs),
-                    cv_round = round_id
-                )
-            )
-        return result_df
+            result_df = pandas.concat(test_data).assign(p_pred=numpy.concatenate(cluster_probs))
+        return result_df.assign(cv_round=round_id)
 
     def _extract_features(self, sample, X_only=False):
         """
@@ -249,7 +273,7 @@ class ClusterCRF(object):
             raise ValueError(f"unexpected feature type: {self.feature_type!r}")
 
     def _merge(self, df, **cols):
-        unidf = pd.DataFrame(cols)
+        unidf = pandas.DataFrame(cols)
         unidf[self.groups] = df[self.groups].unique()
         return df.merge(unidf)
 
@@ -267,7 +291,7 @@ class ClusterCRF(object):
             feat_dict = self._make_feature_dict(row, feat_dict)
             X.append(feat_dict)
         if Y_col:
-            Y = np.array(table[Y_col].astype(str))
+            Y = numpy.array(table[Y_col].astype(str))
             return X, Y
         else:
             return X, None
@@ -310,7 +334,7 @@ class ClusterCRF(object):
                 feat_dict = self._make_feature_dict(row, feat_dict)
             X.append(feat_dict)
         if Y_col:
-            Y = np.array(table[Y_col].astype(str))
+            Y = numpy.array(table[Y_col].astype(str))
             return X, Y
         else:
             return X, None

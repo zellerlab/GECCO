@@ -1,43 +1,37 @@
-import csv
-import logging
-import multiprocessing
+import functools
 import os
-import pickle
+import multiprocessing
 import random
 import typing
+from typing import List
 
-import numpy
 import pandas
-from Bio import SeqIO
 
 from ._base import Command
-from ... import data
 from ...crf import ClusterCRF
-from ...hmmer import HMMER
-from ...knn import ClusterKNN
-from ...orf import ORFFinder
-from ...refine import ClusterRefiner
-from ...preprocessing import truncate
+
+if typing.TYPE_CHECKING:
+    from pandas import DataFrame
 
 
-class Train(Command):
+class Cv(Command):
 
-    summary = "train the CRF model on an embedded feature table."
+    summary = "perform cross validation on a training set."
     doc = f"""
-    gecco train - {summary}
+    gecco cv  - {summary}
 
     Usage:
-        gecco train (-h | --help)
-        gecco train -i <data> [-w <col>]... [--feature-cols <col>]...
-                    [--sort-cols <col>]... [--strat-cols <col>]... [options]
+        gecco cv (-h | --help)
+        gecco cv kfold -i <data>  [-w <col>]... [-f <col>]... [options]
+        gecco cv loto  -i <data>  [-w <col>]... [-f <col>]... [options]
 
     Arguments:
         -i <data>, --input <data>       a domain annotation table with regions
                                         labeled as BGCs and non-BGCs.
 
     Parameters:
-        -o <out>, --output <out>        the basename to use for the output
-                                        model. [default: CRF]
+        -o <out>, --output <out>        the name of the output cross-validation
+                                        table. [default: cv.tsv]
         -j <jobs>, --jobs <jobs>        the number of CPUs to use for
                                         multithreading. Use 0 to use all of the
                                         available CPUs. [default: 0]
@@ -45,16 +39,6 @@ class Train(Command):
     Parameters - Domain Annotation:
         -e <e>, --e-filter <e>          the e-value cutoff for domains to
                                         be included [default: 1e-5]
-
-    Parameters - Cluster Detection:
-        --min-orfs <N>                  how many ORFs are required for a
-                                        sequence to be considered. [default: 5]
-        -m <m>, --threshold <m>         the probability threshold for cluster
-                                        prediction. Default depends on the
-                                        post-processing method (0.4 for gecco,
-                                        0.6 for antismash).
-        --postproc <method>             the method used for cluster extraction
-                                        (antismash or gecco). [default: gecco]
 
     Parameters - Training:
         --c1 <C1>                       parameter for L1 regularisation.
@@ -68,8 +52,9 @@ class Train(Command):
                                         the training set.
         --overlap <N>                   how much overlap to consider if
                                         features overlap. [default: 2]
-        --no-shuffle                    disable shuffling of the data before
-                                        fitting the model.
+        --splits <N>                    number of folds for cross-validation
+                                        (if running `kfold`). [default: 10]
+        --shuffle                       enable shuffling of stratified rows.
 
     Parameters - Column Names:
         -y <col>, --y-col <col>         column with class label. [default: BGC]
@@ -83,22 +68,15 @@ class Train(Command):
         -g <col>, --group-col <col>     column to be used for grouping features
                                         if `--feature-type` is *group*.
                                         [default: protein_id]
-        --sort-cols <col>               columns to be used for sorting the data
-                                        [default: genome_id start domain_start]
-        --strat-cols <col>              columns to be used for stratifying the
-                                        samples (BGC types).
-
-    Parameters - Type Prediction:
-        -d <d>, --distance <d>          the distance metric to use for kNN type
-                                        prediction. [default: jensenshannon]
-        -k <n>, --neighbors <n>         the number of neighbors to use for
-                                        kNN type prediction [default: 5]
+        --strat-col <col>               column to be used for stratifying the
+                                        samples. [default: BGC_type]
     """
 
     def _check(self) -> typing.Optional[int]:
         retcode = super()._check()
         if retcode is not None:
             return retcode
+
 
         # Check the input exists
         input_ = self.args["--input"]
@@ -116,23 +94,13 @@ class Train(Command):
         if self.args["--truncate"] is not None:
             self.args["--truncate"] = int(self.args["--truncate"])
         self.args["--overlap"] = int(self.args["--overlap"])
-        self.args["--min-orfs"] = int(self.args["--min-orfs"])
         self.args["--c1"] = float(self.args["--c1"])
         self.args["--c2"] = float(self.args["--c2"])
-        self.args["--neighbors"] = int(self.args["--neighbors"])
+        self.args["--splits"] = int(self.args["--splits"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
-
-        # Use default threshold value dependeing on postprocessing method
-        if self.args["--threshold"] is None:
-            if self.args["--postproc"] == "gecco":
-                self.args["--threshold"] = 0.4
-            elif self.args["--postproc"] == "antismash":
-                self.args["--threshold"] = 0.6
-        else:
-            self.args["--threshold"] = float(self.args["--threshold"])
 
         # Check the `--jobs`flag
         self.args["--jobs"] = jobs = int(self.args["--jobs"])
@@ -143,41 +111,21 @@ class Train(Command):
 
     def __call__(self) -> int:
         # --- LOADING AND PREPROCESSING --------------------------------------
-        # Load the table
-        self.logger.info("Loading the data")
+        self.logger.info("Loading the data from {!r}", self.args['--input'])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
         self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
+        self.logger.debug("Splitting input by column {!r}", self.args["--split-col"])
+        data: List['DataFrame'] = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
 
-        # Computing reverse i_Evalue
-        self.logger.debug("Computing reverse i_Evalue")
-        data_tbl = data_tbl.assign(rev_i_Evalue = 1 - data_tbl["i_Evalue"])
+        if self.args["--shuffle"]:
+            self.logger.debug("Shuffling rows")
+            random.shuffle(data)
 
-        # Grouping column
-        self.logger.debug("Splitting data using column {}", self.args["--split-col"])
-        data_tbl = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
-        if not self.args["--no-shuffle"]:
-            self.logger.debug("Shuffling data")
-            random.shuffle(data_tbl)
-
-        # Truncate the input data if required
-        if self.args["--truncate"] is not None:
-            self.logger.debug("Truncating data to {} rows", self.args["--truncate"])
-            data_tbl = [
-                truncate(
-                    df,
-                    self.args["--truncate"],
-                    Y_col=self.args["--y-col"],
-                    grouping=self.args["--group-col"]
-                )
-                for df in data_tbl
-            ]
-
-        # --- MODEL FITTING --------------------------------------------------
+        # --- CROSS VALIDATION -----------------------------------------------
         crf = ClusterCRF(
             Y_col = self.args["--y-col"],
             feature_cols = self.args["--feature-cols"],
-            group_col = self.args["--group-col"],
             weight_cols = self.args["--weight-cols"],
             feature_type = self.args["--feature-type"],
             overlap = self.args["--overlap"],
@@ -185,15 +133,50 @@ class Train(Command):
             c1 = self.args["--c1"],
             c2 = self.args["--c2"]
         )
-        self.logger.info("Fitting the model")
-        crf.fit(data=data_tbl)
 
-        model_out = f"{self.args['--output']}.crf.model"
-        self.logger.info("Writing the model to {!r}", model_out)
-        with open(model_out, "wb") as f:
-            pickle.dump(crf, f, protocol=3)
+        if self.args["loto"]:
+            cv_type = "loto"
+            cross_validate = crf.loto_cv
+        elif self.args["kfold"]:
+            cv_type = "kfold"
+            cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
 
-        self.logger.info("Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"])
-        crf.save_weights(self.args["--output"])
+        self.logger.info("Performing cross-validation")
+        results = pandas.concat(cross_validate(
+            data,
+            strat_col=self.args["--strat-col"],
+            threads=self.args["--jobs"],
+            trunc=self.args["--truncate"]
+        ))
 
-        return 0
+        self.logger.info("Formatting results")
+        results["c1"] = self.args["--c1"]
+        results["c2"] = self.args["--c2"]
+        results["feature_type"] = self.args["--feature-type"]
+        results["e_filter"] = self.args["--e-filter"]
+        results["overlap"] = self.args["--overlap"]
+        results["weight"] = ",".join(map(str, self.args["--weight-cols"]))
+        results["feature"] = ",".join(self.args["--feature-cols"])
+        results["truncate"] = self.args["--truncate"]
+        results["input"] = os.path.basename(self.args["--input"])
+        results["cv_type"] = cv_type
+
+        # result_df = (pd .concat(results)
+        #                 .assign(c1 = self.args["--c1"],
+        #                     c2 = self.args["--c2"],
+        #                     feature_type = self.args["--feature-type"],
+        #                     e_filter = self.args["-"],
+        #                     overlap = overlap,
+        #                     weight = ",".join(map(str, weight_col)),
+        #                     feature = ",".join(feature_col),
+        #                     truncate = trunc,
+        #                     in_file = ,
+        #                     cv_round = "all",
+        #                     cv_type = "10-fold")
+        #                 .loc[ : , ["BGC", "BGC_id", "protein_id", "domain", "idx",
+        #                     "p_pred", "c1", "c2", "feature_type", "e_filter", "overlap",
+        #                     "weight", "truncate", "cv_type", "cv_round", "in_file"] ])
+
+        # Write results
+        self.logger.info("Writing output to {!r}", self.args["--output"])
+        results.to_csv(self.args["--output"], sep="\t", index=False)
