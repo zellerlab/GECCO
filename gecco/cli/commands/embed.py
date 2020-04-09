@@ -51,6 +51,8 @@ class Embed(Command):
         -j <jobs>, --jobs <jobs>      the number of CPUs to use for
                                       multithreading. Use 0 to use all of the
                                       available CPUs. [default: 0]
+        --skip <N>                    skip the first N contigs while creating
+                                      the embedding. [default: 0]
 
     """
 
@@ -60,6 +62,7 @@ class Embed(Command):
             return retcode
 
         # Check value of numeric arguments
+        self.args["--skip"] = int(self.args["--skip"])
         self.args["--min-size"] = int(self.args["--min-size"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
@@ -109,7 +112,7 @@ class Embed(Command):
 
         # Check we have enough non-BGC contigs to fit the BGCs into
         no_bgc_count, bgc_count = len(no_bgc_list), len(bgc_list)
-        if no_bgc_count < bgc_count:
+        if no_bgc_count - self.args["--skip"] < bgc_count:
             msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
@@ -145,7 +148,8 @@ class Embed(Command):
             return embed
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            embeddings = pandas.concat(pool.starmap(embed, zip(no_bgc_list, bgc_list)))
+            it = zip(itertools.islice(no_bgc_list, self.args["--skip"], None), bgc_list)
+            embeddings = pandas.concat(pool.starmap(embed, it))
 
         # Write the resulting table
         self.logger.info("Writing embedding table")
