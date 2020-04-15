@@ -71,7 +71,7 @@ class ClusterCRF(object):
                 https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
             overlap (int): In case of `feature_type = "overlap"`, defines the
-                window size to use.
+                sliding window size to use.
 
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
@@ -283,23 +283,49 @@ class ClusterCRF(object):
         return X, None if X_only else Y
 
     def _extract_single_features(self, table, X_only=False):
+        """Extract features from ``table`` on a row level.
+
+        The extraction is done respecting the ``feature_cols`` and
+        ``weight_cols`` arguments given on the `ClusterCRF` initialisation.
+
+        Arguments:
+            table (~pandas.DataFrame): The dataframe to process.
+            X_only (bool): If `True`, prevents extraction of class labels
+                from the rows.
+
+        Returns:
+            `tuple`: a couple of `list`, where the first list contains a
+            feature dictionary for each row, and the second the list of
+            class labels, or `None` if ``X_only`` was `True`.
+
+        Example:
+            >>> data = pandas.DataFrame(
+            ...     columns=["protein_id", "domain", "weight"],
+            ...     data=[
+            ...         ["prot1", "domainA", 0.5],
+            ...         ["prot1", "domainB", 1.0],
+            ...         ["prot2", "domainC", 0.8],
+            ...     ],
+            ... )
+            >>> crf = ClusterCRF(
+            ...     feature_cols=["domain"],
+            ...     weight_cols=["weight"],
+            ...     feature_type="single"
+            ... )
+            >>> crf._extract_single_features(data, X_only=True)
+            ([{"domainA": 0.5}, {"domainB": 1.0}, {"domainC": 0.8}], None)
+
         """
-        Prepares class labels Y and features from a table
-        given
-        table:  a table with pfam domains and class lables
-        Y_col:  the column encoding the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-        if Y_col == None, only X is returned --> for prediction cases
-        """
-        X = []
-        for _, row in table.iterrows():
-            feat_dict = dict()
-            feat_dict = self._make_feature_dict(row, feat_dict)
-            X.append(feat_dict)
-        if not X_only:
-            Y = numpy.array(table[self.Y_col].astype(str))
-            return X, Y
-        else:
-            return X, None
+        # extract weights without iterating on all rows by zipping together
+        # the appropriate columns and inserting them in the right location
+        X = [ dict() for _ in range(len(table)) ]
+        for feat_col, weight_col in zip(self.features, self.weights):
+            features, weights = table[feat_col].values, table[weight_col].values
+            for index, (feature, weight) in enumerate(zip(features, weights)):
+                X[index][feature] = weight
+
+        # return Y only if requested
+        return X, None if X_only else table[self.Y_col].values.astype(str)
 
     def _extract_group_features(self, table, X_only=False):
         """Extract features from ``table`` on a group level.
@@ -319,7 +345,7 @@ class ClusterCRF(object):
         Returns:
             `tuple`: a couple of `list`, where the first list contains a
             feature dictionary for each group, and the second the list of
-            class labels, or `None` if ``class_column`` was none.
+            class labels, or `None` if ``X_only`` was `True`.
 
         Example:
             >>> data = pandas.DataFrame(
@@ -332,83 +358,89 @@ class ClusterCRF(object):
             ... )
             >>> crf = ClusterCRF(
             ...     feature_cols=["domain"],
+            ...     weight_cols=["weight"],
             ...     group_col="protein_id",
-            ...     feature_type="group",
+            ...     feature_type="overlap",
+            ...     overlap=1,
             ... )
-            >>> crf._extract_group_features(data, X_only=True)
-            ([{"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}], None)
+            >>> crf._extract_overlapping_features(data, X_only=True)[0]
+            [
+                {"domainA": 0.5, "domainB": 1.0},
+                {"domainA": 0.5, "domainB": 1.0, "domainC": 0.8},
+                {"domainB": 1.0, "domainC": 0.8},
+            ]
 
         """
-
-        # if we have only one feature to extract, we can sort the data outside
-        # of the loop to greatly decrease the processing within the loop:
-        # we sort and drop duplicates so that each feature appears only once
-        # per group, with its maximum weight
-        if len(self.features) == 1:
-            table = (
-                table
-                    .sort_values(by=[self.groups] + self.features + self.weights)
-                    .drop_duplicates([self.groups] + self.features, keep="last")
-            )
-
-        # create a feature list for each group (i.e. protein)
+        # create a feature list for each group (i.e. protein) without
+        # iterating on each row
         X, Y = [], []
         for prot_id, df in table.groupby(self.groups, sort=False):
             X.append({})
+            for feat_col, weight_col in zip(self.features, self.weights):
+                features, weights = df[feat_col].values, df[weight_col].values
+                for feat, weight in zip(features, weights):
+                    X[-1][feat] = max(X[-1].get(feat, 0), weight)
             if not X_only:
                 Y.append(str(df[self.Y_col].values[0]))
-            for feat_col, weight_col in zip(self.features, self.weights):
-                # if we couldn't preprocess because we have more than one
-                # column here, we need to sort the values so that the
-                # biggest weight comes last
-                if len(self.features) > 1:
-                    df = df.sort_values(by=[feat_col, weight_col])
-                # we can now create the feature dictionary, using a Python
-                # implementation detail: when adding several time the same
-                # key to a dictionary with `update`, then only the last one
-                # is kept: because we sorted the last key is the biggest
-                # weight
-                X[-1].update(zip(df[feat_col], df.get(weight_col, weight_col)))
 
         # only return Y if the class column was given
         return X, None if X_only else Y
 
     def _extract_overlapping_features(self, table, X_only=False):
-        """
-        Prepares class labels Y and features from a table
-        given
-        table:  a table with pfam domains and class lables
-        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-        if Y_col == None, only X is returned --> for prediction cases
-        """
-        X = []
-        for idx, _ in table.iterrows():
-            wind = table.iloc[idx - self.overlap : idx + self.overlap + 1]
-            feat_dict = dict()
-            for _, row in wind.iterrows():
-                feat_dict = self._make_feature_dict(row, feat_dict)
-            X.append(feat_dict)
-        if not X_only:
-            Y = numpy.array(table[self.Y_col].astype(str))
-            return X, Y
-        else:
-            return X, None
+        """Extract features from ``table`` using a sliding window.
 
-    def _make_feature_dict(self, row, feat_dict=None):
+        The extraction is done respecting the ``group_col``, ``feature_cols``
+        and ``weight_cols`` arguments given on the `ClusterCRF` initialisation.
+
+        This function is mostly used to group on a *protein* level, but it can
+        potentially be used as well to group on a larger subunit, for instance
+        on properly labeled contiguous ORFs to mimick a BGC.
+
+        Arguments:
+            table (~pandas.DataFrame): The dataframe to process.
+            X_only (bool): If `True`, prevents extraction of class labels
+                from the groups.
+
+        Returns:
+            `tuple`: a couple of `list`, where the first list contains a
+            feature dictionary for each row, and the second the list of
+            class labels, or `None` if ``X_only`` was `True`.
+
+        Example:
+            >>> data = pandas.DataFrame(
+            ...     columns=["protein_id", "domain", "weight"],
+            ...     data=[
+            ...         ["prot1", "domainA", 0.5],
+            ...         ["prot1", "domainB", 1.0],
+            ...         ["prot2", "domainC", 0.8],
+            ...     ],
+            ... )
+            >>> crf = ClusterCRF(
+            ...     feature_cols=["domain"],
+            ...     weight_cols=["weight"],
+            ...     group_col="protein_id",
+            ...     feature_type="group",
+            ... )
+            >>> crf._extract_group_features(data, X_only=True)[0]
+            [
+                {"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}
+
+                , None)
+
         """
-        Constructs a dict with key:value pairs from
-        row: input row or dict
-        self.features: either name of feature or name of column in row/dict
-        self.weights: either numerical weight or name of column in row/dict
-        """
-        feat_dict = feat_dict or {}
-        for f, w in zip(self.features, self.weights):
-            if isinstance(w, numbers.Number):
-                key, val = row[f], w
-            else:
-                key, val = row.get(f, f), row[w]
-            feat_dict[key] = max(val, feat_dict.get(key, val))
-        return feat_dict
+        # create a feature list for each slice of the data
+        X = [dict() for _ in range(len(table))]
+        for idx in range(len(table)):
+            start_idx = max(idx-self.overlap, 0)
+            end_idx = min(idx+self.overlap+1, len(table))
+            for feat_col, weight_col in zip(self.features, self.weights):
+                features = table[feat_col].values[start_idx:end_idx]
+                weights = table[weight_col].values[start_idx:end_idx]
+                for feat, weight in zip(features, weights):
+                    X[idx][feat] = max(X[idx].get(feat, 0), weight)
+
+        # Only return Y if requested
+        return X, None if X_only else table[self.Y_col].values.astype(str)
 
     # --- Utils --------------------------------------------------------------
 
