@@ -136,21 +136,21 @@ class ClusterRefiner(object):
         cluster_num = 1
         cluster_state = False
         cluster_list = []
-        for _, row in df.iterrows():
+        for _, row in df.itertuples(index=False):
             if row[self.p_col] >= lower_threshold:
                 # non-cluster -> cluster
                 if not cluster_state:
                     cluster_dict = {}
                     cluster_dict[self.seq_col] = row[self.seq_col]
                     cluster_dict["cluster_id"] = prefix + "_" + str(cluster_num)
-                    cluster_dict["start"] = min(row["start"], row["end"])
+                    cluster_dict["start"] = min(row.start, row.end)
                     cluster_state = True
                 # cluster -> cluster
                 # pass
             else:
                 # cluster -> non-cluster
                 if cluster_state:
-                    cluster_dict["end"] = max(row["start"], row["end"])
+                    cluster_dict["end"] = max(row.start, row.end)
                     cluster_list.append(cluster_dict)
                     cluster_num += 1
                     cluster_state = False
