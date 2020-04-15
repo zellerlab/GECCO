@@ -21,7 +21,7 @@ class Tune(Command):
 
     summary = "perform cross validation on a training set."
     doc = f"""
-    gecco cv  - {summary}
+    gecco tune  - {summary}
 
     Usage:
         gecco tune (-h | --help)
@@ -166,24 +166,22 @@ class Tune(Command):
                 self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
 
                 raw = cross_validate(data, strat_col=self.args["--strat-col"], threads=self.args["--jobs"], trunc=self.args["--truncate"])
-                if raw: 
+                if raw:
                     results[c1, c2] = pandas.concat(raw).assign(c1=c1, c2=c2)
 
         finally:
-            # self.logger.info("Finding best parameter values")
-            # results["c2"] = self.args["--c2"]
+            if results:
+                # Concatenate results
+                table = pandas.concat(results.values())
+                table["feature_type"] = self.args["--feature-type"]
+                table["e_filter"] = self.args["--e-filter"]
+                table["overlap"] = self.args["--overlap"]
+                table["weight"] = ",".join(map(str, self.args["--weight-cols"]))
+                table["feature"] = ",".join(self.args["--feature-cols"])
+                table["truncate"] = self.args["--truncate"]
+                table["input"] = os.path.basename(self.args["--input"])
+                table["cv_type"] = cv_type
 
-            # Concatenate results
-            table = pandas.concat(results.values())
-            table["feature_type"] = self.args["--feature-type"]
-            table["e_filter"] = self.args["--e-filter"]
-            table["overlap"] = self.args["--overlap"]
-            table["weight"] = ",".join(map(str, self.args["--weight-cols"]))
-            table["feature"] = ",".join(self.args["--feature-cols"])
-            table["truncate"] = self.args["--truncate"]
-            table["input"] = os.path.basename(self.args["--input"])
-            table["cv_type"] = cv_type
-            
-            # Write results
-            self.logger.info("Writing output to {!r}", self.args["--output"])
-            table.to_csv(self.args["--output"], sep="\t", index=False)
+                # Write results
+                self.logger.info("Writing output to {!r}", self.args["--output"])
+                table.to_csv(self.args["--output"], sep="\t", index=False)
