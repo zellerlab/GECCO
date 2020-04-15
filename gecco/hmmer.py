@@ -69,7 +69,6 @@ class DomainRow(typing.NamedTuple):
         )
 
 
-
 class HMMER(object):
     """A wrapper for HMMER that scans a HMM library against protein sequences.
     """

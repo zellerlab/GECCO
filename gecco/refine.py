@@ -34,11 +34,11 @@ class ClusterRefiner(object):
         self.grouping = [seq_col, prot_col]
 
     def find_clusters(
-        self,
-        domains_df: pd.DataFrame,
-        method: str = "gecco",
-        prefix: str = "cluster",
-        lower_threshold: Optional[float] = None,
+            self,
+            domains_df: pd.DataFrame,
+            method: str = "gecco",
+            prefix: str = "cluster",
+            lower_threshold: Optional[float] = None,
     ) -> typing.List[BGC]:
         if method == "antismash":
             lt = 0.3 if lower_threshold is None else lower_threshold

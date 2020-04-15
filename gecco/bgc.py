@@ -7,7 +7,7 @@ from gecco.preprocessing import flatten
 
 
 class Protein(object):
-    """Definition of a Protein
+    """A single protein withing a BGC.
     """
 
     def __init__(
@@ -67,7 +67,7 @@ class Protein(object):
 
 
 class BGC(object):
-    """A biosynthetic gene cluster with multiple proteins.
+    """A biosynthetic gene cluster, containing multiple proteins.
     """
 
     def __init__(

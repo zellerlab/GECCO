@@ -18,15 +18,15 @@ from .cross_validation import LotoSplit, n_folds, n_folds_partial, StratifiedSpl
 from .preprocessing import flatten, truncate
 
 
-# CLASS
 class ClusterCRF(object):
     """A wrapper for `sklearn_crfsuite.CRF` taking `~pandas.DataFrame` inputs.
 
     `ClusterCRF` enables prediction and cross-validation for dataframes. This
-    is handy to use with feature tables obtained from `~gecco.hmmer.HMMER`.
+    is handy to use with feature tables obtained from `~gecco.hmmer.HMMER`. It
+    supports arbitrary column names that can be changed on initialisation.
     """
 
-    _EXTRACT_FEATURES = {
+    _EXTRACT_FEATURES_METHOD = {
         "single": "_extract_single_features",
         "group": "_extract_group_features",
         "overlap": "_extract_overlapping_features"
@@ -76,7 +76,7 @@ class ClusterCRF(object):
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
         """
-        if feature_type not in self._EXTRACT_FEATURES:
+        if feature_type not in self._EXTRACT_FEATURES_METHOD:
             raise ValueError(f"unexpected feature type: {feature_type!r}")
 
         self.Y_col = Y_col
@@ -95,14 +95,34 @@ class ClusterCRF(object):
 
     def fit(self, data, threads=None):
         """Fits the model to the given data.
+
+        Arguments:
+            data (iterable of `~pandas.DataFrame`): An iterable of data frames
+                to use to fit the model. If must contain the following columns
+                (as defined on `ClusterCRF` initialisation): *weight_cols*,
+                *feature_cols* and *Y_col*, as well as *feature_cols* if the
+                feature extraction is ``group``.
+            threads (`int`, optional): The number of threads to use when
+                extracting the features from the input data.
+
         """
         X, Y = self._extract_features(data, threads=threads)
         self.model.fit(X, Y)
 
     def predict_marginals(self, data, threads=None):
         """Predicts marginals for your data.
+
+        Arguments:
+            data (iterable of `~pandas.DataFrame`): An iterable of data frames
+                to use to fit the model. If must contain the following columns
+                (as defined on `ClusterCRF` initialisation): *weight_cols* and
+                *feature_cols*, as well as *feature_cols* if the
+                feature extraction is ``group``.
+            threads (`int`, optional): The number of threads to use when
+                extracting the features from the input data.
+
         """
-        # convert data to `CRF` format
+        # convert data to `CRFSuite` format
         X, _ = self._extract_features(data, threads=threads, X_only=True)
 
         # Extract cluster (1) probabilities from marginal
@@ -207,7 +227,7 @@ class ClusterCRF(object):
         ]
 
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None, threads=None):
-        """Performs a single CV round with the given train_idx and test_idx.
+        """Performs a single CV round with the given indices.
         """
         # Extract the fold from the complete data using the provided indices
         train_data = [data[i].reset_index() for i in train_idx]
@@ -239,6 +259,9 @@ class ClusterCRF(object):
             X_only (`bool`, optional): If `True`, only return the features,
                 and ignore class labels.
 
+        Warning:
+            This method spawns a `multiprocessing.pool.Pool` in the background
+            to extract features in parallel.
         """
         # Filter the columns to reduce the amount of data passed to the
         # different processes
@@ -249,7 +272,7 @@ class ClusterCRF(object):
         col_filter = operator.itemgetter(columns)
         # Extract features to CRFSuite format
         _extract_features = functools.partial(
-            getattr(self, self._EXTRACT_FEATURES[self.feature_type]),
+            getattr(self, self._EXTRACT_FEATURES_METHOD[self.feature_type]),
             X_only=X_only,
         )
         with multiprocessing.pool.Pool(threads) as pool:
