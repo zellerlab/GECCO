@@ -1,14 +1,16 @@
 import math
 import numbers
-import numpy as np
-import pandas as pd
-from math import ceil
-from itertools import zip_longest
+import typing
 from collections import Iterable
+from itertools import zip_longest
+from typing import List, Optional
+
+import numpy as np
+import pandas
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.base import TransformerMixin, BaseEstimator
 
-# CLASS
+
 class SafeOneHotEncoder(BaseEstimator, TransformerMixin):
     """
     Onehot encodes samples with differing categorical composition
@@ -32,6 +34,7 @@ def flatten(l):
         else:
             yield el
 
+
 def truncate(df, length, Y_col="BGC", grouping="protein_id"):
 
     df0 = df[df[Y_col] == 0]
@@ -40,11 +43,12 @@ def truncate(df, length, Y_col="BGC", grouping="protein_id"):
     trunc_len = (len(df0) - 2 * length) // 2
 
     try:
-        df_trunc = pd.concat(df0[trunc_len : -trunc_len])
+        df_trunc = pandas.concat(df0[trunc_len : -trunc_len])
     except ValueError as err:
-        df_trunc = pd.concat(df0)
+        df_trunc = pandas.concat(df0)
 
     return df_trunc.append(df1).sort_index().reset_index()
+
 
 def safe_encode(X, feature_set=None, encoding="onehot"):
     """Sefely onehot encodes samples with different categorical composition."""
@@ -62,192 +66,178 @@ def safe_encode(X, feature_set=None, encoding="onehot"):
     else:
         return X_enc, categories
 
-def prepare_sample(table, X_col, Y_col):
+
+def extract_group_features(
+        table: pandas.DataFrame,
+        feature_cols: List[str],
+        weight_cols: List[str],
+        group_cols: List[str],
+        Y_col: Optional[str] = None,
+):
+    """Extract features from ``table`` on a group level.
+
+    Extraction is done respecting the ``feature_cols`` and ``weight_cols``
+    arguments on each group obtained with ``group_cols``.
+
+    This function is mostly used to group on a *protein* level, but it can
+    potentially be used as well to group on a larger subunit, for instance
+    on properly labeled contiguous ORFs to mimick a BGC.
+
+    Arguments:
+        table (~pandas.DataFrame): The dataframe to process.
+        feature_cols (iterable of `str`): The name of the columns containing
+            the features in the table.
+        weight_cols (iterable of `str`): The name of the columns containing
+            the weights in the table.
+        Y_col (`str`, optional): The name of the column containing the class
+            labels, or `None`.
+        overlap (`int`): The size of the sliding window; features for the
+            row at index *n* will be extracted from rows located at index in
+            *[n-overlap; n+overlap]*.
+
+    Returns:
+        `tuple`: a couple of `list`, where the first list contains a
+        feature dictionary for each group, and the second the list of
+        class labels, or `None` if ``Y_col`` was `None`.
+
+    Example:
+        >>> data = pandas.DataFrame(
+        ...     columns=["protein_id", "domain", "weight"],
+        ...     data=[
+        ...         ["prot1", "domainA", 0.5],
+        ...         ["prot1", "domainB", 1.0],
+        ...         ["prot2", "domainC", 0.8],
+        ...     ],
+        ... )
+        >>> extract_group_features(data, ["domain"], ["weight"], ["protein_id"])
+        ([{"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}], None)
+
     """
-    Prepares features X (Pfam domains) and class labels Y from a table
-    given
-    table:  a table with pfam domains and class lables
-    X_col:  the column containing the Pfam domain annotation
-    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    """
-    X = table[X_col]
-    X = np.array(X).reshape(-1, 1)
-    Y = np.array(table[Y_col])
-    return X, Y
+    # create a feature list for each group (i.e. protein) without
+    # iterating on each row
+    X, Y = [], []
+    for prot_id, df in table.groupby(group_cols, sort=False):
+        X.append({})
+        for feat_col, weight_col in zip(feature_cols, weight_cols):
+            features, weights = df[feat_col].values, df[weight_col].values
+            for feat, weight in zip(features, weights):
+                X[-1][feat] = max(X[-1].get(feat, 0), weight)
+        if Y_col is not None:
+            Y.append(str(df[Y_col].values[0]))
+    # only return Y if the class column was given
+    return X, None if Y_col is None else Y
 
-def prepare_split_samples(table_list, split_col, X_col="pfam",
-        Y_col="BGC", ascending=True):
-    """
-    Splits tables into separate samples
-    given
-    table_list:  a list of paths to sample tabels
-    split_col: column to split into separate samples
-    separator:  the separator to read these tables
-    X_col:  the column containing the Pfam domain annotation
-    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    sort_col: the column to sort the values
-    ascending: sort ascending vs. descending.
-    """
-    X = []
-    Y = []
-    for tbl in list(table_list):
-        samples =  [prepare_sample(s, X_col, Y_col) for _, s in tbl.groupby(split_col)]
-        X += [x for x, _ in samples]
-        Y += [y for _, y in samples]
-    return np.array(X), np.array(Y)
 
-def filter_repeats(pfam_df):
-    repeats = set(['PF07721', 'PF05593', 'PF07719', 'PF00515', 'PF00132', 'PF03130',
-        'PF01839', 'PF01816', 'PF07720', 'PF00400', 'PF05594', 'PF07661', 'PF02985',
-        'PF06049', 'PF08238', 'PF06696', 'PF00353', 'PF02412', 'PF00023', 'PF02071',
-        'PF03991', 'PF01469', 'PF07676', 'PF00514', 'PF00904', 'PF07634', 'PF02370',
-        'PF03335', 'PF01851', 'PF04728', 'PF06715', 'PF03373', 'PF04680', 'PF00805',
-        'PF04508', 'PF07918', 'PF01535', 'PF01011', 'PF05017', 'PF06671', 'PF00818',
-        'PF03406', 'PF00399', 'PF09373', 'PF01744', 'PF01436', 'PF01239', 'PF05906',
-        'PF03729', 'PF00404', 'PF04022', 'PF02363', 'PF02524', 'PF07981', 'PF02095',
-        'PF00414', 'PF00560', 'PF05001', 'PF02162', 'PF01473', 'PF05465', 'PF02493',
-        'PF03578', 'PF08043', 'PF06392', 'PF07142', 'PF08309', 'PF02184'])
-    out_df = pfam_df[~pfam_df["pfam"].isin(repeats)]
-    return out_df
 
-def extract_features(table, Y_col=None, feature_col=None, weight_col=None):
-    """
-    Prepares class labels Y and features from a table
-    given
-    table:  a table with pfam domains and class lables
-    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    feature_col: either name of a column with a categorical feature or the name of a numerical feature
-    weight_col: either name of a column with numerical values or a numerical weight
-    """
-    X = []
-    feature_col = feature_col or []
-    weight_col = weight_col or []
+def extract_overlapping_features(
+    table: pandas.DataFrame,
+    feature_cols: List[str],
+    weight_cols: List[str],
+    overlap: int = 1,
+    Y_col: Optional[str] = None,
+):
+    """Extract features from ``table`` using a sliding window.
 
-    for _, row in table.iterrows():
-        feat_dict = dict()
-        feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
-        X.append(feat_dict)
-    if Y_col:
-        Y = np.array(table[Y_col].astype(str))
-        return X, Y
-    else:
-        return X, None
+    The extraction is done using the ``feature_cols`` and ``weight_cols``
+    columns to extract features on each overlapping window.
 
-def extract_protein_features(table, Y_col=None, feature_col="pfam", prot_col="protein_id",
-        weight_col="rev_i_Evalue"):
-    """
-    Extracts features on protein level
-    given
-    table:  a table with pfam domains and class lables
-    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    feature_col: either name of a column with a categorical feature or the name of a numerical feature
-    weight_col: either name of a column with numerical values or a numerical weight
-    """
-    X = []
-    Y = []
-    for prot, tbl in table.groupby(prot_col, sort=False):
-        feat_dict = dict()
-        for _, row in tbl.iterrows():
-            feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
-        X.append(feat_dict)
-        if Y_col:
-            Y.append(str(tbl[Y_col].values[0]))
-    if Y_col:
-        return X, Y
-    else:
-        return X, None
+    Arguments:
+        table (~pandas.DataFrame): The dataframe to process.
+        feature_cols (iterable of `str`): The name of the columns containing
+            the features in the table.
+        weight_cols (iterable of `str`): The name of the columns containing
+            the weights in the table.
+        Y_col (`str`, optional): The name of the column containing the class
+            labels, or `None`.
+        overlap (`int`): The size of the sliding window; features for the
+            row at index *n* will be extracted from rows located at index in
+            *[n-overlap; n+overlap]*.
 
-def extract_overlapping_features(table, Y_col=None, feature_col=None, weight_col=None,
-        overlap=1):
-    """
-    Prepares class labels Y and features from a table
-    given
-    table:  a table with pfam domains and class lables
-    Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-    feature_col: either name of a column with a categorical feature or the name of a numerical feature
-    weight_col: either name of a column with numerical values or a numerical weight
-    """
-    X = []
-    feature_col = feature_col or []
-    weight_col = weight_col or []
-    for idx, _ in table.iterrows():
-        wind = table.iloc[idx - overlap : idx + overlap + 1]
-        feat_dict = dict()
-        for _, row in wind.iterrows():
-            feat_dict = make_feature_dict(row, feature_col, weight_col, feat_dict)
-        X.append(feat_dict)
-    if Y_col:
-        Y = np.array(table[Y_col].astype(str))
-        return X, Y
-    else:
-        return X, None
+    Returns:
+        `tuple`: a couple of `list`, where the first list contains a
+        feature dictionary for each row, and the second the list of
+        class labels, or `None` if ``Y_col`` was `None`.
 
-def make_feature_dict(row, features=None, weights=None, feat_dict=None):
-    """
-    Constructs a dict with feature:value pairs from
-    row: input row or dict
-    features: either name of feature or name of column in row/dict
-    weights: either numerical weight or name of column in row/dict
-    """
-    features = features or []
-    weights = weights or []
-    feat_dict = feat_dict or {}
-
-    for f, w in zip(features, weights):
-        if isinstance(w, numbers.Number):
-            feat_dict[row[f]] = w
-            continue
-        try:
-            feat_dict[row[f]] = row[w]
-        except KeyError:
-            feat_dict[f] = row[w]
-    return feat_dict
-
-def read_to_set(file, split_at="."):
-    out_set = set()
-    with open(file, "rt") as f:
-        for line in f:
-            out_set.add(line.strip().split(split_at)[0])
-
-    return out_set
-
-def compute_features(pfam_df, weight_type=None):
-
-    pfam_df = pfam_df.assign(
-        pfam = pfam_df["pfam"].str.replace(r"(PF\d+)\.\d+", lambda m: m.group(1)))
-
-    if weight_type == "rev_i_Evalue":
-        return pfam_df.assign(rev_i_Evalue = 1 - pfam_df["i_Evalue"])
-
-    if weight_type == "supnorm_Evalue":
-        return (pfam_df
-            .assign(
-                log_Evalue = [min(- np.log10(n), 300) for n in pfam_df["i_Evalue"]]
-            )
-            .groupby("pfam", sort = False)
-            .apply(lambda x: x.assign(
-                supnorm_Evalue = (x["log_Evalue"] / x["log_Evalue"].max())
-            ))
-            .reset_index(drop = True)
+    Example:
+        >>> data = pandas.DataFrame(
+        ...     columns=["protein_id", "domain", "weight"],
+        ...     data=[
+        ...         ["prot1", "domainA", 0.5],
+        ...         ["prot1", "domainB", 1.0],
+        ...         ["prot2", "domainC", 0.8],
+        ...     ],
+        ... )
+        >>> extract_overlapping_features(data, ["domain"], ["weight"])
+        (
+            [
+                {"domainA": 0.5, "domainB": 1.0},
+                {"domainA": 0.5, "domainB": 1.0, "domainC": 0.8},
+                {"domainB": 1.0, "domainC": 0.8}
+            ],
+            None
         )
 
-    if weight_type == "supnorm_Evalue_prot":
-        return (pfam_df
-            .assign(
-                log_Evalue = [min(- np.log10(n), 300) for n in pfam_df["i_Evalue"]]
-            )
-            .groupby("pfam", sort = False)
-            .apply(lambda x: x.assign(
-                supnorm_Evalue = (x["log_Evalue"] / x["log_Evalue"].max())
-            ))
-            .reset_index(drop = True)
-            .groupby("protein_id", sort = False)
-            .apply(lambda x: x.assign(
-                supnorm_Evalue_prot = x["supnorm_Evalue"] / x["supnorm_Evalue"].sum()
-            ))
-            .reset_index(drop = True)
-            .sort_values("pseudo_pos")
-        )
+    """
+    # create a feature list for each slice of the data
+    X = [dict() for _ in range(len(table))]
+    for idx in range(len(table)):
+        # get the indices of the sliding window
+        start_idx = max(idx-overlap, 0)
+        end_idx = min(idx+overlap+1, len(table))
+        # process the features
+        for feat_col, weight_col in zip(feature_cols, weight_cols):
+            features = table[feat_col].values[start_idx:end_idx]
+            weights = table[weight_col].values[start_idx:end_idx]
+            for feat, weight in zip(features, weights):
+                X[idx][feat] = max(X[idx].get(feat, 0), weight)
+    # Only return Y if requested
+    return X, None if Y_col is None else table[Y_col].values.astype(str)
 
-    else:
-        return pfam_df
+
+def extract_single_features(
+    table: pandas.DataFrame,
+    feature_cols: List[str],
+    weight_cols: List[str],
+    Y_col: Optional[str] = None
+):
+    """Extract features from ``table`` on a row level.
+
+    The extraction is done using the ``feature_cols`` and ``weight_cols``
+    columns to extract features on each row.
+
+    Arguments:
+        table (~pandas.DataFrame): The dataframe to process.
+        feature_cols (iterable of `str`): The name of the columns containing
+            the features in the table.
+        weight_cols (iterable of `str`): The name of the columns containing
+            the weights in the table.
+        Y_col (`str`, optional): The name of the column containing the class
+            labels, or `None`.
+
+    Returns:
+        `tuple`: a couple of `list`, where the first list contains a
+        feature dictionary for each row, and the second the list of
+        class labels, or `None` if ``Y_col`` was `None`.
+
+    Example:
+        >>> data = pandas.DataFrame(
+        ...     columns=["protein_id", "domain", "weight"],
+        ...     data=[
+        ...         ["prot1", "domainA", 0.5],
+        ...         ["prot1", "domainB", 1.0],
+        ...         ["prot2", "domainC", 0.8],
+        ...     ],
+        ... )
+        >>> extract_single_features(data, ["domain"], ["weight"])
+        ([{"domainA": 0.5}, {"domainB": 1.0}, {"domainC": 0.8}], None)
+
+    """
+    # extract weights without iterating on all rows by zipping together
+    # the appropriate columns and inserting them in the right location
+    X = [dict() for _ in range(len(table))]
+    for feat_col, weight_col in zip(feature_cols, weight_cols):
+        features, weights = table[feat_col].values, table[weight_col].values
+        for index, (feature, weight) in enumerate(zip(features, weights)):
+            X[index][feature] = weight
+    # return Y only if a label column is given
+    return X, None if Y_col is None else table[Y_col].values.astype(str)
