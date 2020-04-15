@@ -1,5 +1,6 @@
 import csv
 import functools
+import operator
 import math
 import multiprocessing.pool
 import numbers
@@ -82,6 +83,15 @@ class ClusterCRF(object):
             all_possible_states = True,
             **kwargs
         )
+
+        if feature_type == "single":
+            self._extract_features = self._extract_single_features
+        elif feature_type == "group":
+            self._extract_features = self._extract_group_features
+        elif feature_type == "overlap":
+            self._extract_features = self._extract_overlapping_features
+        else:
+            raise ValueError(f"invalid feature type: {feature_type!r}")
 
     def fit(self, X=None, Y=None, data=None):
         """Fits the model to the given data.
@@ -216,12 +226,9 @@ class ClusterCRF(object):
         """Performs a single CV round with the given train_idx and test_idx.
         """
 
-        # Extract the fold from the complete data and only keep columns we
-        # are going to use for the training to reduce the total amount of
-        # data passed to the other processes
-        columns = self.features + self.weights + [self.groups, self.Y_col]
-        test_data = [data[i].reset_index()[columns] for i in test_idx]
-        train_data = [data[i].reset_index()[columns] for i in train_idx]
+        # Extract the CV fold from the complete data using the provided indices
+        test_data = [data[i].reset_index() for i in test_idx]
+        train_data = [data[i].reset_index() for i in train_idx]
         if trunc is not None:
             # Truncate training set from both sides to desired length
             train_data = [
@@ -231,10 +238,16 @@ class ClusterCRF(object):
 
         # Extract features to CRFSuite format
         with multiprocessing.pool.Pool(threads) as pool:
-            train_samples = pool.map(self._extract_features, train_data)
+            # only keep useful columns to reduce the total amount of data
+            # passed to the other processes
+            columns = self.features + self.weights + [self.groups, self.Y_col]
+            col_filter = operator.itemgetter(columns)
+
+            train_samples = pool.map(self._extract_features, map(col_filter, train_data))
             X_train = numpy.array([x for x, _ in train_samples])
             Y_train = numpy.array([y for _, y in train_samples])
-            test_samples = pool.map(self._extract_features, test_data)
+
+            test_samples = pool.map(self._extract_features, map(col_filter, test_data))
             X_test = numpy.array([x for x, _ in test_samples])
             Y_test = numpy.array([y for _, y in test_samples])
 
@@ -262,33 +275,12 @@ class ClusterCRF(object):
             result_df = pandas.concat(test_data).assign(p_pred=numpy.concatenate(cluster_probs))
         return result_df.assign(cv_round=round_id)
 
-    def _extract_features(self, sample, X_only=False):
-        """
-        Chooses extraction function based on feature type.
-        single: Features are extracted on a domain (row) level
-        overlap: Features are extracted in overlapping windows
-        group: Features are extracted in groupings determined by a column in the data
-        frame. This is most useful when dealing with proteins, but can handle arbitrary
-        grouping levels.
-        """
-        # Little hacky this, but... meh...
-        Y_col = None if X_only else self.Y_col
-
-        if self.feature_type == "single":
-            return self._extract_single_features(sample, Y_col)
-        elif self.feature_type == "overlap":
-            return self._extract_overlapping_features(sample, Y_col)
-        elif self.feature_type == "group":
-            return self._extract_group_features(sample, Y_col)
-        else:
-            raise ValueError(f"unexpected feature type: {self.feature_type!r}")
-
     def _merge(self, df, **cols):
         unidf = pandas.DataFrame(cols)
         unidf[self.groups] = df[self.groups].unique()
         return df.merge(unidf)
 
-    def _extract_single_features(self, table, Y_col=None):
+    def _extract_single_features(self, table, X_only=False):
         """
         Prepares class labels Y and features from a table
         given
@@ -301,13 +293,13 @@ class ClusterCRF(object):
             feat_dict = dict()
             feat_dict = self._make_feature_dict(row, feat_dict)
             X.append(feat_dict)
-        if Y_col:
-            Y = numpy.array(table[Y_col].astype(str))
+        if not X_only:
+            Y = numpy.array(table[self.Y_col].astype(str))
             return X, Y
         else:
             return X, None
 
-    def _extract_group_features(self, table, class_column=None):
+    def _extract_group_features(self, table, X_only=False):
         """Extract features from ``table`` on a group level.
 
         The extraction is done respecting the ``group_col``, ``feature_cols``
@@ -319,8 +311,8 @@ class ClusterCRF(object):
 
         Arguments:
             table (~pandas.DataFrame): The dataframe to process.
-            class_column (str, optional): The name of the column containing
-                the class labels, if any.
+            X_only (bool): If `True`, prevents extraction of class labels
+                from the groups.
 
         Returns:
             `tuple`: a couple of `list`, where the first list contains a
@@ -341,7 +333,7 @@ class ClusterCRF(object):
             ...     group_col="protein_id",
             ...     feature_type="group",
             ... )
-            >>> crf._extract_group_features(data)
+            >>> crf._extract_group_features(data, X_only=True)
             ([{"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}], None)
 
         """
@@ -360,7 +352,9 @@ class ClusterCRF(object):
         # create a feature list for each group (i.e. protein)
         X, Y = [], []
         for prot_id, df in table.groupby(self.groups, sort=False):
-            x, y = {}, str(df[class_column or self.features[0]].values[0])
+            X.append({})
+            if not X_only:
+                Y.append(str(df[self.Y_col].values[0]))
             for feat_col, weight_col in zip(self.features, self.weights):
                 # if we couldn't preprocess because we have more than one
                 # column here, we need to sort the values so that the
@@ -372,14 +366,12 @@ class ClusterCRF(object):
                 # key to a dictionary with `update`, then only the last one
                 # is kept: because we sorted the last key is the biggest
                 # weight
-                x.update(zip(df[feat_col], df[weight_col]))
-            X.append(x)
-            Y.append(y)
+                X[-1].update(zip(df[feat_col], df[weight_col]))
 
         # only return Y if the class column was given
-        return X, Y if class_column is not None else None
+        return X, None if X_only else Y
 
-    def _extract_overlapping_features(self, table, Y_col=None):
+    def _extract_overlapping_features(self, table, X_only=False):
         """
         Prepares class labels Y and features from a table
         given
@@ -394,8 +386,8 @@ class ClusterCRF(object):
             for _, row in wind.iterrows():
                 feat_dict = self._make_feature_dict(row, feat_dict)
             X.append(feat_dict)
-        if Y_col:
-            Y = numpy.array(table[Y_col].astype(str))
+        if not X_only:
+            Y = numpy.array(table[self.Y_col].astype(str))
             return X, Y
         else:
             return X, None
