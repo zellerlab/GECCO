@@ -175,6 +175,10 @@ class Run(Command):
         else:
             crf = data.load("model/crf.model")
 
+        # Compute reverse i_Evalue to be used as weight
+        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
+        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
+
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
             data=[seq for _, seq in feats_df.groupby("sequence_id")]
@@ -184,10 +188,6 @@ class Run(Command):
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
         self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
         feats_df.to_csv(pred_out, sep="\t", index=False)
-
-        # Compute additional statistics
-        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
-        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
