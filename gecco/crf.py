@@ -26,6 +26,12 @@ class ClusterCRF(object):
     is handy to use with feature tables obtained from `~gecco.hmmer.HMMER`.
     """
 
+    _EXTRACT_FEATURES = {
+        "single": "_extract_single_features",
+        "group": "_extract_group_features",
+        "overlap": "_extract_overlapping_features"
+    }
+
     def __init__(
             self,
             Y_col: Optional[str] = None,
@@ -70,6 +76,9 @@ class ClusterCRF(object):
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
         """
+        if feature_type not in self._EXTRACT_FEATURES:
+            raise ValueError(f"unexpected feature type: {feature_type!r}")
+
         self.Y_col = Y_col
         self.features = feature_cols or []
         self.weights = weight_cols or []
@@ -84,70 +93,45 @@ class ClusterCRF(object):
             **kwargs
         )
 
-        if feature_type == "single":
-            self._extract_features = self._extract_single_features
-        elif feature_type == "group":
-            self._extract_features = self._extract_group_features
-        elif feature_type == "overlap":
-            self._extract_features = self._extract_overlapping_features
-        else:
-            raise ValueError(f"invalid feature type: {feature_type!r}")
-
-    def fit(self, X=None, Y=None, data=None):
+    def fit(self, data, threads=None):
         """Fits the model to the given data.
-
-        If X and Y are defined, it fits the model on the corresponding vectors.
-        If data is defined, it takes a dataframe to extract features and labels for
-        fitting.
         """
-        if X is not None and Y is not None and data is not None:
-            raise ValueError("either X and Y or data must be given, not both")
+        X, Y = self._extract_features(data, threads=threads)
+        self.model.fit(X, Y)
 
-        if data is not None:
-            samples = [self._extract_features(s) for s in data]
-            X = numpy.array([x for x, _ in samples])
-            Y = numpy.array([y for _, y in samples])
-            self.model.fit(X, Y)
-        else:
-            self.model.fit(X, Y)
-
-    def predict_marginals(self, data=None, X=None):
+    def predict_marginals(self, data, threads=None):
         """Predicts marginals for your data.
-
-        If X (a feature vector) is defined, it outputs a probability vector.
-        If data (a dataframe) is defined, it outputs the same dataframe with the
-        probability vector concatenated to it as the column p_pred.
         """
-        if X is not None:
-            return self.model.predict_marginals(X)
-        elif data is not None:
-            # Extract features to dict (CRFSuite format)
-            samples = [self._extract_features(s, X_only=True) for s in data]
-            X = numpy.array([x for x, _ in samples])
-            marginal_probs = self.model.predict_marginals(X)
-            # Extract cluster (1) probs
-            cluster_probs = []
-            for sample in marginal_probs:
-                try:
-                    sample_probs = numpy.array([d["1"] for d in [_ for _ in sample]])
-                except KeyError:
-                    warnings.warn(
-                        "Cluster probabilities of test set were found to be zero. This indicates that there might be something wrong with your input data.", Warning
-                    )
-                    sample_probs = numpy.array([0 for d in [_ for _ in sample]])
-                cluster_probs.append(sample_probs)
-            # Merge probs vector with the input dataframe. This is tricky if we are
-            # dealing with protein features as length of vector does not fit to dataframe
-            # To deal with this, we merge by protein_id
-            # --> HOWEVER: this requires the protein IDs to be unique among all samples
-            if self.feature_type == "group":
-                result_df = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]
-                result_df = pandas.concat(result_df)
-            else:
-                result_df = pandas.concat(data)
-                result_df = result_df.assign(p_pred=numpy.concatenate(cluster_probs))
+        # convert data to `CRF` format
+        X, _ = self._extract_features(data, threads=threads, X_only=True)
 
-            return result_df
+        # Extract cluster (1) probabilities from marginal
+        marginal_probs = self.model.predict_marginals(X)
+        cluster_probs = [
+            numpy.array([d.get("1", 0) for d in sample])
+            for sample in marginal_probs
+        ]
+
+        # check if any sample has P(1) == 0
+        if any(not prob.all() for prob in cluster_probs):
+            warnings.warn(
+                """
+                Cluster probabilities of test set were found to be zero.
+                Something may be wrong with your input data.
+                """
+            )
+
+        # Merge probs vector with the input dataframe. This is tricky if we are
+        # dealing with protein features as length of vector does not fit to dataframe
+        # To deal with this, we merge by protein_id
+        # --> HOWEVER: this requires the protein IDs to be unique among all samples
+        if self.feature_type == "group":
+            results = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]
+            return pandas.concat(results)
+        else:
+            return pandas.concat(data).assign(p_pred=numpy.concatenate(cluster_probs))
+
+    # --- Cross-validation ---------------------------------------------------
 
     def cv(self, data, strat_col=None, k=10, threads=1, trunc=None):
         """Runs k-fold cross-validation using a stratification column.
@@ -225,9 +209,7 @@ class ClusterCRF(object):
     def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None, threads=None):
         """Performs a single CV round with the given train_idx and test_idx.
         """
-
-        # Extract the CV fold from the complete data using the provided indices
-        test_data = [data[i].reset_index() for i in test_idx]
+        # Extract the fold from the complete data using the provided indices
         train_data = [data[i].reset_index() for i in train_idx]
         if trunc is not None:
             # Truncate training set from both sides to desired length
@@ -236,49 +218,46 @@ class ClusterCRF(object):
                 for df in train_data
             ]
 
-        # Extract features to CRFSuite format
-        with multiprocessing.pool.Pool(threads) as pool:
-            # only keep useful columns to reduce the total amount of data
-            # passed to the other processes
-            columns = self.features + self.weights + [self.groups, self.Y_col]
-            col_filter = operator.itemgetter(columns)
-
-            train_samples = pool.map(self._extract_features, map(col_filter, train_data))
-            X_train = numpy.array([x for x, _ in train_samples])
-            Y_train = numpy.array([y for _, y in train_samples])
-
-            test_samples = pool.map(self._extract_features, map(col_filter, test_data))
-            X_test = numpy.array([x for x, _ in test_samples])
-            Y_test = numpy.array([y for _, y in test_samples])
-
         # Fit the model
-        self.fit(X=X_train, Y=Y_train)
+        self.fit(train_data, threads=threads)
 
-        # Extract cluster (1) probabilities from marginals
-        marginal_probs = self.model.predict_marginals(X_test)
-        cluster_probs = [
-            numpy.array([d.get("1", 0) for d in sample])
-            for sample in marginal_probs
-        ]
+        # Predict marginals on test data and return predictions
+        test_data = [data[i].reset_index() for i in test_idx]
+        marginals = self.predict_marginals(data=test_data, threads=threads)
+        return marginals.assign(cv_round=round_id)
 
-        # check if any sample has P(1) == 0
-        if any(not prob.all() for prob in cluster_probs):
-            warnings.warn("Cluster probabilities of test set were found to be zero. Something may be wrong with your input data.")
+    # --- Feature extraction -------------------------------------------------
 
-        # Merge probs vector with the input dataframe. This is tricky if we are dealing
-        # with protein features as length of vector does not fit to dataframe
-        # To deal with this, we merge by protein_id
-        # --> HOWEVER: this requires the protein IDs to be unique within each sample
-        if self.feature_type == "group":
-            result_df = pandas.concat([self._merge(df, p_pred=p) for df, p in zip(test_data, cluster_probs)])
-        else:
-            result_df = pandas.concat(test_data).assign(p_pred=numpy.concatenate(cluster_probs))
-        return result_df.assign(cv_round=round_id)
+    def _extract_features(self, data, threads=None, X_only=False):
+        """Convert a data list to `CRF`-compatible wrappers.
 
-    def _merge(self, df, **cols):
-        unidf = pandas.DataFrame(cols)
-        unidf[self.groups] = df[self.groups].unique()
-        return df.merge(unidf)
+        Arguments:
+            data (`list` of `~pandas.DataFrame`): A list of samples to
+                extract features and class labels from.
+            threads (`int`, optional): The number of parallel threads to
+                launch to extract features.
+            X_only (`bool`, optional): If `True`, only return the features,
+                and ignore class labels.
+
+        """
+        # Filter the columns to reduce the amount of data passed to the
+        # different processes
+        columns = self.features + [self.groups]
+        columns.extend(filter(lambda w: isinstance(w, str), self.weights))
+        if not X_only:
+            columns.append(self.Y_col)
+        col_filter = operator.itemgetter(columns)
+        # Extract features to CRFSuite format
+        _extract_features = functools.partial(
+            getattr(self, self._EXTRACT_FEATURES[self.feature_type]),
+            X_only=X_only,
+        )
+        with multiprocessing.pool.Pool(threads) as pool:
+            samples = pool.map(_extract_features, map(col_filter, data))
+            X = numpy.array([x for x, _ in samples])
+            Y = numpy.array([y for _, y in samples])
+        # Only return Y if requested
+        return X, None if X_only else Y
 
     def _extract_single_features(self, table, X_only=False):
         """
@@ -366,7 +345,7 @@ class ClusterCRF(object):
                 # key to a dictionary with `update`, then only the last one
                 # is kept: because we sorted the last key is the biggest
                 # weight
-                X[-1].update(zip(df[feat_col], df[weight_col]))
+                X[-1].update(zip(df[feat_col], df.get(weight_col, weight_col)))
 
         # only return Y if the class column was given
         return X, None if X_only else Y
@@ -407,6 +386,13 @@ class ClusterCRF(object):
                 key, val = row.get(f, f), row[w]
             feat_dict[key] = max(val, feat_dict.get(key, val))
         return feat_dict
+
+    # --- Utils --------------------------------------------------------------
+
+    def _merge(self, df, **cols):
+        unidf = pandas.DataFrame(cols)
+        unidf[self.groups] = df[self.groups].unique()
+        return df.merge(unidf)
 
     def save_weights(self, basename: str) -> None:
         with open(f"{basename}.trans.tsv", "w") as f:
