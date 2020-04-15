@@ -152,8 +152,8 @@ class ClusterCRF(object):
                 the data, or `None` to perform a predefined split.
 
         Returns:
-            `list` of `~pandas.DataFrame`: The list containing one table for
-            each cross-validation fold.
+            `list` of `~pandas.DataFrame`: The list containing one table of
+            results for each cross-validation fold.
 
         Todo:
             * Fix multiprocessing but within `sklearn` to launch each fold in
@@ -171,7 +171,14 @@ class ClusterCRF(object):
         # temporary files in multithreaded mode
         pbar = tqdm.tqdm(cv_split.split(), total=k, leave=False)
         return [
-             self._single_fold_cv(data, train_idx, test_idx, f"fold{i}", trunc)
+             self._single_fold_cv(
+                data,
+                train_idx,
+                test_idx,
+                round_id=f"fold{i}",
+                trunc=trunc,
+                threads=threads
+            )
             for i, (train_idx, test_idx) in enumerate(pbar)
         ]
 
@@ -205,11 +212,16 @@ class ClusterCRF(object):
             for train_idx, test_idx, label in pbar
         ]
 
-    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None):
+    def _single_fold_cv(self, data, train_idx, test_idx, round_id=None, trunc=None, threads=None):
         """Performs a single CV round with the given train_idx and test_idx.
         """
 
-        train_data = [data[i].reset_index() for i in train_idx]
+        # Extract the fold from the complete data and only keep columns we
+        # are going to use for the training to reduce the total amount of
+        # data passed to the other processes
+        columns = self.features + self.weights + [self.groups, self.Y_col]
+        test_data = [data[i].reset_index()[columns] for i in test_idx]
+        train_data = [data[i].reset_index()[columns] for i in train_idx]
         if trunc is not None:
             # Truncate training set from both sides to desired length
             train_data = [
@@ -218,16 +230,15 @@ class ClusterCRF(object):
             ]
 
         # Extract features to CRFSuite format
-        train_samples = [self._extract_features(s) for s in train_data]
-        X_train = numpy.array([x for x, _ in train_samples])
-        Y_train = numpy.array([y for _, y in train_samples])
+        with multiprocessing.pool.Pool(threads) as pool:
+            train_samples = pool.map(self._extract_features, train_data)
+            X_train = numpy.array([x for x, _ in train_samples])
+            Y_train = numpy.array([y for _, y in train_samples])
+            test_samples = pool.map(self._extract_features, test_data)
+            X_test = numpy.array([x for x, _ in test_samples])
+            Y_test = numpy.array([y for _, y in test_samples])
 
-        test_data = [data[i].reset_index() for i in test_idx]
-        test_samples = [self._extract_features(s) for s in test_data]
-
-        X_test = numpy.array([x for x, _ in test_samples])
-        Y_test = numpy.array([y for _, y in test_samples])
-
+        # Fit the model
         self.fit(X=X_train, Y=Y_train)
 
         # Extract cluster (1) probabilities from marginals
@@ -268,7 +279,7 @@ class ClusterCRF(object):
         elif self.feature_type == "overlap":
             return self._extract_overlapping_features(sample, Y_col)
         elif self.feature_type == "group":
-            return self._extract_protein_features(sample, Y_col)
+            return self._extract_group_features(sample, Y_col)
         else:
             raise ValueError(f"unexpected feature type: {self.feature_type!r}")
 
@@ -296,27 +307,77 @@ class ClusterCRF(object):
         else:
             return X, None
 
-    def _extract_protein_features(self, table, Y_col=None):
+    def _extract_group_features(self, table, class_column=None):
+        """Extract features from ``table`` on a group level.
+
+        The extraction is done respecting the ``group_col``, ``feature_cols``
+        and ``weight_cols`` arguments given on the `ClusterCRF` initialisation.
+
+        This function is mostly used to group on a *protein* level, but it can
+        potentially be used as well to group on a larger subunit, for instance
+        on properly labeled contiguous ORFs to mimick a BGC.
+
+        Arguments:
+            table (~pandas.DataFrame): The dataframe to process.
+            class_column (str, optional): The name of the column containing
+                the class labels, if any.
+
+        Returns:
+            `tuple`: a couple of `list`, where the first list contains a
+            feature dictionary for each group, and the second the list of
+            class labels, or `None` if ``class_column`` was none.
+
+        Example:
+            >>> data = pandas.DataFrame(
+            ...     columns=["protein_id", "domain", "weight"],
+            ...     data=[
+            ...         ["prot1", "domainA", 0.5],
+            ...         ["prot1", "domainB", 1.0],
+            ...         ["prot2", "domainC", 0.8],
+            ...     ],
+            ... )
+            >>> crf = ClusterCRF(
+            ...     feature_cols=["domain"],
+            ...     group_col="protein_id",
+            ...     feature_type="group",
+            ... )
+            >>> crf._extract_group_features(data)
+            ([{"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}], None)
+
         """
-        Extracts features on protein level
-        given
-        table:  a table with pfam domains and class lables
-        Y_col:  the column containing the class labels (e.g. 1 (BGC) and 0 (non-BGC))
-        if Y_col == None, only X is returned --> for prediction cases
-        """
-        X = []
-        Y = []
-        for prot, tbl in table.groupby(self.groups, sort=False):
-            feat_dict = dict()
-            for _, row in tbl.iterrows():
-                feat_dict = self._make_feature_dict(row, feat_dict)
-            X.append(feat_dict)
-            if Y_col:
-                Y.append(str(tbl[Y_col].values[0]))
-        if Y_col:
-            return X, Y
-        else:
-            return X, None
+
+        # if we have only one feature to extract, we can sort the data outside
+        # of the loop to greatly decrease the processing within the loop:
+        # we sort and drop duplicates so that each feature appears only once
+        # per group, with its maximum weight
+        if len(self.features) == 1:
+            table = (
+                table
+                    .sort_values(by=[self.groups] + self.features + self.weights)
+                    .drop_duplicates([self.groups] + self.features, keep="last")
+            )
+
+        # create a feature list for each group (i.e. protein)
+        X, Y = [], []
+        for prot_id, df in table.groupby(self.groups, sort=False):
+            x, y = {}, str(df[class_column or self.features[0]].values[0])
+            for feat_col, weight_col in zip(self.features, self.weights):
+                # if we couldn't preprocess because we have more than one
+                # column here, we need to sort the values so that the
+                # biggest weight comes last
+                if len(self.features) > 1:
+                    df = df.sort_values(by=[feat_col, weight_col])
+                # we can now create the feature dictionary, using a Python
+                # implementation detail: when adding several time the same
+                # key to a dictionary with `update`, then only the last one
+                # is kept: because we sorted the last key is the biggest
+                # weight
+                x.update(zip(df[feat_col], df[weight_col]))
+            X.append(x)
+            Y.append(y)
+
+        # only return Y if the class column was given
+        return X, Y if class_column is not None else None
 
     def _extract_overlapping_features(self, table, Y_col=None):
         """
