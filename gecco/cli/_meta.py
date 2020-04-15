@@ -94,7 +94,8 @@ def wrap_warnings(logger: logging.Logger):
             functools.update_wrapper(self, func)
 
         def showwarning(self, message, category, filename, lineno, file=None, line=None):
-            self.logger.warning(message)
+            for line in filter(str.strip, str(message).splitlines()):
+                self.logger.warning(line.strip())
 
         def __call__(self, *args, **kwargs):
             old_showwarning = warnings.showwarning
