@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
 
 class Tune(Command):
 
-    summary = "perform cross validation on a training set."
+    summary = "optimize value of hyperparameters through cross-validation."
     doc = f"""
     gecco tune  - {summary}
 

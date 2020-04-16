@@ -99,7 +99,7 @@ class Main(Command):
         # Print a help message if asked for
         if self.args["--help"] or "-h" in self.args["<args>"] or "--help" in self.args["<args>"]:
             subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
-                argv=["help"] + self.args["<args>"],
+                argv=["help"] + [self.args["<cmd>"]],
                 stream=self.stream,
                 logger=self.logger,
                 options=self.args,
