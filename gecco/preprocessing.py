@@ -110,7 +110,7 @@ def extract_group_features(
         ...     ],
         ... )
         >>> extract_group_features(data, ["domain"], ["weight"], ["protein_id"])
-        ([{"domainA": 0.5, "domainB": 1.0}, {"domainC": 0.8}], None)
+        ([{'domainA': 0.5, 'domainB': 1.0}, {'domainC': 0.8}], None)
 
     """
     # create a feature list for each group (i.e. protein) without
@@ -161,20 +161,13 @@ def extract_overlapping_features(
         >>> data = pandas.DataFrame(
         ...     columns=["protein_id", "domain", "weight"],
         ...     data=[
-        ...         ["prot1", "domainA", 0.5],
-        ...         ["prot1", "domainB", 1.0],
-        ...         ["prot2", "domainC", 0.8],
+        ...         ["prot1", "A", 0.5],
+        ...         ["prot1", "B", 1.0],
+        ...         ["prot2", "C", 0.8],
         ...     ],
         ... )
-        >>> extract_overlapping_features(data, ["domain"], ["weight"])
-        (
-            [
-                {"domainA": 0.5, "domainB": 1.0},
-                {"domainA": 0.5, "domainB": 1.0, "domainC": 0.8},
-                {"domainB": 1.0, "domainC": 0.8}
-            ],
-            None
-        )
+        >>> extract_overlapping_features(data, ["domain"], ["weight"])[0]
+        [{'A': 0.5, 'B': 1.0}, {'A': 0.5, 'B': 1.0, 'C': 0.8}, {'B': 1.0, 'C': 0.8}]
 
     """
     # create a feature list for each slice of the data
@@ -228,7 +221,7 @@ def extract_single_features(
         ...     ],
         ... )
         >>> extract_single_features(data, ["domain"], ["weight"])
-        ([{"domainA": 0.5}, {"domainB": 1.0}, {"domainC": 0.8}], None)
+        ([{'domainA': 0.5}, {'domainB': 1.0}, {'domainC': 0.8}], None)
 
     """
     # extract weights without iterating on all rows by zipping together
