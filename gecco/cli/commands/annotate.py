@@ -12,7 +12,6 @@ from Bio import SeqIO
 
 from ._base import Command
 from ... import data
-from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner

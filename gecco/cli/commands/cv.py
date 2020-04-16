@@ -130,8 +130,8 @@ class Cv(Command):
             label_column = self.args["--y-col"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
-            c1 = c1,
-            c2 = c2
+            c1 = self.args["--c1"],
+            c2 = self.args["--c2"],
         )
 
         if self.args["loto"]:

@@ -17,7 +17,6 @@ from Bio import SeqIO
 from ._base import Command
 from .._meta import numpy_error_context
 from ... import data
-from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner

@@ -13,7 +13,6 @@ from Bio import SeqIO
 from ._base import Command
 from ... import data
 from ...data.hmms import ForeignHmm
-from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
 from ...orf import ORFFinder
