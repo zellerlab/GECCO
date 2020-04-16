@@ -6,7 +6,7 @@ import multiprocessing.pool
 import numbers
 import random
 import warnings
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy
 import pandas
@@ -30,7 +30,7 @@ class ClusterCRF(object):
         self,
         feature_columns: Union[str, List[str]],
         weight_columns: Union[str, List[str]],
-        group_columns: Union[str, List[str]] = "protein_id",
+        group_column: str = "protein_id",
         label_column: str = "BGC",
         feature_type: str = "single",
         algorithm: str = "lbsgf",
@@ -47,8 +47,10 @@ class ClusterCRF(object):
                 applied locally and don't correspond to the actual weights
                 the model learns.* See also the `~sklearn_crfsuite.CRFSuite`
                 documentation.
-            group_columns (`str`, or iterable of `str`): If ``feature_type``
-                is *group*`, defines the grouping column(s) to use.
+            group_column (`str`): If ``feature_type`` is *group*`, defines
+                the column to use to group rows together. *This can be, for
+                instance, the column containing protein IDs to extract features
+                on the same gene together*.
             label_column (`str`): The name of the column containing class labels
                 (the **Y** column). Not actually used when making predictions.
             feature_type (str): Defines how features should be extracted. The
@@ -80,6 +82,7 @@ class ClusterCRF(object):
 
         self.feature_type: str = feature_type
         self.label_column: str = label_column
+        self.group_column: str = group_column
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.model = CRF(
@@ -99,12 +102,11 @@ class ClusterCRF(object):
         else:
             self.weight_columns = list(weight_columns)
 
-        if isinstance(group_columns, str):
-            self.group_columns = [group_columns]
-        else:
-            self.group_columns = list(group_columns)
-
-    def fit(self, data: Iterable[pandas.DataFrame], jobs: Optional[int]=None) -> None:
+    def fit(
+        self,
+        data: Iterable[pandas.DataFrame],
+        jobs: Optional[int]=None,
+    ) -> None:
         """Fits the model to the given data.
 
         Arguments:
@@ -112,7 +114,7 @@ class ClusterCRF(object):
                 to use to fit the model. If must contain the following columns
                 (as defined on `ClusterCRF` initialisation): ``weight_columns``,
                 ``feature_columns`` and ``label_column``, as well as
-                ``group_columns`` if the feature extraction is ``group``.
+                ``group_column`` if the feature extraction is ``group``.
             jobs (`int`, optional): The number of jobs to use to extract the
                 features from the input data.
 
@@ -120,7 +122,11 @@ class ClusterCRF(object):
         X, Y = self._extract_features(data, jobs=jobs)
         self.model.fit(X, Y)
 
-    def predict_marginals(self, data: Iterable[pandas.DataFrame], jobs: Optional[int]=None) -> pandas.DataFrame:
+    def predict_marginals(
+        self,
+        data: Iterable[pandas.DataFrame],
+        jobs: Optional[int]=None
+    ) -> pandas.DataFrame:
         """Predicts marginals for your data.
 
         Arguments:
@@ -252,13 +258,13 @@ class ClusterCRF(object):
 
     def _single_fold_cv(
         self,
-        data,
+        data: List[pandas.DataFrame],
         train_idx: numpy.ndarray,
         test_idx: numpy.ndarray,
         round_id: Optional[str] = None,
         trunc: Optional[int]=None,
         jobs: Optional[int]=None
-    ):
+    ) -> pandas.DataFrame:
         """Performs a single CV round with the given indices.
         """
         # Extract the fold from the complete data using the provided indices
@@ -266,7 +272,7 @@ class ClusterCRF(object):
         if trunc is not None:
             # Truncate training set from both sides to desired length
             train_data = [
-                preprocessing.truncate(df, trunc, self.label_column, self.group_columns)
+                preprocessing.truncate(df, trunc, self.label_column, self.group_column)
                 for df in train_data
             ]
 
@@ -282,25 +288,31 @@ class ClusterCRF(object):
 
     # --- Feature extraction -------------------------------------------------
 
-    def _currify_extract_function(self, X_only=False):
+    def _currify_extract_function(
+        self,
+        X_only: bool = False
+    ) -> Callable[
+        [pandas.DataFrame],
+        Tuple[List[Dict[str, float]], Optional[List[str]]]
+    ]:
         """Currify a feature extraction function from `gecco.preprocessing`.
 
         Dependending on the `feature_type` given on the `CRFSuite`
         initialisation, different extraction functions can be used. Since
         they do not have the same signature, they can't be swapped with each
         other easily. This method currifies these functions so that they
-        all take a list of `~pandasDataFrame` as single positional argument.
+        all take a list of `~pandas.DataFrame` as single positional argument.
         """
         if self.feature_type == "group":
             extract = functools.partial(
-                preprocessing.extract_group_features,
-                group_columns=self.group_columns,
+                preprocessing.extract_group_features,  # type: ignore
+                group_column=self.group_column,
             )
         elif self.feature_type == "single":
-            extract = preprocessing.extract_single_features
+            extract = preprocessing.extract_single_features  # type: ignore
         elif self.feature_type == "overlap":
             extract = functools.partial(
-                preprocessing.extract_overlapping_features,
+                preprocessing.extract_overlapping_features,  # type: ignore
                 overlap=self.overlap
             )
         else:
@@ -312,7 +324,12 @@ class ClusterCRF(object):
             label_column=None if X_only else self.label_column,
         )
 
-    def _extract_features(self, data, jobs=None, X_only=False):
+    def _extract_features(
+        self,
+        data: List[pandas.DataFrame],
+        jobs: Optional[int] = None,
+        X_only: bool = False
+    ) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
         """Convert a data list to `CRF`-compatible wrappers.
 
         Arguments:
@@ -329,7 +346,7 @@ class ClusterCRF(object):
         """
         # Filter the columns to reduce the amount of data passed to the
         # different processes
-        columns = self.feature_columns + self.weight_columns + self.group_columns
+        columns = self.feature_columns + self.weight_columns + [self.group_column]
         if not X_only:
             columns.append(self.label_column)
         col_filter = operator.itemgetter(columns)
@@ -346,7 +363,7 @@ class ClusterCRF(object):
 
     def _merge(self, df, **cols):
         unidf = pandas.DataFrame(cols)
-        unidf[self.group_columns] = df[self.group_columns].drop_duplicates()
+        unidf[self.group_column] = df[self.group_column].unique()
         return df.merge(unidf)
 
     def save_weights(self, basename: str) -> None:

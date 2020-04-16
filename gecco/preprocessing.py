@@ -34,11 +34,11 @@ def flatten(l):
             yield el
 
 
-def truncate(df, length, label_column="BGC", group_columns="protein_id"):
+def truncate(df, length, label_column="BGC", group_column="protein_id"):
 
     df0 = df[df[label_column] == 0]
     df1 = df[df[label_column] == 1]
-    df0 = [df for _, df in df0.groupby(group_columns, sort=False)]
+    df0 = [df for _, df in df0.groupby(group_column, sort=False)]
     trunc_len = (len(df0) - 2 * length) // 2
 
     try:
@@ -70,13 +70,13 @@ def extract_group_features(
         table: pandas.DataFrame,
         feature_columns: List[str],
         weight_columns: List[str],
-        group_columns: List[str],
+        group_column: List[str],
         label_column: Optional[str] = None,
 ) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` on a group level.
 
     Extraction is done respecting the ``feature_columns`` and ``weight_columns``
-    arguments on each group obtained with ``group_columns``.
+    arguments on each group obtained with ``group_column``.
 
     This function is mostly used to group on a *protein* level, but it can
     potentially be used as well to group on a larger subunit, for instance
@@ -115,7 +115,7 @@ def extract_group_features(
     # create a feature list for each group (i.e. protein) without
     # iterating on each row
     X, Y = [], []
-    for prot_id, df in table.groupby(group_columns, sort=False):
+    for prot_id, df in table.groupby(group_column, sort=False):
         X.append({})
         for feat_col, weight_col in zip(feature_columns, weight_columns):
             features, weights = df[feat_col].values, df[weight_col].values
