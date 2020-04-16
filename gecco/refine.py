@@ -136,7 +136,8 @@ class ClusterRefiner(object):
         cluster_num = 1
         cluster_state = False
         cluster_list = []
-        for _, row in df.itertuples(index=False):
+        for n in range(len(df)):
+            row = df.iloc[n]
             if row[self.p_col] >= lower_threshold:
                 # non-cluster -> cluster
                 if not cluster_state:

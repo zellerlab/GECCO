@@ -2,8 +2,7 @@ import csv
 import typing
 from typing import List, Optional
 
-import numpy as np
-from gecco.preprocessing import flatten
+import numpy
 
 
 class Protein(object):
@@ -51,11 +50,11 @@ class Protein(object):
         self.name = name
         self.probability: float = probability
 
-        self.domains = np.array([] if domains is None else list(domains))
+        self.domains = numpy.array([] if domains is None else list(domains))
         if weights is not None:
-            self.weights: np.ndarray = np.array(list(weights))
+            self.weights: numpy.ndarray = numpy.array(list(weights))
         else:
-            self.weights = np.ones(len(self.domains))
+            self.weights = numpy.ones(len(self.domains))
         if len(self.weights) != len(self.domains):
             raise ValueError("length of `domains` and `weights` differs")
 
@@ -94,12 +93,12 @@ class BGC(object):
         """
         self.proteins = proteins
         self.seq_id = self.proteins[0].seq_id
-        self.prot_ids = np.array([p.name for p in proteins])
+        self.prot_ids = numpy.array([p.name for p in proteins])
         self.start = min(p.start for p in proteins)
         self.end = max(p.end for p in proteins)
-        self.domains = np.array([p.domains for p in proteins])
-        self.weights = np.array([p.weights for p in proteins])
-        self.probabilities = np.array([p.probability for p in proteins])
+        self.domains = numpy.array([p.domains for p in proteins])
+        self.weights = numpy.array([p.weights for p in proteins])
+        self.probabilities = numpy.array([p.probability for p in proteins])
         self.name = name if name else self.seq_id
         self.bgc_type = bgc_type
         self.type_prob = type_prob
@@ -122,7 +121,7 @@ class BGC(object):
                 such as the protein IDs proteins or the BGC domains, to the
                 written row. Defaults to `False`.
         """
-        probs = np.hstack(self.probabilities)
+        probs = numpy.hstack(self.probabilities)
         row = [
             self.seq_id,
             self.name,
@@ -134,12 +133,12 @@ class BGC(object):
             self.type_prob,
         ]
         if long:
-            row.append(",".join(np.hstack(self.prot_ids)))  # prots
-            row.append(",".join(np.hstack(self.domains)))  # pfam
+            row.append(",".join(numpy.hstack(self.prot_ids)))  # prots
+            row.append(",".join(numpy.hstack(self.domains)))  # pfam
         row_str = [str(item) for item in row]
         csv.writer(handle, dialect="excel-tab").writerow(row_str)
 
-    def domain_composition(self, all_possible: Optional[np.ndarray] = None) -> np.ndarray:
+    def domain_composition(self, all_possible: Optional[numpy.ndarray] = None) -> numpy.ndarray:
         """Computes weighted domain composition with respect to ``all_possible``.
 
         Arguments:
@@ -151,25 +150,25 @@ class BGC(object):
             `~numpy.ndarray`: A numerical array containing the relative domain
             composition of the BGC.
         """
-        doms = np.hstack(self.domains)
-        w = np.hstack(self.weights)
+        doms = numpy.hstack(self.domains)
+        w = numpy.hstack(self.weights)
         if all_possible is None:
-            all_possible = np.unique(doms)
-        comp_arr = np.zeros(len(all_possible))
+            all_possible = numpy.unique(doms)
+        comp_arr = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
             n = list(doms).count(dom)
             weight = w[doms == dom].mean() if n > 0 else 0
             comp_arr[i] = n * weight
         comp_arr = comp_arr / comp_arr.sum()
-        return np.nan_to_num(comp_arr, copy=False)
+        return numpy.nan_to_num(comp_arr, copy=False)
 
-    def domain_counts(self, all_possible: Optional[np.ndarray]  = None) -> np.ndarray:
+    def domain_counts(self, all_possible: Optional[numpy.ndarray]  = None) -> numpy.ndarray:
         """Computes domain counts with respect to ``all_possible``.
         """
-        doms = list(np.hstack(self.domains))
+        doms = list(numpy.hstack(self.domains))
         if all_possible is None:
-            all_possible = np.unique(doms)
-        return np.array([doms.count(d) for d in all_possible])
+            all_possible = numpy.unique(doms)
+        return numpy.array([doms.count(d) for d in all_possible])
 
     # fmt: off
     _BIO_PFAMS = {
@@ -210,9 +209,9 @@ class BGC(object):
                 is above this value.*
             n_cds (`int`): The minimum number of CDS the BGC must contain.
         """
-        bio_crit = len(set(np.hstack(self.domains)) & self._BIO_PFAMS) >= n_biopfams
-        p_crit = np.mean([p.mean() for p in self.probabilities]) >= p_thresh
-        cds_crit = len(np.hstack(self.prot_ids)) >= n_cds
+        bio_crit = len(set(numpy.hstack(self.domains)) & self._BIO_PFAMS) >= n_biopfams
+        p_crit = numpy.mean([p.mean() for p in self.probabilities]) >= p_thresh
+        cds_crit = len(numpy.hstack(self.prot_ids)) >= n_cds
         return bio_crit and p_crit and cds_crit
 
     def _gecco_check(self) -> bool:

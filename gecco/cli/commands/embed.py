@@ -20,7 +20,6 @@ from ... import data
 from ...hmmer import HMMER
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
-from ...preprocessing import truncate
 
 
 class Embed(Command):

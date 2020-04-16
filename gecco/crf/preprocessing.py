@@ -232,4 +232,4 @@ def extract_single_features(
         for index, (feature, weight) in enumerate(zip(features, weights)):
             X[index][feature] = weight
     # return Y only if a label column is given
-    return X, None if label_column is None else table[label_column].values.astype(str)
+    return X, None if label_column is None else list(table[label_column].astype(str))
