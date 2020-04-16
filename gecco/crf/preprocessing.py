@@ -81,7 +81,8 @@ def extract_group_features(
     """
     # create a feature list for each group (i.e. protein) without
     # iterating on each row
-    X, Y = [], []
+    X: List[Dict[str, float]] = []
+    Y: List[str] = []
     for prot_id, df in table.groupby(group_column, sort=False):
         X.append({})
         for feat_col, weight_col in zip(feature_columns, weight_columns):
@@ -89,7 +90,7 @@ def extract_group_features(
             for feat, weight in zip(features, weights):
                 X[-1][feat] = max(X[-1].get(feat, 0), weight)
         if label_column is not None:
-            unique_labels = set(df[label_column].values)
+            unique_labels = set(df[label_column].values.astype(str))
             if len(unique_labels) > 1:
                 warnings.warn(
                     "Feature group contains mixed class label. A random label will be selected."
@@ -142,7 +143,7 @@ def extract_overlapping_features(
 
     """
     # create a feature list for each slice of the data
-    X = [dict() for _ in range(len(table))]
+    X: List[Dict[str, float]] = [dict() for _ in range(len(table))]
     for idx in range(len(table)):
         # get the indices of the sliding window
         start_idx = max(idx - overlap, 0)
@@ -197,10 +198,10 @@ def extract_single_features(
     """
     # extract weights without iterating on all rows by zipping together
     # the appropriate columns and inserting them in the right location
-    X = [dict() for _ in range(len(table))]
+    X: List[Dict[str, float]] = [dict() for _ in range(len(table))]
     for feat_col, weight_col in zip(feature_columns, weight_columns):
         features, weights = table[feat_col].values, table[weight_col].values
         for index, (feature, weight) in enumerate(zip(features, weights)):
             X[index][feature] = weight
     # return Y only if a label column is given
-    return X, None if label_column is None else list(table[label_column].astype(str))
+    return X, None if label_column is None else list(table[label_column].values.astype(str))
