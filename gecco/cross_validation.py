@@ -8,7 +8,6 @@ from sklearn.model_selection import PredefinedSplit, check_cv, StratifiedKFold
 from .preprocessing import flatten
 
 
-# CLASS
 class LotoSplit(object):
 
     def __init__(self, type_array: Iterable[str]) -> None:
@@ -65,6 +64,7 @@ def single_fold(train_set, cv_set, fold, n=10):
     folds[folds != fold] = -1
     folds[folds == fold] = 1
     return folds
+
 
 def fold_mask(train_set, cv_set, fold, n=10):
     """Creates a fold mask to select train and test set from array."""

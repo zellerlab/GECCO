@@ -16,13 +16,14 @@ class SafeOneHotEncoder(BaseEstimator, TransformerMixin):
     Onehot encodes samples with differing categorical composition
     given the full set of categories.
     """
+
     def __init__(self, all_categories):
         self.le = LabelEncoder()
         self.ohe = OneHotEncoder()
-        self.ohe.fit(self.le.fit_transform(all_categories).reshape(-1,1))
+        self.ohe.fit(self.le.fit_transform(all_categories).reshape(-1, 1))
 
     def transform(self, X):
-        return self.ohe.transform(self.le.transform(X).reshape(-1,1)).toarray()
+        return self.ohe.transform(self.le.transform(X).reshape(-1, 1)).toarray()
 
 
 def flatten(l):
@@ -42,7 +43,7 @@ def truncate(df, length, label_column="BGC", group_column="protein_id"):
     trunc_len = (len(df0) - 2 * length) // 2
 
     try:
-        df_trunc = pandas.concat(df0[trunc_len : -trunc_len])
+        df_trunc = pandas.concat(df0[trunc_len:-trunc_len])
     except ValueError as err:
         df_trunc = pandas.concat(df0)
 
@@ -67,11 +68,11 @@ def safe_encode(X, feature_set=None, encoding="onehot"):
 
 
 def extract_group_features(
-        table: pandas.DataFrame,
-        feature_columns: List[str],
-        weight_columns: List[str],
-        group_column: List[str],
-        label_column: Optional[str] = None,
+    table: pandas.DataFrame,
+    feature_columns: List[str],
+    weight_columns: List[str],
+    group_column: List[str],
+    label_column: Optional[str] = None,
 ) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` on a group level.
 
@@ -127,7 +128,6 @@ def extract_group_features(
     return X, None if label_column is None else Y
 
 
-
 def extract_overlapping_features(
     table: pandas.DataFrame,
     feature_columns: List[str],
@@ -181,8 +181,8 @@ def extract_overlapping_features(
     X = [dict() for _ in range(len(table))]
     for idx in range(len(table)):
         # get the indices of the sliding window
-        start_idx = max(idx-overlap, 0)
-        end_idx = min(idx+overlap+1, len(table))
+        start_idx = max(idx - overlap, 0)
+        end_idx = min(idx + overlap + 1, len(table))
         # process the features
         for feat_col, weight_col in zip(feature_columns, weight_columns):
             features = table[feat_col].values[start_idx:end_idx]
@@ -197,7 +197,7 @@ def extract_single_features(
     table: pandas.DataFrame,
     feature_columns: List[str],
     weight_columns: List[str],
-    label_column: Optional[str] = None
+    label_column: Optional[str] = None,
 ) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` on a row level.
 

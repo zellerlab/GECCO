@@ -37,7 +37,7 @@ class ClusterKNN(object):
         """Create a new classifier.
 
         Arguments:
-            metric (str or function): The distance metric to use with the
+            metric (`str` or `function`): The distance metric to use with the
                 classifier. Either given a metric name (such as
                 ``jensenshannon``, the default) or a callable that takes
                 two vectors.
