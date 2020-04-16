@@ -30,7 +30,7 @@ class StratifiedSplit(object):
         self.skf = StratifiedKFold(n_splits=n_splits)
 
     def split(self) -> Iterator[Tuple[numpy.ndarray, numpy.ndarray]]:
-        return self.skf.split(self.type_array, self.type_enc)
+        return self.skf.split(self.type_array, self.type_enc)  # type: ignore
 
 
 # FUNC

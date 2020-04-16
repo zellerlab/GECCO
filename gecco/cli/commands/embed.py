@@ -84,7 +84,7 @@ class Embed(Command):
         # Load input
         self.logger.info("Reading BGC and non-BGC feature tables")
 
-        def read_table(path):
+        def read_table(path: str) -> pandas.DataFrame:
             self.logger.debug("Reading table from {!r}", path)
             return pandas.read_table(path, dtype={"domain": str})
 
@@ -122,7 +122,7 @@ class Embed(Command):
             pbar = None
 
         # Make the embeddings
-        def embed(no_bgc, bgc):
+        def embed(no_bgc: pandas.DataFrame, bgc: pandas.DataFrame) -> pandas.DataFrame:
             by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
             # cut the input in half to insert the bgc in the middle
             index_half = len(by_prots) // 2
@@ -154,3 +154,4 @@ class Embed(Command):
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
         embeddings.to_csv(out_file, sep="\t", index=False)
+        return 0

@@ -20,6 +20,7 @@ class Command(metaclass=abc.ABCMeta):
     # -- Abstract methods ----------------------------------------------------
 
     doc: typing.ClassVar[str] = NotImplemented
+    summary: typing.ClassVar[str] = NotImplemented
 
     @abc.abstractmethod
     def __call__(self) -> int:

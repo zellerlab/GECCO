@@ -353,14 +353,14 @@ class ClusterCRF(object):
         """
         if self.feature_type == "group":
             extract = functools.partial(
-                preprocessing.extract_group_features,  # type: ignore
+                preprocessing.extract_group_features,
                 group_column=self.group_column,
             )
         elif self.feature_type == "single":
-            extract = preprocessing.extract_single_features  # type: ignore
+            extract = preprocessing.extract_single_features
         elif self.feature_type == "overlap":
             extract = functools.partial(
-                preprocessing.extract_overlapping_features,  # type: ignore
+                preprocessing.extract_overlapping_features,
                 overlap=self.overlap,
             )
         else:

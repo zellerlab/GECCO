@@ -165,3 +165,4 @@ class Cv(Command):
         # Write results
         self.logger.info("Writing output to {!r}", self.args["--output"])
         results.to_csv(self.args["--output"], sep="\t", index=False)
+        return 0

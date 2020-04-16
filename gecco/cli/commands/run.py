@@ -5,6 +5,8 @@ import multiprocessing
 import os
 import pickle
 import typing
+import signal
+from typing import Union
 
 import numpy
 import pandas
@@ -12,7 +14,7 @@ from Bio import SeqIO
 
 from ._base import Command
 from ... import data
-from ...data.hmms import ForeignHmm
+from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
 from ...orf import ORFFinder
@@ -128,8 +130,8 @@ class Run(Command):
             os.makedirs(prodigal_out, exist_ok=True)
 
             self.logger.info("Predicting ORFs with PRODIGAL")
-            prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
-            orf_file = prodigal.run()
+            orf_finder = ORFFinder(genome, prodigal_out, method="prodigal")
+            orf_file = orf_finder.run()
             prodigal = True
 
         else:
@@ -141,7 +143,7 @@ class Run(Command):
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm):
+        def annotate(hmm: Union[Hmm, ForeignHmm]) -> pandas.DataFrame:
             self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)

@@ -173,7 +173,10 @@ class Tune(Command):
                 if raw:
                     results[c1, c2] = pandas.concat(raw).assign(c1=c1, c2=c2)
 
+            return 0
         finally:
+            # still attempt to write results if the tuning was
+            # interrupted before completion
             if results:
                 # Concatenate results
                 table = pandas.concat(results.values())

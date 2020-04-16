@@ -161,10 +161,10 @@ class Train(Command):
 
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
-            Y_col = self.args["--y-col"],
-            feature_cols = self.args["--feature-cols"],
-            group_col = self.args["--group-col"],
-            weight_cols = self.args["--weight-cols"],
+            label_column = self.args["--y-col"],
+            feature_columns = self.args["--feature-cols"],
+            weight_columns = self.args["--weight-cols"],
+            group_column = self.args["--group-col"],
             feature_type = self.args["--feature-type"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
