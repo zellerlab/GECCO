@@ -2,11 +2,12 @@ import csv
 import functools
 import operator
 import math
-import multiprocessing.pool
 import numbers
 import random
+import typing
 import warnings
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from multiprocessing.pool import Pool
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy
 import pandas
@@ -35,7 +36,7 @@ class ClusterCRF(object):
         feature_type: str = "single",
         algorithm: str = "lbsgf",
         overlap: int = 2,
-        **kwargs,
+        **kwargs: Dict[str, object],
     ) -> None:
         """Create a new `ClusterCRF` instance.
 
@@ -85,7 +86,7 @@ class ClusterCRF(object):
         self.group_column: str = group_column
         self.overlap: int = overlap
         self.algorithm = algorithm
-        self.model = CRF(
+        self.model = CRF(  # type: ignore
             algorithm=algorithm,
             all_possible_transitions=True,
             all_possible_states=True,
@@ -105,7 +106,8 @@ class ClusterCRF(object):
     def fit(
         self,
         data: Iterable[pandas.DataFrame],
-        jobs: Optional[int]=None,
+        jobs: Optional[int] = None,
+        pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = Pool,
     ) -> None:
         """Fits the model to the given data.
 
@@ -117,30 +119,41 @@ class ClusterCRF(object):
                 ``group_column`` if the feature extraction is ``group``.
             jobs (`int`, optional): The number of jobs to use to extract the
                 features from the input data.
+            pool_factory (`multiprocessing.pool.Pool` subclass): The factory
+                to use to extract features from the input data in parallel.
+                *This can also be a function that takes no argument and returns
+                a `Pool` instead of an actual subclass.*
 
         """
-        X, Y = self._extract_features(data, jobs=jobs)
+        X, Y = self._extract_features(data, jobs=jobs, pool_factory=pool_factory)
         self.model.fit(X, Y)
 
     def predict_marginals(
         self,
         data: Iterable[pandas.DataFrame],
-        jobs: Optional[int]=None
+        jobs: Optional[int] = None,
+        pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = Pool,
     ) -> pandas.DataFrame:
         """Predicts marginals for your data.
 
         Arguments:
             data (iterable of `~pandas.DataFrame`): An iterable of data frames
-                to use to fit the model. If must contain the following columns
-                (as defined on `ClusterCRF` initialisation): *weight_cols* and
-                *feature_cols*, as well as *feature_cols* if the
-                feature extraction is ``group``.
+                to predict classes for. If must contain the following columns
+                (as defined on `ClusterCRF` initialisation): *weight_columns*
+                and *feature_columns*, as well as *group_columns* if the
+                feature extraction method is ``group``.
             jobs (`int`, optional): The number of jobs to use to extract the
                 features from the input data.
+            pool_factory (`multiprocessing.pool.Pool` subclass): The factory
+                to use to extract features from the input data in parallel.
+                *This can also be a function that takes no argument and returns
+                a `Pool` instead of an actual subclass.*
 
         """
         # convert data to `CRFSuite` format
-        X, _ = self._extract_features(data, jobs=jobs, X_only=True)
+        X, _ = self._extract_features(
+            data, X_only=True, jobs=jobs, pool_factory=pool_factory
+        )
 
         # Extract cluster (1) probabilities from marginal
         marginal_probs = self.model.predict_marginals(X)
@@ -175,21 +188,21 @@ class ClusterCRF(object):
         data: List[pandas.DataFrame],
         strat_col: Optional[str] = None,
         k: int = 10,
+        trunc: Optional[int] = None,
         jobs: Optional[int] = None,
-        trunc: Optional[int]=None
     ) -> List[pandas.DataFrame]:
         """Runs k-fold cross-validation using a stratification column.
 
         Arguments:
             data (`list` of `~pandas.DataFrame`): A list of domain annotation
                 table, corresponding to different samples.
-            k (`int`): The number of cross-validation folds to perform.
-            jobs (`int`): The number of jobs to use to extract the features from
-                the input data within each fold.
-            trunc (`int`, optional): The maximum number of rows to use in the
-                training data, or to `None` to use everything.
             strat_col (`str`, optional): The name of the column to use to split
                 the data, or `None` to perform a predefined split.
+            k (`int`): The number of cross-validation folds to perform.
+            trunc (`int`, optional): The maximum number of rows to use in the
+                training data, or to `None` to use everything.
+            jobs (`int`): The number of jobs to use to extract the features from
+                the input data within each fold.
 
         Returns:
             `list` of `~pandas.DataFrame`: The list containing one table of
@@ -205,17 +218,10 @@ class ClusterCRF(object):
             folds = n_folds(len(data), n=k)
             cv_split = PredefinedSplit(folds)
 
-        # Not running in parallel because sklearn has issues managing the
-        # temporary files in multithreaded mode
         pbar = tqdm.tqdm(cv_split.split(), total=k, leave=False)
         return [
             self._single_fold_cv(
-                data,
-                train_idx,
-                test_idx,
-                round_id=f"fold{i}",
-                trunc=trunc,
-                jobs=jobs,
+                data, train_idx, test_idx, round_id=f"fold{i}", trunc=trunc, jobs=jobs,
             )
             for i, (train_idx, test_idx) in enumerate(pbar)
         ]
@@ -224,8 +230,8 @@ class ClusterCRF(object):
         self,
         data: List[pandas.DataFrame],
         strat_col: str,
-        jobs: Optional[int]=None,
-        trunc: Optional[int]=None
+        trunc: Optional[int] = None,
+        jobs: Optional[int] = None,
     ) -> List[pandas.DataFrame]:
         """Run LOTO cross-validation using a stratification column.
 
@@ -248,8 +254,6 @@ class ClusterCRF(object):
         labels = [s[strat_col].values[0].split(",") for s in data]
         cv_split = LotoSplit(labels)
 
-        # Not running in parallel because sklearn has issues managing the
-        # temporary files in multithreaded mode
         pbar = tqdm.tqdm(list(cv_split.split()), leave=False)
         return [
             self._single_fold_cv(data, train_idx, test_idx, label, trunc)
@@ -262,8 +266,8 @@ class ClusterCRF(object):
         train_idx: numpy.ndarray,
         test_idx: numpy.ndarray,
         round_id: Optional[str] = None,
-        trunc: Optional[int]=None,
-        jobs: Optional[int]=None
+        trunc: Optional[int] = None,
+        jobs: Optional[int] = None,
     ) -> pandas.DataFrame:
         """Performs a single CV round with the given indices.
         """
@@ -289,11 +293,9 @@ class ClusterCRF(object):
     # --- Feature extraction -------------------------------------------------
 
     def _currify_extract_function(
-        self,
-        X_only: bool = False
+        self, X_only: bool = False
     ) -> Callable[
-        [pandas.DataFrame],
-        Tuple[List[Dict[str, float]], Optional[List[str]]]
+        [pandas.DataFrame], Tuple[List[Dict[str, float]], Optional[List[str]]]
     ]:
         """Currify a feature extraction function from `gecco.preprocessing`.
 
@@ -313,7 +315,7 @@ class ClusterCRF(object):
         elif self.feature_type == "overlap":
             extract = functools.partial(
                 preprocessing.extract_overlapping_features,  # type: ignore
-                overlap=self.overlap
+                overlap=self.overlap,
             )
         else:
             raise ValueError(f"invalid feature type: {self.feature_type!r}")
@@ -326,10 +328,11 @@ class ClusterCRF(object):
 
     def _extract_features(
         self,
-        data: List[pandas.DataFrame],
+        data: Iterable[pandas.DataFrame],
         jobs: Optional[int] = None,
-        X_only: bool = False
-    ) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
+        X_only: bool = False,
+        pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = Pool,
+    ) -> Tuple[List[List[Dict[str, float]]], Optional[List[List[str]]]]:
         """Convert a data list to `CRF`-compatible wrappers.
 
         Arguments:
@@ -339,25 +342,32 @@ class ClusterCRF(object):
                 features from the input data.
             X_only (`bool`, optional): If `True`, only return the features,
                 and ignore class labels.
+            pool_factory (`multiprocessing.pool.Pool` subclass): The factory
+                to use to extract features from the input data in parallel.
+                *This can also be a function that takes no argument and returns
+                a `Pool` instead of an actual subclass.*
 
         Warning:
-            This method spawns a `multiprocessing.pool.Pool` in the background
-            to extract features in parallel.
+            In certain cases, a `multiprocessing.pool.Pool` may fail to be
+            created, for instance when that method is called from within a
+            daemon process. If this happen, try giving a different class to the
+            ``pool_factory`` argument, like `~multiprocessing.pool.ThreadPool`.
         """
         # Filter the columns to reduce the amount of data passed to the
         # different processes
-        columns = self.feature_columns + self.weight_columns + [self.group_column]
+        columns: List[str] = self.feature_columns + self.weight_columns
+        if self.feature_type == "group":
+            columns.append(self.group_column)
         if not X_only:
             columns.append(self.label_column)
         col_filter = operator.itemgetter(columns)
         # Extract features to CRFSuite format
         _extract = self._currify_extract_function(X_only=X_only)
-        with multiprocessing.pool.Pool(jobs) as pool:
+        with pool_factory(jobs) as pool:
             samples = pool.map(_extract, map(col_filter, data))
-            X = numpy.array([x for x, _ in samples])
-            Y = numpy.array([y for _, y in samples])
+            X, Y = [x for x, _ in samples], [y for _, y in samples]
         # Only return Y if requested
-        return X, None if X_only else Y
+        return X, None if X_only else typing.cast(List[List[str]], Y)
 
     # --- Utils --------------------------------------------------------------
 

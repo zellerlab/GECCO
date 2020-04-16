@@ -164,8 +164,12 @@ class Tune(Command):
                     cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
                 # run the cross validation
                 self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
-
-                raw = cross_validate(data, strat_col=self.args["--strat-col"], jobs=self.args["--jobs"], trunc=self.args["--truncate"])
+                raw = cross_validate(
+                    data,
+                    self.args["--strat-col"],
+                    trunc=self.args["--truncate"],
+                    jobs=self.args["--jobs"],
+                )
                 if raw:
                     results[c1, c2] = pandas.concat(raw).assign(c1=c1, c2=c2)
 

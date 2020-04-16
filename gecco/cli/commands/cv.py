@@ -144,11 +144,12 @@ class Cv(Command):
         self.logger.info("Performing cross-validation")
         results = pandas.concat(cross_validate(
             data,
-            strat_col=self.args["--strat-col"],
+            self.args["--strat-col"],
+            trunc=self.args["--truncate"],
             jobs=self.args["--jobs"],
-            trunc=self.args["--truncate"]
         ))
 
+        # Add all the arguments given from CLI as table data
         self.logger.info("Formatting results")
         results["c1"] = self.args["--c1"]
         results["c2"] = self.args["--c2"]
@@ -160,22 +161,6 @@ class Cv(Command):
         results["truncate"] = self.args["--truncate"]
         results["input"] = os.path.basename(self.args["--input"])
         results["cv_type"] = cv_type
-
-        # result_df = (pd .concat(results)
-        #                 .assign(c1 = self.args["--c1"],
-        #                     c2 = self.args["--c2"],
-        #                     feature_type = self.args["--feature-type"],
-        #                     e_filter = self.args["-"],
-        #                     overlap = overlap,
-        #                     weight = ",".join(map(str, weight_col)),
-        #                     feature = ",".join(feature_col),
-        #                     truncate = trunc,
-        #                     in_file = ,
-        #                     cv_round = "all",
-        #                     cv_type = "10-fold")
-        #                 .loc[ : , ["BGC", "BGC_id", "protein_id", "domain", "idx",
-        #                     "p_pred", "c1", "c2", "feature_type", "e_filter", "overlap",
-        #                     "weight", "truncate", "cv_type", "cv_round", "in_file"] ])
 
         # Write results
         self.logger.info("Writing output to {!r}", self.args["--output"])
