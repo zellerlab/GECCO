@@ -24,12 +24,16 @@ class ClusterKNN(object):
             classifier used for the prediction
     """
 
-    _METRICS: Dict[str, "_Metric"] = {
-        # NB(@althonos): Tanimoto distance seems to be mostly for boolean
-        #                vectors, not probability vectors.
-        "tanimoto": lambda p,q: p*q / (p - q)**2,  # type: ignore
-        "jensenshannon": scipy.spatial.distance.jensenshannon,
-    }
+    @classmethod
+    def _get_metric(cls, name: str) -> "_Metric":
+        if name == "jensenshannon":
+            return scipy.spatial.distance.jensenshannon  # type: ignore
+        elif name == "tanimoto":
+            # NB(@althonos): Tanimoto distance seems to be mostly for boolean
+            #                vectors, not probability vectors.
+            return lambda p,q: p*q / (p - q)**2  # type: ignore
+        else:
+            raise ValueError(f"unexpected metric: {name!r}")
 
     def __init__(
             self,
@@ -53,11 +57,9 @@ class ClusterKNN(object):
         """
 
         if isinstance(metric, str):
-            self.metric = self._METRICS.get(metric)
+            self.metric = self._get_metric(metric)
         else:
             self.metric = metric
-        if self.metric is None:
-            raise ValueError(f"unexpected metric: {metric!r}")
         self.knn = sklearn.neighbors.KNeighborsClassifier(
             metric=self.metric,
             **kwargs
