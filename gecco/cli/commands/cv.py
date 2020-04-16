@@ -124,14 +124,14 @@ class Cv(Command):
 
         # --- CROSS VALIDATION -----------------------------------------------
         crf = ClusterCRF(
-            Y_col = self.args["--y-col"],
-            feature_cols = self.args["--feature-cols"],
-            weight_cols = self.args["--weight-cols"],
+            feature_columns = self.args["--feature-cols"],
+            weight_columns = self.args["--weight-cols"],
             feature_type = self.args["--feature-type"],
+            label_column = self.args["--y-col"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
-            c1 = self.args["--c1"],
-            c2 = self.args["--c2"]
+            c1 = c1,
+            c2 = c2
         )
 
         if self.args["loto"]:
@@ -145,7 +145,7 @@ class Cv(Command):
         results = pandas.concat(cross_validate(
             data,
             strat_col=self.args["--strat-col"],
-            threads=self.args["--jobs"],
+            jobs=self.args["--jobs"],
             trunc=self.args["--truncate"]
         ))
 

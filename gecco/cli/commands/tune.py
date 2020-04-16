@@ -146,10 +146,10 @@ class Tune(Command):
             for c1, c2 in itertools.product(all_c1, all_c2):
                 # create a new CRF with C1/C2 parameters
                 crf = ClusterCRF(
-                    Y_col = self.args["--y-col"],
-                    feature_cols = self.args["--feature-cols"],
-                    weight_cols = self.args["--weight-cols"],
+                    feature_columns = self.args["--feature-cols"],
+                    weight_columns = self.args["--weight-cols"],
                     feature_type = self.args["--feature-type"],
+                    label_column = self.args["--y-col"],
                     overlap = self.args["--overlap"],
                     algorithm = "lbfgs",
                     c1 = c1,
@@ -165,7 +165,7 @@ class Tune(Command):
                 # run the cross validation
                 self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
 
-                raw = cross_validate(data, strat_col=self.args["--strat-col"], threads=self.args["--jobs"], trunc=self.args["--truncate"])
+                raw = cross_validate(data, strat_col=self.args["--strat-col"], jobs=self.args["--jobs"], trunc=self.args["--truncate"])
                 if raw:
                     results[c1, c2] = pandas.concat(raw).assign(c1=c1, c2=c2)
 

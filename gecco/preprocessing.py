@@ -3,7 +3,7 @@ import numbers
 import typing
 from collections import Iterable
 from itertools import zip_longest
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas
@@ -25,7 +25,6 @@ class SafeOneHotEncoder(BaseEstimator, TransformerMixin):
         return self.ohe.transform(self.le.transform(X).reshape(-1,1)).toarray()
 
 
-# FUNC
 def flatten(l):
     """Flattens list of arbitraty depth to generator."""
     for el in l:
@@ -35,11 +34,11 @@ def flatten(l):
             yield el
 
 
-def truncate(df, length, Y_col="BGC", grouping="protein_id"):
+def truncate(df, length, label_column="BGC", group_columns="protein_id"):
 
-    df0 = df[df[Y_col] == 0]
-    df1 = df[df[Y_col] == 1]
-    df0 = [df for _, df in df0.groupby(grouping, sort=False)]
+    df0 = df[df[label_column] == 0]
+    df1 = df[df[label_column] == 1]
+    df0 = [df for _, df in df0.groupby(group_columns, sort=False)]
     trunc_len = (len(df0) - 2 * length) // 2
 
     try:
@@ -69,15 +68,15 @@ def safe_encode(X, feature_set=None, encoding="onehot"):
 
 def extract_group_features(
         table: pandas.DataFrame,
-        feature_cols: List[str],
-        weight_cols: List[str],
-        group_cols: List[str],
-        Y_col: Optional[str] = None,
-):
+        feature_columns: List[str],
+        weight_columns: List[str],
+        group_columns: List[str],
+        label_column: Optional[str] = None,
+) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` on a group level.
 
-    Extraction is done respecting the ``feature_cols`` and ``weight_cols``
-    arguments on each group obtained with ``group_cols``.
+    Extraction is done respecting the ``feature_columns`` and ``weight_columns``
+    arguments on each group obtained with ``group_columns``.
 
     This function is mostly used to group on a *protein* level, but it can
     potentially be used as well to group on a larger subunit, for instance
@@ -85,11 +84,11 @@ def extract_group_features(
 
     Arguments:
         table (~pandas.DataFrame): The dataframe to process.
-        feature_cols (iterable of `str`): The name of the columns containing
+        feature_columns (iterable of `str`): The name of the columns containing
             the features in the table.
-        weight_cols (iterable of `str`): The name of the columns containing
+        weight_columns (iterable of `str`): The name of the columns containing
             the weights in the table.
-        Y_col (`str`, optional): The name of the column containing the class
+        label_column (`str`, optional): The name of the column containing the class
             labels, or `None`.
         overlap (`int`): The size of the sliding window; features for the
             row at index *n* will be extracted from rows located at index in
@@ -98,7 +97,7 @@ def extract_group_features(
     Returns:
         `tuple`: a couple of `list`, where the first list contains a
         feature dictionary for each group, and the second the list of
-        class labels, or `None` if ``Y_col`` was `None`.
+        class labels, or `None` if ``label_column`` was `None`.
 
     Example:
         >>> data = pandas.DataFrame(
@@ -116,39 +115,39 @@ def extract_group_features(
     # create a feature list for each group (i.e. protein) without
     # iterating on each row
     X, Y = [], []
-    for prot_id, df in table.groupby(group_cols, sort=False):
+    for prot_id, df in table.groupby(group_columns, sort=False):
         X.append({})
-        for feat_col, weight_col in zip(feature_cols, weight_cols):
+        for feat_col, weight_col in zip(feature_columns, weight_columns):
             features, weights = df[feat_col].values, df[weight_col].values
             for feat, weight in zip(features, weights):
                 X[-1][feat] = max(X[-1].get(feat, 0), weight)
-        if Y_col is not None:
-            Y.append(str(df[Y_col].values[0]))
+        if label_column is not None:
+            Y.append(str(df[label_column].values[0]))
     # only return Y if the class column was given
-    return X, None if Y_col is None else Y
+    return X, None if label_column is None else Y
 
 
 
 def extract_overlapping_features(
     table: pandas.DataFrame,
-    feature_cols: List[str],
-    weight_cols: List[str],
+    feature_columns: List[str],
+    weight_columns: List[str],
     overlap: int = 1,
-    Y_col: Optional[str] = None,
-):
+    label_column: Optional[str] = None,
+) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` using a sliding window.
 
-    The extraction is done using the ``feature_cols`` and ``weight_cols``
+    The extraction is done using the ``feature_columns`` and ``weight_columns``
     columns to extract features on each overlapping window.
 
     Arguments:
         table (~pandas.DataFrame): The dataframe to process.
-        feature_cols (iterable of `str`): The name of the columns containing
+        feature_columns (iterable of `str`): The name of the columns containing
             the features in the table.
-        weight_cols (iterable of `str`): The name of the columns containing
+        weight_columns (iterable of `str`): The name of the columns containing
             the weights in the table.
-        Y_col (`str`, optional): The name of the column containing the class
-            labels, or `None`.
+        label_column (`str`, optional): The name of the column containing the
+            class labels, or `None`.
         overlap (`int`): The size of the sliding window; features for the
             row at index *n* will be extracted from rows located at index in
             *[n-overlap; n+overlap]*.
@@ -156,7 +155,7 @@ def extract_overlapping_features(
     Returns:
         `tuple`: a couple of `list`, where the first list contains a
         feature dictionary for each row, and the second the list of
-        class labels, or `None` if ``Y_col`` was `None`.
+        class labels, or `None` if ``label_column`` was `None`.
 
     Example:
         >>> data = pandas.DataFrame(
@@ -185,39 +184,39 @@ def extract_overlapping_features(
         start_idx = max(idx-overlap, 0)
         end_idx = min(idx+overlap+1, len(table))
         # process the features
-        for feat_col, weight_col in zip(feature_cols, weight_cols):
+        for feat_col, weight_col in zip(feature_columns, weight_columns):
             features = table[feat_col].values[start_idx:end_idx]
             weights = table[weight_col].values[start_idx:end_idx]
             for feat, weight in zip(features, weights):
                 X[idx][feat] = max(X[idx].get(feat, 0), weight)
     # Only return Y if requested
-    return X, None if Y_col is None else table[Y_col].values.astype(str)
+    return X, None if label_column is None else table[label_column].values.astype(str)
 
 
 def extract_single_features(
     table: pandas.DataFrame,
-    feature_cols: List[str],
-    weight_cols: List[str],
-    Y_col: Optional[str] = None
-):
+    feature_columns: List[str],
+    weight_columns: List[str],
+    label_column: Optional[str] = None
+) -> Tuple[List[Dict[str, float]], Optional[List[str]]]:
     """Extract features from ``table`` on a row level.
 
-    The extraction is done using the ``feature_cols`` and ``weight_cols``
+    The extraction is done using the ``feature_columns`` and ``weight_columns``
     columns to extract features on each row.
 
     Arguments:
         table (~pandas.DataFrame): The dataframe to process.
-        feature_cols (iterable of `str`): The name of the columns containing
+        feature_columns (iterable of `str`): The name of the columns containing
             the features in the table.
-        weight_cols (iterable of `str`): The name of the columns containing
+        weight_columns (iterable of `str`): The name of the columns containing
             the weights in the table.
-        Y_col (`str`, optional): The name of the column containing the class
-            labels, or `None`.
+        label_column (`str`, optional): The name of the column containing the
+            class labels, or `None`.
 
     Returns:
         `tuple`: a couple of `list`, where the first list contains a
         feature dictionary for each row, and the second the list of
-        class labels, or `None` if ``Y_col`` was `None`.
+        class labels, or `None` if ``label_column`` was `None`.
 
     Example:
         >>> data = pandas.DataFrame(
@@ -235,9 +234,9 @@ def extract_single_features(
     # extract weights without iterating on all rows by zipping together
     # the appropriate columns and inserting them in the right location
     X = [dict() for _ in range(len(table))]
-    for feat_col, weight_col in zip(feature_cols, weight_cols):
+    for feat_col, weight_col in zip(feature_columns, weight_columns):
         features, weights = table[feat_col].values, table[weight_col].values
         for index, (feature, weight) in enumerate(zip(features, weights)):
             X[index][feature] = weight
     # return Y only if a label column is given
-    return X, None if Y_col is None else table[Y_col].values.astype(str)
+    return X, None if label_column is None else table[label_column].values.astype(str)

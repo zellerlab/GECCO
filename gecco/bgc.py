@@ -29,15 +29,17 @@ class Protein(object):
         Arguments:
             seq_id (str): The identifier of the sequence containing the
                 protein.
-            start (int): The location where the protein starts.
-            end (int): The location where the protein ends.
+            start (int): The index where the protein starts in the source
+                sequence.
+            end (int): The index where the protein ends in the source
+                sequence.
             name (str): The identifier of the protein itself.
             probability (float): The probability with which the protein was
                 predicted.
-            domains (iterable of `str`): The domains of the protein, if any
-                were predicted.
-            weights (iterable of `float`): The prediction weights associated
-                with each domain of the protein.
+            domains (iterable of `str`, optional): The domains of the protein,
+                if any were predicted.
+            weights (iterable of `float`, optional): The prediction weights
+                associated with each domain of the protein, if any.
 
         Raises:
             ValueError: when `domains` and `weights` are not the same size.

@@ -5,6 +5,7 @@ import re
 import typing
 import pkg_resources
 
+
 class Hmm(typing.NamedTuple):
 
     id: str
@@ -45,7 +46,6 @@ class ForeignHmm(typing.NamedTuple):
 
     def relabel(self, domains):
         return domains.str.split(".").str[0]
-
 
 
 def iter():
