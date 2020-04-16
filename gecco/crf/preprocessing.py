@@ -1,6 +1,7 @@
 import math
 import numbers
 import typing
+import warnings
 from collections.abc import Iterable
 from itertools import zip_longest
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -88,7 +89,12 @@ def extract_group_features(
             for feat, weight in zip(features, weights):
                 X[-1][feat] = max(X[-1].get(feat, 0), weight)
         if label_column is not None:
-            Y.append(str(df[label_column].values[0]))
+            unique_labels = set(df[label_column].values)
+            if len(unique_labels) > 1:
+                warnings.warn(
+                    "Feature group contains mixed class label. A random label will be selected."
+                )
+            Y.append(unique_labels.pop())
     # only return Y if the class column was given
     return X, None if label_column is None else Y
 
@@ -148,7 +154,7 @@ def extract_overlapping_features(
             for feat, weight in zip(features, weights):
                 X[idx][feat] = max(X[idx].get(feat, 0), weight)
     # Only return Y if requested
-    return X, None if label_column is None else table[label_column].values.astype(str)
+    return X, None if label_column is None else list(table[label_column].values.astype(str))
 
 
 def extract_single_features(
