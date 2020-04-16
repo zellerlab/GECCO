@@ -1,8 +1,7 @@
 import typing
 from typing import List, Optional
 
-import pandas as pd
-import numpy as np
+import pandas
 from gecco.bgc import Protein, BGC
 
 class ClusterRefiner(object):
@@ -35,7 +34,7 @@ class ClusterRefiner(object):
 
     def find_clusters(
             self,
-            domains_df: pd.DataFrame,
+            domains_df: "pandas.DataFrame",
             method: str = "gecco",
             prefix: str = "cluster",
             lower_threshold: Optional[float] = None,
@@ -51,7 +50,7 @@ class ClusterRefiner(object):
     def _refine(
         self,
         method: str,
-        dataframe: pd.DataFrame,
+        dataframe: "pandas.DataFrame",
         lower_threshold: float,
     ) -> List[BGC]:
         segments = self.extract_segments(dataframe, lower_threshold)
@@ -60,8 +59,8 @@ class ClusterRefiner(object):
 
     def _extract_cluster(
         self,
-        dataframe: pd.DataFrame,
-        segment: pd.DataFrame,
+        dataframe: "pandas.DataFrame",
+        segment: "pandas.DataFrame",
     ) -> BGC:
         """Takes a DataFrame and a segement and returns a BGC object"""
         cluster_name = segment["cluster_id"].values[0]
@@ -83,9 +82,9 @@ class ClusterRefiner(object):
 
     def extract_segments(
         self,
-        df: pd.DataFrame,
+        df: "pandas.DataFrame",
         lower_threshold: float,
-    ) -> List[pd.DataFrame]:
+    ) -> List["pandas.DataFrame"]:
         """
         Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
@@ -99,7 +98,7 @@ class ClusterRefiner(object):
                 # non-cluster -> cluster
                 if not cluster_state:
                     cluster_name = f"{row[self.seq_col]}_cluster_{cluster_num}"
-                    row = pd.DataFrame(row).transpose()
+                    row = pandas.DataFrame(row).transpose()
                     cluster_start = row["start"]
                     cluster_df = row
                     cluster_state = True
@@ -125,10 +124,10 @@ class ClusterRefiner(object):
 
     def segment(
         self,
-        df: pd.DataFrame,
+        df: "pandas.DataFrame",
         lower_threshold: float,
         prefix: str,
-    ) -> pd.DataFrame:
+    ) -> "pandas.DataFrame":
         """
         Determines coordinates of segments determined by p_col over
         a lower_thresh.
@@ -157,4 +156,4 @@ class ClusterRefiner(object):
                     cluster_state = False
                 # non-cluster -> non-cluster
                 # pass
-        return pd.DataFrame(cluster_list)
+        return pandas.DataFrame(cluster_list)

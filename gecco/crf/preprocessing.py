@@ -8,16 +8,14 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy
 import pandas
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-from sklearn.base import TransformerMixin, BaseEstimator
 
 
 def truncate(
-    data: pandas.DataFrame,
+    data: "pandas.DataFrame",
     length: int,
     label_column: str = "BGC",
     group_column: str = "protein_id"
-) -> pandas.DataFrame:
+) -> "pandas.DataFrame":
 
     data0 = data[data[label_column] == 0]
     data1 = data[data[label_column] == 1]
@@ -34,7 +32,7 @@ def truncate(
 
 
 def extract_group_features(
-    table: pandas.DataFrame,
+    table: "pandas.DataFrame",
     feature_columns: List[str],
     weight_columns: List[str],
     group_column: List[str],
@@ -101,7 +99,7 @@ def extract_group_features(
 
 
 def extract_overlapping_features(
-    table: pandas.DataFrame,
+    table: "pandas.DataFrame",
     feature_columns: List[str],
     weight_columns: List[str],
     overlap: int = 1,
@@ -159,7 +157,7 @@ def extract_overlapping_features(
 
 
 def extract_single_features(
-    table: pandas.DataFrame,
+    table: "pandas.DataFrame",
     feature_columns: List[str],
     weight_columns: List[str],
     label_column: Optional[str] = None,

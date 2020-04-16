@@ -11,20 +11,20 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Type
 import numpy
 import verboselogs
 
-
-_S = typing.TypeVar("_S")
-_T = typing.TypeVar("_T")
-_F = typing.TypeVar("_F", bound=Callable[..., _T])
+if typing.TYPE_CHECKING:
+    _S = typing.TypeVar("_S")
+    _T = typing.TypeVar("_T")
+    _F = typing.TypeVar("_F", bound=Callable[..., "_T"])
 
 
 class classproperty(property):
     """A class property decorator.
     """
 
-    def __init__(self, f: Callable[[_S], _T]) -> None:
+    def __init__(self, f: Callable[["_S"], "_T"]) -> None:
         self.f = f
 
-    def __get__(self, obj: object, owner: _S) -> _T:  # type: ignore
+    def __get__(self, obj: object, owner: "_S") -> "_T":  # type: ignore
         return self.f(owner)
 
 
@@ -75,7 +75,7 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
             self.logger.log(verboselogs.SUCCESS, self.Message(msg, args), **kw)
 
 
-def wrap_warnings(logger: logging.Logger) -> Callable[[_F], _F]:
+def wrap_warnings(logger: logging.Logger) -> Callable[["_F"], "_F"]:
     """Have the function patch `warnings.showwarning` with the given logger.
 
     Arguments:
@@ -95,7 +95,7 @@ def wrap_warnings(logger: logging.Logger) -> Callable[[_F], _F]:
     """
 
     class _WarningsWrapper(object):
-        def __init__(self, logger: logging.Logger, func: Callable[..., _T]):
+        def __init__(self, logger: logging.Logger, func: Callable[..., "_T"]):
             self.logger = logger
             self.func = func
             functools.update_wrapper(self, func)
@@ -112,7 +112,7 @@ def wrap_warnings(logger: logging.Logger) -> Callable[[_F], _F]:
             for line in filter(str.strip, str(message).splitlines()):
                 self.logger.warning(line.strip())
 
-        def __call__(self, *args: Any, **kwargs: Any) -> _T:
+        def __call__(self, *args: Any, **kwargs: Any) -> "_T":
             old_showwarning = warnings.showwarning
             warnings.showwarning = self.showwarning
             try:
@@ -123,7 +123,7 @@ def wrap_warnings(logger: logging.Logger) -> Callable[[_F], _F]:
         def __getattr__(self, name: Any) -> Any:
             return getattr(self.func, name)
 
-    def decorator(func: Callable[..., _T]) -> Callable[..., _T]:
+    def decorator(func: Callable[..., "_T"]) -> Callable[..., "_T"]:
         return _WarningsWrapper(logger, func)
 
     return decorator  # type: ignore

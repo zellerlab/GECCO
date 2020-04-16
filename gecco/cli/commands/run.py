@@ -16,7 +16,7 @@ from ._base import Command
 from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
-from ...knn import ClusterKNN
+# from ...knn import ClusterKNN
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
 
@@ -143,7 +143,7 @@ class Run(Command):
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: Union[Hmm, ForeignHmm]) -> pandas.DataFrame:
+        def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
             self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)

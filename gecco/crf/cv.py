@@ -3,7 +3,7 @@ import multiprocessing
 from typing import Iterable, Iterator, List, Tuple
 
 import numpy
-from sklearn.model_selection import PredefinedSplit, check_cv, StratifiedKFold
+import sklearn.model_selection
 
 
 class LotoSplit(object):
@@ -12,7 +12,7 @@ class LotoSplit(object):
         self.type_array = list(type_array)
         self.type_set = {ty for types in self.type_array for ty in types}
 
-    def split(self) -> Iterator[Tuple[numpy.ndarray, numpy.ndarray, str]]:
+    def split(self) -> Iterator[Tuple["numpy.ndarray", "numpy.ndarray", str]]:
         for typ in self.type_set:
             train_idx = numpy.array([idx for idx, s in enumerate(self.type_array)
                 if typ not in s])
@@ -27,9 +27,9 @@ class StratifiedSplit(object):
         self.type_array = [t[0] if len(t) == 1 else "Mixed" for t in type_array]
         type_set = list(set(self.type_array))
         self.type_enc = [type_set.index(t) for t in self.type_array]
-        self.skf = StratifiedKFold(n_splits=n_splits)
+        self.skf = sklearn.model_selection.StratifiedKFold(n_splits=n_splits)
 
-    def split(self) -> Iterator[Tuple[numpy.ndarray, numpy.ndarray]]:
+    def split(self) -> Iterator[Tuple["numpy.ndarray", "numpy.ndarray"]]:
         return self.skf.split(self.type_array, self.type_enc)  # type: ignore
 
 

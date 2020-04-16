@@ -7,8 +7,6 @@ import random
 import textwrap
 import typing
 
-from Bio import SeqIO
-
 from ._base import Command
 from ._main import Main
 

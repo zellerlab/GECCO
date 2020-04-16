@@ -13,8 +13,8 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
 import numpy
 import pandas
 import tqdm
-from sklearn.model_selection import PredefinedSplit
-from sklearn_crfsuite import CRF
+import sklearn_crfsuite
+import sklearn.model_selection
 
 from . import preprocessing
 from .cv import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
@@ -114,7 +114,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.model = CRF(
+        self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
             all_possible_states=True,
@@ -133,7 +133,7 @@ class ClusterCRF(object):
 
     def fit(
         self,
-        data: Iterable[pandas.DataFrame],
+        data: Iterable["pandas.DataFrame"],
         trunc: Optional[int] = None,
         *,
         jobs: Optional[int] = None,
@@ -165,10 +165,10 @@ class ClusterCRF(object):
 
     def predict_marginals(
         self,
-        data: Iterable[pandas.DataFrame],
+        data: Iterable["pandas.DataFrame"],
         *,
         jobs: Optional[int] = None,
-    ) -> pandas.DataFrame:
+    ) -> "pandas.DataFrame":
         """Predicts marginals for the input data.
 
         Arguments:
@@ -217,13 +217,13 @@ class ClusterCRF(object):
 
     def cv(
         self,
-        data: List[pandas.DataFrame],
+        data: List["pandas.DataFrame"],
         strat_col: Optional[str] = None,
         k: int = 10,
         trunc: Optional[int] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List[pandas.DataFrame]:
+    ) -> List["pandas.DataFrame"]:
         """Runs k-fold cross-validation, possibly with a stratification column.
 
         Arguments:
@@ -253,7 +253,7 @@ class ClusterCRF(object):
             cv_split = StratifiedSplit(types, n_splits=k)
         else:
             folds = n_folds(len(data), n=k)
-            cv_split = PredefinedSplit(folds)
+            cv_split = sklearn.model_selection.PredefinedSplit(folds)
 
         pbar = tqdm.tqdm(cv_split.split(), total=k, leave=False)
         return [
@@ -265,12 +265,12 @@ class ClusterCRF(object):
 
     def loto_cv(
         self,
-        data: List[pandas.DataFrame],
+        data: List["pandas.DataFrame"],
         strat_col: str,
         trunc: Optional[int] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List[pandas.DataFrame]:
+    ) -> List["pandas.DataFrame"]:
         """Run LOTO cross-validation using a stratification column.
 
         Arguments:
@@ -307,14 +307,14 @@ class ClusterCRF(object):
 
     def _single_fold_cv(
         self,
-        data: List[pandas.DataFrame],
-        train_idx: numpy.ndarray,
-        test_idx: numpy.ndarray,
+        data: List["pandas.DataFrame"],
+        train_idx: "numpy.ndarray",
+        test_idx: "numpy.ndarray",
         round_id: Optional[str] = None,
         trunc: Optional[int] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> pandas.DataFrame:
+    ) -> "pandas.DataFrame":
         """Performs a single CV round with the given indices.
         """
         # Extract the fold from the complete data using the provided indices
@@ -341,7 +341,7 @@ class ClusterCRF(object):
     def _currify_extract_function(
         self, X_only: bool = False
     ) -> Callable[
-        [pandas.DataFrame], Tuple[List[Dict[str, float]], Optional[List[str]]]
+        ["pandas.DataFrame"], Tuple[List[Dict[str, float]], Optional[List[str]]]
     ]:
         """Currify a feature extraction function from `gecco.preprocessing`.
 
@@ -374,7 +374,7 @@ class ClusterCRF(object):
 
     def _extract_features(
         self,
-        data: Iterable[pandas.DataFrame],
+        data: Iterable["pandas.DataFrame"],
         X_only: bool = False,
         *,
         jobs: Optional[int] = None,

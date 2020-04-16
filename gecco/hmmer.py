@@ -109,7 +109,7 @@ class HMMER(object):
         self.cpus = cpus
         self._check_hmmer()
 
-    def run(self) -> pandas.DataFrame:
+    def run(self) -> "pandas.DataFrame":
         """Runs HMMER and returns the output as a data frame.
         """
         base, _ = os.path.splitext(os.path.basename(self.fasta))
@@ -182,7 +182,7 @@ class HMMER(object):
                     [sid, pid, start, end, strand, domain, l[12]] + typing.cast(List[object], l[17:19])
                 )
 
-    def _to_dataframe(self, dom_file: str) -> pandas.DataFrame:
+    def _to_dataframe(self, dom_file: str) -> "pandas.DataFrame":
         """Converts a HMMER domain table to a `pandas.DataFrame`.
         """
         rows = []

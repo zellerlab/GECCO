@@ -1,11 +1,13 @@
+import functools
 import typing
+from typing import Callable, Dict, Optional, Union
 
-from scipy.spatial.distance import jensenshannon
-from sklearn.neighbors import KNeighborsClassifier
+import sklearn.neighbors
+import scipy.spatial.distance
 
 if typing.TYPE_CHECKING:
     import numpy
-    _Metric = typing.Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
+    _Metric = typing.Callable[["numpy.ndarray", "numpy.ndarray"], "numpy.ndarray"]
 
 
 class ClusterKNN(object):
@@ -22,16 +24,16 @@ class ClusterKNN(object):
             classifier used for the prediction
     """
 
-    _METRICS: typing.Dict[str, "_Metric"] = {
+    _METRICS: Dict[str, "_Metric"] = {
         # NB(@althonos): Tanimoto distance seems to be mostly for boolean
         #                vectors, not probability vectors.
         "tanimoto": lambda p,q: p*q / (p - q)**2,  # type: ignore
-        "jensenshannon": jensenshannon,
+        "jensenshannon": scipy.spatial.distance.jensenshannon,
     }
 
     def __init__(
             self,
-            metric: typing.Union[str, "_Metric"] = "jensenshannon",
+            metric: Union[str, "_Metric"] = "jensenshannon",
             **kwargs: object
     ) -> None:
         """Create a new classifier.
@@ -56,7 +58,10 @@ class ClusterKNN(object):
             self.metric = metric
         if self.metric is None:
             raise ValueError(f"unexpected metric: {metric!r}")
-        self.knn = KNeighborsClassifier(metric=self.metric, **kwargs)
+        self.knn = sklearn.neighbors.KNeighborsClassifier(
+            metric=self.metric,
+            **kwargs
+        )
 
     def fit_predict(self, train_matrix, new_matrix, y):
         """Fit the model and immediately produce a prediction.

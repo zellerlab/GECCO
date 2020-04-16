@@ -138,7 +138,7 @@ class BGC(object):
         row_str = [str(item) for item in row]
         csv.writer(handle, dialect="excel-tab").writerow(row_str)
 
-    def domain_composition(self, all_possible: Optional[numpy.ndarray] = None) -> numpy.ndarray:
+    def domain_composition(self, all_possible: Optional["numpy.ndarray"] = None) -> "numpy.ndarray":
         """Computes weighted domain composition with respect to ``all_possible``.
 
         Arguments:
@@ -162,7 +162,7 @@ class BGC(object):
         comp_arr = comp_arr / comp_arr.sum()
         return typing.cast(numpy.ndarray, numpy.nan_to_num(comp_arr, copy=False))
 
-    def domain_counts(self, all_possible: Optional[numpy.ndarray]  = None) -> numpy.ndarray:
+    def domain_counts(self, all_possible: Optional["numpy.ndarray"]  = None) -> "numpy.ndarray":
         """Computes domain counts with respect to ``all_possible``.
         """
         doms = list(numpy.hstack(self.domains))
