@@ -57,22 +57,22 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
     def notice(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.NOTICE):
             msg, kw = self.process(msg, kwargs)
-            self.logger.log(verboselogs.NOTICE, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.NOTICE, self.Message(msg, args), **kw)
 
     def spam(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SPAM):
             msg, kw = self.process(msg, kwargs)
-            self.logger.log(verboselogs.SPAM, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.SPAM, self.Message(msg, args), **kw)
 
     def verbose(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.VERBOSE):
             msg, kw = self.process(msg, kwargs)
-            self.logger.log(verboselogs.VERBOSE, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.VERBOSE, self.Message(msg, args), **kw)
 
     def success(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SUCCESS):
             msg, kw = self.process(msg, kwargs)
-            self.logger.log(verboselogs.SUCCESS, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.SUCCESS, self.Message(msg, args), **kw)
 
 
 def wrap_warnings(logger: logging.Logger) -> Callable[["_F"], "_F"]:

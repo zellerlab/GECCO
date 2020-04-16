@@ -63,7 +63,6 @@ class Command(metaclass=abc.ABCMeta):
         # Create a new colored logger if needed
         if logger is None:
             logger = verboselogs.VerboseLogger(__progname__)
-            logger.addHandler(logging.StreamHandler())
             loglevel = (loglevel or "INFO").upper()
             coloredlogs.install(
                 level=int(loglevel) if loglevel.isdigit() else loglevel,

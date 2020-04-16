@@ -16,7 +16,7 @@ from ._base import Command
 from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
-# from ...knn import ClusterKNN
+from ...knn import ClusterKNN
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
 
