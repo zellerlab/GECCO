@@ -114,7 +114,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.model = CRF(  # type: ignore
+        self.model = CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
             all_possible_states=True,
@@ -293,6 +293,7 @@ class ClusterCRF(object):
         Todo:
             * Make progress bar configurable.
         """
+
         labels = [s[strat_col].values[0].split(",") for s in data]
         cv_split = LotoSplit(labels)
 

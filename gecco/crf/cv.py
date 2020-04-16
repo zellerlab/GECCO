@@ -5,14 +5,12 @@ from typing import Iterable, Iterator, List, Tuple
 import numpy
 from sklearn.model_selection import PredefinedSplit, check_cv, StratifiedKFold
 
-from .preprocessing import flatten
-
 
 class LotoSplit(object):
 
-    def __init__(self, type_array: Iterable[str]) -> None:
-        self.type_array = type_array
-        self.type_set: List[str] = list(set(flatten(type_array)))
+    def __init__(self, type_array: Iterable[List[str]]) -> None:
+        self.type_array = list(type_array)
+        self.type_set = {ty for types in self.type_array for ty in types}
 
     def split(self) -> Iterator[Tuple[numpy.ndarray, numpy.ndarray, str]]:
         for typ in self.type_set:

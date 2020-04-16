@@ -1,70 +1,35 @@
 import math
 import numbers
 import typing
-from collections import Iterable
+from collections.abc import Iterable
 from itertools import zip_longest
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np
+import numpy
 import pandas
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.base import TransformerMixin, BaseEstimator
 
 
-class SafeOneHotEncoder(BaseEstimator, TransformerMixin):
-    """
-    Onehot encodes samples with differing categorical composition
-    given the full set of categories.
-    """
+def truncate(
+    data: pandas.DataFrame,
+    length: int,
+    label_column: str = "BGC",
+    group_column: str = "protein_id"
+) -> pandas.DataFrame:
 
-    def __init__(self, all_categories):
-        self.le = LabelEncoder()
-        self.ohe = OneHotEncoder()
-        self.ohe.fit(self.le.fit_transform(all_categories).reshape(-1, 1))
+    data0 = data[data[label_column] == 0]
+    data1 = data[data[label_column] == 1]
+    data0 = [df for _, df in data0.groupby(group_column, sort=False)]
+    trunc_len = (len(data0) - 2 * length) // 2
 
-    def transform(self, X):
-        return self.ohe.transform(self.le.transform(X).reshape(-1, 1)).toarray()
+    # try:
+    data0_trunc = pandas.concat(data0[trunc_len:-trunc_len])
+    # except ValueError as err:
+    #    data_trunc = pandas.concat(data0)
 
+    return data0_trunc.append(data1).sort_index().reset_index()
 
-def flatten(l):
-    """Flattens list of arbitraty depth to generator."""
-    for el in l:
-        if isinstance(el, Iterable) and not isinstance(el, (str, bytes)):
-            yield from flatten(el)
-        else:
-            yield el
-
-
-def truncate(df, length, label_column="BGC", group_column="protein_id"):
-
-    df0 = df[df[label_column] == 0]
-    df1 = df[df[label_column] == 1]
-    df0 = [df for _, df in df0.groupby(group_column, sort=False)]
-    trunc_len = (len(df0) - 2 * length) // 2
-
-    try:
-        df_trunc = pandas.concat(df0[trunc_len:-trunc_len])
-    except ValueError as err:
-        df_trunc = pandas.concat(df0)
-
-    return df_trunc.append(df1).sort_index().reset_index()
-
-
-def safe_encode(X, feature_set=None, encoding="onehot"):
-    """Sefely onehot encodes samples with different categorical composition."""
-    if isinstance(feature_set, Iterable):
-        categories = list(feature_set)
-    else:
-        categories = list(set(flatten(X)))
-    if encoding == "onehot":
-        enc = SafeOneHotEncoder(categories)
-    elif encoding == "label":
-        enc = LabelEncoder().fit(categories)
-    X_enc = np.array([enc.transform(_.ravel()) for _ in X])
-    if isinstance(feature_set, Iterable):
-        return X_enc
-    else:
-        return X_enc, categories
 
 
 def extract_group_features(
