@@ -6,19 +6,25 @@ import functools
 import logging
 import typing
 import warnings
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Type, TextIO
 
 import numpy
 import verboselogs
 
 
-class classproperty(object):
+_S = typing.TypeVar("_S")
+_T = typing.TypeVar("_T")
+_F = typing.TypeVar("_F", bound=Callable[..., _T])
+
+
+class classproperty(property):
     """A class property decorator.
     """
 
-    def __init__(self, f):
+    def __init__(self, f: Callable[[_S], _T]) -> None:
         self.f = f
 
-    def __get__(self, obj, owner):
+    def __get__(self, obj: object, owner: _S) -> _T:  # type: ignore
         return self.f(owner)
 
 
@@ -27,47 +33,49 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
     """
 
     class Message(object):
-        def __init__(self, fmt, args):
+        def __init__(self, fmt: object, args: Iterable[object]):
             self.fmt = str(fmt)
             self.args = args
 
-        def __str__(self):
+        def __str__(self) -> str:
             return self.fmt.format(*self.args)
 
-    def __init__(self, logger, extra=None):
+    def __init__(
+        self, logger: logging.Logger, extra: Optional[Dict[str, object]] = None
+    ) -> None:
         super(BraceAdapter, self).__init__(logger, extra or {})
 
     @property
-    def level(self):
+    def level(self) -> int:
         return self.logger.level
 
-    def log(self, level, msg, *args, **kwargs):
+    def log(self, level: int, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(level):
-            msg, kwargs = self.process(msg, kwargs)
-            self.logger._log(level, self.Message(msg, args), (), **kwargs)
+            msg, kw = self.process(msg, kwargs)
+            self.logger._log(level, self.Message(msg, args), (), **kw)
 
-    def notice(self, msg, *args, **kwargs):
+    def notice(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.NOTICE):
-            msg, kwargs = self.process(msg, kwargs)
-            self.logger.notice(self.Message(msg, args), **kwargs)
+            msg, kw = self.process(msg, kwargs)
+            self.logger.log(verboselogs.NOTICE, self.Message(msg, args), **kw)
 
-    def spam(self, msg, *args, **kwargs):
+    def spam(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SPAM):
-            msg, kwargs = self.process(msg, kwargs)
-            self.logger.spam(self.Message(msg, args), **kwargs)
+            msg, kw = self.process(msg, kwargs)
+            self.logger.log(verboselogs.SPAM, self.Message(msg, args), **kw)
 
-    def verbose(self, msg, *args, **kwargs):
+    def verbose(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.VERBOSE):
-            msg, kwargs = self.process(msg, kwargs)
-            self.logger.verbose(self.Message(msg, args), **kwargs)
+            msg, kw = self.process(msg, kwargs)
+            self.logger.log(verboselogs.VERBOSE, self.Message(msg, args), **kw)
 
-    def success(self, msg, *args, **kwargs):
+    def success(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SUCCESS):
-            msg, kwargs = self.process(msg, kwargs)
-            self.logger.success(self.Message(msg, args), **kwargs)
+            msg, kw = self.process(msg, kwargs)
+            self.logger.log(verboselogs.SUCCESS, self.Message(msg, args), **kw)
 
 
-def wrap_warnings(logger: logging.Logger):
+def wrap_warnings(logger: logging.Logger) -> Callable[[_F], _F]:
     """Have the function patch `warnings.showwarning` with the given logger.
 
     Arguments:
@@ -87,17 +95,24 @@ def wrap_warnings(logger: logging.Logger):
     """
 
     class _WarningsWrapper(object):
-
-        def __init__(self, logger, func):
+        def __init__(self, logger: logging.Logger, func: Callable[..., _T]):
             self.logger = logger
             self.func = func
             functools.update_wrapper(self, func)
 
-        def showwarning(self, message, category, filename, lineno, file=None, line=None):
+        def showwarning(
+            self,
+            message: str,
+            category: Type[Warning],
+            filename: str,
+            lineno: int,
+            file: Optional[TextIO] = None,
+            line: Optional[str] = None,
+        ) -> None:
             for line in filter(str.strip, str(message).splitlines()):
                 self.logger.warning(line.strip())
 
-        def __call__(self, *args, **kwargs):
+        def __call__(self, *args: Any, **kwargs: Any) -> _T:
             old_showwarning = warnings.showwarning
             warnings.showwarning = self.showwarning
             try:
@@ -105,18 +120,24 @@ def wrap_warnings(logger: logging.Logger):
             finally:
                 warnings.showwarning = old_showwarning
 
-        def __getattr__(self, name):
+        def __getattr__(self, name: Any) -> Any:
             return getattr(self.func, name)
 
-
-    def decorator(func):
+    def decorator(func: Callable[..., _T]) -> Callable[..., _T]:
         return _WarningsWrapper(logger, func)
 
-    return decorator
+    return decorator  # type: ignore
 
 
 @contextlib.contextmanager
-def numpy_error_context(**kwargs: typing.Dict[str, str]):
+def numpy_error_context(
+    *,
+    all: Optional[str] = None,
+    divide: Optional[str] = None,
+    over: Optional[str] = None,
+    under: Optional[str] = None,
+    invalid: Optional[str] = None
+) -> Iterator[None]:
     """A context manager to modify the `numpy` error behaviour locally.
 
     Example:
@@ -131,7 +152,9 @@ def numpy_error_context(**kwargs: typing.Dict[str, str]):
 
     """
     try:
-        old_settings = numpy.seterr(**kwargs)
+        old_settings = numpy.seterr(
+            all=all, divide=divide, over=over, under=under, invalid=invalid
+        )
         yield
     finally:
         numpy.seterr(**old_settings)
