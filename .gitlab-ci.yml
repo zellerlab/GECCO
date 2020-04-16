@@ -16,11 +16,18 @@ stages:
   before_script:
     - apt update
     - apt install -y prodigal hmmer
+    - pip install --upgrade coverage
+
   script:
     - python setup.py bdist_wheel
     - pip install --upgrade dist/*.whl
     - gecco --traceback -vv run -o /tmp -g tests/data/SRR492066.fna
     - gecco --traceback -vv annotate -o /tmp -g tests/data/SRR492066.fna
+    - python -m coverage run -p -m unittest discover -vv
+
+  after_script:
+    - python -m coverage combine
+    - python -m coverage report
 
 # --- Stages -------------------------------------------------------------------
 
