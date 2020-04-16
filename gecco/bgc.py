@@ -160,7 +160,7 @@ class BGC(object):
             weight = w[doms == dom].mean() if n > 0 else 0
             comp_arr[i] = n * weight
         comp_arr = comp_arr / comp_arr.sum()
-        return numpy.nan_to_num(comp_arr, copy=False)
+        return typing.cast(numpy.ndarray, numpy.nan_to_num(comp_arr, copy=False))
 
     def domain_counts(self, all_possible: Optional[numpy.ndarray]  = None) -> numpy.ndarray:
         """Computes domain counts with respect to ``all_possible``.

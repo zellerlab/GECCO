@@ -1,11 +1,11 @@
 import typing
 
-import numpy
 from scipy.spatial.distance import jensenshannon
 from sklearn.neighbors import KNeighborsClassifier
 
-
-_Metric = typing.Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
+if typing.TYPE_CHECKING:
+    import numpy
+    _Metric = typing.Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
 
 
 class ClusterKNN(object):
@@ -22,18 +22,18 @@ class ClusterKNN(object):
             classifier used for the prediction
     """
 
-    _METRICS: typing.Dict[str, _Metric] = {
+    _METRICS: typing.Dict[str, "_Metric"] = {
         # NB(@althonos): Tanimoto distance seems to be mostly for boolean
         #                vectors, not probability vectors.
-        "tanimoto": lambda p,q: p*q / (p - q)**2,
+        "tanimoto": lambda p,q: p*q / (p - q)**2,  # type: ignore
         "jensenshannon": jensenshannon,
     }
 
     def __init__(
             self,
-            metric: typing.Union[str, _Metric] = "jensenshannon",
+            metric: typing.Union[str, "_Metric"] = "jensenshannon",
             **kwargs: object
-    ):
+    ) -> None:
         """Create a new classifier.
 
         Arguments:

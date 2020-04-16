@@ -1,9 +1,14 @@
 import csv
+import errno
 import os
 import subprocess
 import typing
+from typing import Dict, Optional, List, Type
 
 import pandas
+
+
+_T = typing.TypeVar("_T", bound="DomainRow")
 
 
 class DomainRow(typing.NamedTuple):
@@ -16,10 +21,10 @@ class DomainRow(typing.NamedTuple):
     """
 
     target_name: str
-    target_accession: typing.Optional[str]
+    target_accession: Optional[str]
     target_length: int
     query_name: str
-    query_accession: typing.Optional[str]
+    query_accession: Optional[str]
     query_length: int
     evalue: float
     score: float
@@ -37,10 +42,10 @@ class DomainRow(typing.NamedTuple):
     env_from: int
     env_to: int
     post: float
-    description: typing.Optional[str]
+    description: Optional[str]
 
     @classmethod
-    def from_line(cls, row: str):
+    def from_line(cls: Type[_T], row: str) -> _T:
         line = list(filter(None, row.split(" ")))
         return cls(
             target_name=line[0],
@@ -79,7 +84,7 @@ class HMMER(object):
         out_dir: str,
         hmms: str,
         prodigal: bool = True,
-        cpus: typing.Optional[int] = None,
+        cpus: Optional[int] = None,
     ) -> None:
         """Prepare a new `HMMER` annotation run.
 
@@ -135,7 +140,7 @@ class HMMER(object):
             devnull = subprocess.DEVNULL
             subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
         except OSError as e:
-            if e.errno == os.errno.ENOENT:
+            if e.errno == errno.ENOENT:
                 raise OSError(
                     "HMMER does not seem to be installed. Please install it and re-run GECCO."
                 )
@@ -174,7 +179,7 @@ class HMMER(object):
                     strand = "unknown"
                 domain = l[4] or l[3]
                 writer.writerow(
-                    [sid, pid, start, end, strand, domain, l[12]] + l[17:19]
+                    [sid, pid, start, end, strand, domain, l[12]] + typing.cast(List[object], l[17:19])
                 )
 
     def _to_dataframe(self, dom_file: str) -> pandas.DataFrame:
@@ -188,7 +193,8 @@ class HMMER(object):
                     sid = row.target_name[: row.target_name.rfind("_")]
                     pid = row.target_name
                     # extract additional metadata from the target description
-                    info = [x.strip() for x in row.description.split("#") if x]
+                    description = typing.cast(str, row.description)
+                    info = [x.strip() for x in description.split("#") if x]
                     start = int(info[0])
                     end = int(info[1])
                     strand = "+" if info[2] == "1" else "-"
@@ -228,7 +234,7 @@ class HMMER(object):
             ],
         )
 
-    def _get_protein_order(self) -> typing.Dict[str, int]:
+    def _get_protein_order(self) -> Dict[str, int]:
         with open(self.fasta, "r") as f:
             pids = [line[1:].split()[0] for line in f if line.startswith(">")]
         return {pid: i for i, pid in enumerate(pids)}
