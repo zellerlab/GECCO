@@ -79,7 +79,7 @@ def wrap_warnings(logger: logging.Logger):
         redirect any warning raised by that callable to the given logger.
 
     Example:
-        >>> logger = logging.Logger()
+        >>> logger = logging.getLogger()
         >>> @wrap_warnings(logger)
         ... def divide_by_zero(x):
         ...     return numpy.array(x) / 0
@@ -123,7 +123,7 @@ def numpy_error_context(**kwargs: typing.Dict[str, str]):
         >>> with numpy_error_context(divide="ignore"):
         ...     numpy.log10(0)
         -inf
-        >>> with numpy_error_context(divide="error"):
+        >>> with numpy_error_context(divide="raise"):
         ...     numpy.log10(0)
         Traceback (most recent call last):
           File "<stdin>", line 1, in <module>
