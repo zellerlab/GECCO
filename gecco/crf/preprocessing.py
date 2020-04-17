@@ -96,9 +96,9 @@ def extract_group_features(
 
     # then let's extract all the arrays we need from the input dataframe
     # so that we can discard it and only work with numpy arrays
-    group_array = table[group_column].values
+    group_array = table[group_column].array
     feature_weight_arrays = [
-        (table[feat].values, table[weight].values)
+        (table[feat].array, table[weight].array)
         for feat, weight in zip(feature_columns, weight_columns)
     ]
 
@@ -117,7 +117,7 @@ def extract_group_features(
 
     else:
         # if we are extracting class labels, we also need the label array
-        label_array = table[label_column].values.astype(str)
+        label_array = table[label_column].array.astype(str)
         Y: List[Optional[str]] = [None for _ in groups]
 
         # then, same as before, but with some extract code at the end
@@ -140,7 +140,6 @@ def extract_group_features(
                 Y[group_index] = label_row
 
         return X, typing.cast(List[str], Y)
-
 
 
 def extract_overlapping_features(
@@ -193,12 +192,12 @@ def extract_overlapping_features(
         end_idx = min(idx + overlap + 1, len(table))
         # process the features
         for feat_col, weight_col in zip(feature_columns, weight_columns):
-            features = table[feat_col].values[start_idx:end_idx]
-            weights = table[weight_col].values[start_idx:end_idx]
+            features = table[feat_col].array[start_idx:end_idx]
+            weights = table[weight_col].array[start_idx:end_idx]
             for feat, weight in zip(features, weights):
                 X[idx][feat] = max(X[idx].get(feat, 0), weight)
     # Only return Y if requested
-    return X, None if label_column is None else list(table[label_column].values.astype(str))
+    return X, None if label_column is None else list(table[label_column].array.astype(str))
 
 
 def extract_single_features(
@@ -243,8 +242,8 @@ def extract_single_features(
     # the appropriate columns and inserting them in the right location
     X: List[Dict[str, float]] = [dict() for _ in range(len(table))]
     for feat_col, weight_col in zip(feature_columns, weight_columns):
-        features, weights = table[feat_col].values, table[weight_col].values
+        features, weights = table[feat_col].array, table[weight_col].array
         for index, (feature, weight) in enumerate(zip(features, weights)):
             X[index][feature] = weight
     # return Y only if a label column is given
-    return X, None if label_column is None else list(table[label_column].values.astype(str))
+    return X, None if label_column is None else list(table[label_column].array.astype(str))
