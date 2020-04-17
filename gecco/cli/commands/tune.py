@@ -25,8 +25,8 @@ class Tune(Command):
 
     Usage:
         gecco tune (-h | --help)
-        gecco tune kfold -i <data>  [-w <col>]... [-f <col>]... [options]
-        gecco tune loto  -i <data>  [-w <col>]... [-f <col>]... [options]
+        gecco tune kfold -i <data> [--c1 <n>]... [--c2 <n>]... [-w <col>]... [-f <col>]... [options]
+        gecco tune loto  -i <data> [--c1 <n>]... [--c2 <n>]... [-w <col>]... [-f <col>]... [options]
 
     Arguments:
         -i <data>, --input <data>       a domain annotation table with regions
@@ -44,14 +44,12 @@ class Tune(Command):
                                         be included [default: 1e-5]
 
     Parameters - Training:
-        --c1-step <n>                   step for tuning the L1 regularisation
-                                        parameter [default: 0.01]
-        --c2-step <n>                   step for tuning the L2 regularisation
-                                        parameter [default: 0.01]
-        --c1-min <n>                    minimum boundary for C1. [default: 0]
-        --c1-max <n>                    maximum boundary for C1. [default: 0.5]
-        --c2-min <n>                    minimum boundary for C2. [default: 0]
-        --c2-max <n>                    maximum boundary for C2. [default: 0.5]
+        --c1 <n>                        the different values to use for C1. Can
+                                        be given more than once to create a 
+                                        grid. [default: 0 0.15 1 2 10]
+        --c2 <n>                        the different values to use for C2. Can
+                                        be given more than once to create a 
+                                        grid. [default: 0 0.15]
         --feature-type <type>           how features should be extracted
                                         (single, overlap, or group).
                                         [default: group]
@@ -100,13 +98,9 @@ class Tune(Command):
         if self.args["--truncate"] is not None:
             self.args["--truncate"] = int(self.args["--truncate"])
         self.args["--overlap"] = int(self.args["--overlap"])
-        self.args["--c1-min"] = float(self.args["--c1-min"])
-        self.args["--c1-max"] = float(self.args["--c1-max"])
-        self.args["--c1-step"] = float(self.args["--c1-step"])
-        self.args["--c2-min"] = float(self.args["--c2-min"])
-        self.args["--c2-max"] = float(self.args["--c2-max"])
-        self.args["--c2-step"] = float(self.args["--c2-step"])
         self.args["--splits"] = int(self.args["--splits"])
+        self.args["--c1"] = [float(c1) for c1 in self.args["--c1"]]
+        self.args["--c2"] = [float(c2) for c2 in self.args["--c2"]]
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
@@ -136,14 +130,9 @@ class Tune(Command):
         try:
             results = {}
 
-            # create the tuning grid
-            c1_min, c1_max, c1_step = self.args["--c1-min"], self.args["--c1-max"], self.args["--c1-step"]
-            c2_min, c2_max, c2_step = self.args["--c2-min"], self.args["--c2-max"], self.args["--c2-step"]
-            all_c1 = numpy.linspace(c1_min, c1_max, int((c1_max-c1_min)/c1_step)+1)
-            all_c2 = numpy.linspace(c2_min, c2_max, int((c2_max-c2_min)/c2_step)+1)
-
-            # compute results for all
-            for c1, c2 in itertools.product(all_c1, all_c2):
+            # compute results for all values
+            grid = itertools.product(self.args["--c1"], self.args["--c2"])
+            for c1, c2 in grid:
                 # create a new CRF with C1/C2 parameters
                 crf = ClusterCRF(
                     feature_columns = self.args["--feature-cols"],
