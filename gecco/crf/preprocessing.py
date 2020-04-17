@@ -1,5 +1,7 @@
+import collections
 import math
 import numbers
+import operator
 import typing
 import warnings
 from collections.abc import Iterable
@@ -73,29 +75,72 @@ def extract_group_features(
         ...         ["prot2", "domainC", 0.8],
         ...     ],
         ... )
-        >>> extract_group_features(data, ["domain"], ["weight"], ["protein_id"])
+        >>> extract_group_features(data, ["domain"], ["weight"], "protein_id")
         ([{'domainA': 0.5, 'domainB': 1.0}, {'domainC': 0.8}], None)
 
     """
-    # create a feature list for each group (i.e. protein) without
-    # iterating on each row
-    X: List[Dict[str, float]] = []
-    Y: List[str] = []
-    for prot_id, df in table.groupby(group_column, sort=False):
-        X.append({})
-        for feat_col, weight_col in zip(feature_columns, weight_columns):
-            features, weights = df[feat_col].values, df[weight_col].values
-            for feat, weight in zip(features, weights):
-                X[-1][feat] = max(X[-1].get(feat, 0), weight)
-        if label_column is not None:
-            unique_labels = set(df[label_column].values.astype(str))
-            if len(unique_labels) > 1:
+    # NOTE(@althonos):
+    # There is a lot to unpack here, but basically we are doing some convoluted
+    # stuff in order to avoid calling `table.groupby` directly, which takes
+    # ages otherwise. To do so, we work at the `numpy.ndarray` level, extracting
+    # the columns and doing the grouping at the same time we extract features.
+    # The code also does some branching to avoid extracting labels if it is
+    # not necessary.
+
+    # first, let's extract all the groups, and create a table that maps each
+    # group to an index: this let's us store the features of each groups in
+    # an array instead of a dictionary, saving us the conversion to list
+    groups = list(table[group_column].unique())
+    group_indexer = {group:i for i,group in enumerate(groups)}
+    X: List[Dict[str, float]] = [dict() for _ in groups]
+
+    # then let's extract all the arrays we need from the input dataframe
+    # so that we can discard it and only work with numpy arrays
+    group_array = table[group_column].values
+    feature_weight_arrays = [
+        (table[feat].values, table[weight].values)
+        for feat, weight in zip(feature_columns, weight_columns)
+    ]
+
+    if label_column is None:
+        # iterate on all the rows of the initial dataframe, and for
+        # each row extract all `feature:weight` couples and put them in
+        # the right group, which is determined by the group column.
+        for row_index, group_key in enumerate(group_array):
+            x = X[group_indexer[group_key]]
+            for feat_array, weight_array in feature_weight_arrays:
+                row_feat = feat_array[row_index]
+                row_weight = weight_array[row_index]
+                x[row_feat] = max(x.get(row_feat, 0), row_weight)
+
+        return X, None
+
+    else:
+        # if we are extracting class labels, we also need the label array
+        label_array = table[label_column].values.astype(str)
+        Y: List[Optional[str]] = [None for _ in groups]
+
+        # then, same as before, but with some extract code at the end
+        # to extract the class label, and check a group does not contain
+        # mismatching labels
+        for row_index, group_key in enumerate(group_array):
+            group_index = group_indexer[group_key]
+            x, y = X[group_index], Y[group_index]
+            for feat_array, weight_array in feature_weight_arrays:
+                row_feat = feat_array[row_index]
+                row_weight = weight_array[row_index]
+                x[row_feat] = max(x.get(row_feat, 0), row_weight)
+
+            label_row = label_array[row_index]
+            if y is not None and y != label_row:
                 warnings.warn(
                     "Feature group contains mixed class label. A random label will be selected."
                 )
-            Y.append(unique_labels.pop())
-    # only return Y if the class column was given
-    return X, None if label_column is None else Y
+            else:
+                Y[group_index] = label_row
+
+        return X, typing.cast(List[str], Y)
+
 
 
 def extract_overlapping_features(
