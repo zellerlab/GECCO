@@ -1,11 +1,13 @@
+import functools
 import typing
+from typing import Callable, Dict, Optional, Union
 
-import numpy
-from scipy.spatial.distance import jensenshannon
-from sklearn.neighbors import KNeighborsClassifier
+import sklearn.neighbors
+import scipy.spatial.distance
 
-
-_Metric = typing.Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
+if typing.TYPE_CHECKING:
+    import numpy
+    _Metric = typing.Callable[["numpy.ndarray", "numpy.ndarray"], "numpy.ndarray"]
 
 
 class ClusterKNN(object):
@@ -22,22 +24,26 @@ class ClusterKNN(object):
             classifier used for the prediction
     """
 
-    _METRICS: typing.Dict[str, _Metric] = {
-        # NB(@althonos): Tanimoto distance seems to be mostly for boolean
-        #                vectors, not probability vectors.
-        "tanimoto": lambda p,q: p*q / (p - q)**2,
-        "jensenshannon": jensenshannon,
-    }
+    @classmethod
+    def _get_metric(cls, name: str) -> "_Metric":
+        if name == "jensenshannon":
+            return scipy.spatial.distance.jensenshannon  # type: ignore
+        elif name == "tanimoto":
+            # NB(@althonos): Tanimoto distance seems to be mostly for boolean
+            #                vectors, not probability vectors.
+            return lambda p,q: p*q / (p - q)**2  # type: ignore
+        else:
+            raise ValueError(f"unexpected metric: {name!r}")
 
     def __init__(
             self,
-            metric: typing.Union[str, _Metric] = "jensenshannon",
+            metric: Union[str, "_Metric"] = "jensenshannon",
             **kwargs: object
-    ):
+    ) -> None:
         """Create a new classifier.
 
         Arguments:
-            metric (str or function): The distance metric to use with the
+            metric (`str` or `function`): The distance metric to use with the
                 classifier. Either given a metric name (such as
                 ``jensenshannon``, the default) or a callable that takes
                 two vectors.
@@ -51,12 +57,13 @@ class ClusterKNN(object):
         """
 
         if isinstance(metric, str):
-            self.metric = self._METRICS.get(metric)
+            self.metric = self._get_metric(metric)
         else:
             self.metric = metric
-        if self.metric is None:
-            raise ValueError(f"unexpected metric: {metric!r}")
-        self.knn = KNeighborsClassifier(metric=self.metric, **kwargs)
+        self.knn = sklearn.neighbors.KNeighborsClassifier(
+            metric=self.metric,
+            **kwargs
+        )
 
     def fit_predict(self, train_matrix, new_matrix, y):
         """Fit the model and immediately produce a prediction.

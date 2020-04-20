@@ -1,11 +1,14 @@
 import functools
+import itertools
 import os
 import multiprocessing
 import random
 import typing
 from typing import List
 
+import numpy
 import pandas
+import tqdm
 
 from ._base import Command
 from ...crf import ClusterCRF
@@ -14,16 +17,16 @@ if typing.TYPE_CHECKING:
     from pandas import DataFrame
 
 
-class Cv(Command):
+class Tune(Command):
 
-    summary = "perform cross validation on a training set."
+    summary = "optimize value of hyperparameters through cross-validation."
     doc = f"""
-    gecco cv  - {summary}
+    gecco tune  - {summary}
 
     Usage:
-        gecco cv (-h | --help)
-        gecco cv kfold -i <data>  [-w <col>]... [-f <col>]... [options]
-        gecco cv loto  -i <data>  [-w <col>]... [-f <col>]... [options]
+        gecco tune (-h | --help)
+        gecco tune kfold -i <data> [--c1 <n>]... [--c2 <n>]... [-w <col>]... [-f <col>]... [options]
+        gecco tune loto  -i <data> [--c1 <n>]... [--c2 <n>]... [-w <col>]... [-f <col>]... [options]
 
     Arguments:
         -i <data>, --input <data>       a domain annotation table with regions
@@ -41,10 +44,12 @@ class Cv(Command):
                                         be included [default: 1e-5]
 
     Parameters - Training:
-        --c1 <C1>                       parameter for L1 regularisation.
-                                        [default: 0.15]
-        --c2 <C2>                       parameter for L2 regularisation.
-                                        [default: 0.15]
+        --c1 <n>                        the different values to use for C1. Can
+                                        be given more than once to create a 
+                                        grid. [default: 0 0.15 1 2 10]
+        --c2 <n>                        the different values to use for C2. Can
+                                        be given more than once to create a 
+                                        grid. [default: 0 0.15]
         --feature-type <type>           how features should be extracted
                                         (single, overlap, or group).
                                         [default: group]
@@ -77,7 +82,6 @@ class Cv(Command):
         if retcode is not None:
             return retcode
 
-
         # Check the input exists
         input_ = self.args["--input"]
         if not os.path.exists(input_):
@@ -94,9 +98,9 @@ class Cv(Command):
         if self.args["--truncate"] is not None:
             self.args["--truncate"] = int(self.args["--truncate"])
         self.args["--overlap"] = int(self.args["--overlap"])
-        self.args["--c1"] = float(self.args["--c1"])
-        self.args["--c2"] = float(self.args["--c2"])
         self.args["--splits"] = int(self.args["--splits"])
+        self.args["--c1"] = [float(c1) for c1 in self.args["--c1"]]
+        self.args["--c2"] = [float(c2) for c2 in self.args["--c2"]]
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
@@ -123,46 +127,57 @@ class Cv(Command):
             random.shuffle(data)
 
         # --- CROSS VALIDATION -----------------------------------------------
-        crf = ClusterCRF(
-            feature_columns = self.args["--feature-cols"],
-            weight_columns = self.args["--weight-cols"],
-            feature_type = self.args["--feature-type"],
-            label_column = self.args["--y-col"],
-            overlap = self.args["--overlap"],
-            algorithm = "lbfgs",
-            c1 = self.args["--c1"],
-            c2 = self.args["--c2"],
-        )
+        try:
+            results = {}
 
-        if self.args["loto"]:
-            cv_type = "loto"
-            cross_validate = crf.loto_cv
-        elif self.args["kfold"]:
-            cv_type = "kfold"
-            cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
+            # compute results for all values
+            grid = itertools.product(self.args["--c1"], self.args["--c2"])
+            for c1, c2 in grid:
+                # create a new CRF with C1/C2 parameters
+                crf = ClusterCRF(
+                    feature_columns = self.args["--feature-cols"],
+                    weight_columns = self.args["--weight-cols"],
+                    feature_type = self.args["--feature-type"],
+                    label_column = self.args["--y-col"],
+                    overlap = self.args["--overlap"],
+                    algorithm = "lbfgs",
+                    c1 = c1,
+                    c2 = c2
+                )
+                # choose the right cross-validation method
+                if self.args["loto"]:
+                    cv_type = "loto"
+                    cross_validate = crf.loto_cv
+                elif self.args["kfold"]:
+                    cv_type = "kfold"
+                    cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
+                # run the cross validation
+                self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
+                raw = cross_validate(
+                    data,
+                    self.args["--strat-col"],
+                    trunc=self.args["--truncate"],
+                    jobs=self.args["--jobs"],
+                )
+                if raw:
+                    results[c1, c2] = pandas.concat(raw).assign(c1=c1, c2=c2)
 
-        self.logger.info("Performing cross-validation")
-        results = pandas.concat(cross_validate(
-            data,
-            self.args["--strat-col"],
-            trunc=self.args["--truncate"],
-            jobs=self.args["--jobs"],
-        ))
+            return 0
+        finally:
+            # still attempt to write results if the tuning was
+            # interrupted before completion
+            if results:
+                # Concatenate results
+                table = pandas.concat(results.values())
+                table["feature_type"] = self.args["--feature-type"]
+                table["e_filter"] = self.args["--e-filter"]
+                table["overlap"] = self.args["--overlap"]
+                table["weight"] = ",".join(map(str, self.args["--weight-cols"]))
+                table["feature"] = ",".join(self.args["--feature-cols"])
+                table["truncate"] = self.args["--truncate"]
+                table["input"] = os.path.basename(self.args["--input"])
+                table["cv_type"] = cv_type
 
-        # Add all the arguments given from CLI as table data
-        self.logger.info("Formatting results")
-        results["c1"] = self.args["--c1"]
-        results["c2"] = self.args["--c2"]
-        results["feature_type"] = self.args["--feature-type"]
-        results["e_filter"] = self.args["--e-filter"]
-        results["overlap"] = self.args["--overlap"]
-        results["weight"] = ",".join(map(str, self.args["--weight-cols"]))
-        results["feature"] = ",".join(self.args["--feature-cols"])
-        results["truncate"] = self.args["--truncate"]
-        results["input"] = os.path.basename(self.args["--input"])
-        results["cv_type"] = cv_type
-
-        # Write results
-        self.logger.info("Writing output to {!r}", self.args["--output"])
-        results.to_csv(self.args["--output"], sep="\t", index=False)
-        return 0
+                # Write results
+                self.logger.info("Writing output to {!r}", self.args["--output"])
+                table.to_csv(self.args["--output"], sep="\t", index=False)

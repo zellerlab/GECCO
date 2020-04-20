@@ -5,18 +5,15 @@ import multiprocessing
 import os
 import random
 import typing
+from typing import Optional, List, Tuple
 
-import numpy
 import pandas
-from Bio import SeqIO
 
 from ._base import Command
 from ... import data
-from ...crf import ClusterCRF
 from ...hmmer import HMMER
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
-from ...preprocessing import truncate
 
 
 class Annotate(Command):
@@ -54,7 +51,7 @@ class Annotate(Command):
                                       be included. [default: 1e-5]
     """
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> Optional[int]:
         retcode = super()._check()
         if retcode is not None:
             return retcode
@@ -71,7 +68,7 @@ class Annotate(Command):
             self.args["--jobs"] = multiprocessing.cpu_count()
 
         # Check the input exists
-        input = next(filter(None, (self.args[x] for x in ("--genome", "--proteins", "--mibig"))))
+        input: str = next(filter(None, (self.args[x] for x in ("--genome", "--proteins", "--mibig"))))
         if not os.path.exists(input):
             self.logger.error("could not locate input file: {!r}", input)
             return 1
@@ -102,8 +99,8 @@ class Annotate(Command):
             os.makedirs(prodigal_out, exist_ok=True)
 
             self.logger.info("Predicting ORFs with PRODIGAL")
-            prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
-            orf_file = prodigal.run()
+            orf_finder = ORFFinder(genome, prodigal_out, method="prodigal")
+            orf_file = orf_finder.run()
             prodigal = True
 
         else:
@@ -141,18 +138,19 @@ class Annotate(Command):
         if self.args["--mibig"] is not None:
             sid = [row[0] for row in feats_df["sequence_id"].str.split("|")]
             strand = [row[3] for row in feats_df["sequence_id"].str.split("|")]
-            locs = [
-                tuple(map(int, row[2].split("-")))
+            locs: List[Tuple[int, int]] = [
+                tuple(map(int, row[2].split("-")))  # type: ignore
                 for row in feats_df["sequence_id"].str.split("|")
             ]
             feats_df = feats_df.assign(
                 sequence_id=sid,
                 strand=strand,
-                start=list(map(min, locs)),
-                end=list(map(max, locs)),
+                start=list(map(min, locs)), # type: ignore
+                end=list(map(max, locs)), # type: ignore
             )
 
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
         feats_df.to_csv(feat_out, sep="\t", index=False)
+        return 0

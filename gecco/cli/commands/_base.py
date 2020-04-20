@@ -4,6 +4,7 @@ import logging
 import sys
 import textwrap
 import typing
+from typing import Any, ClassVar, Optional, List, Mapping, Dict, TextIO
 
 import coloredlogs
 import docopt
@@ -19,7 +20,8 @@ class Command(metaclass=abc.ABCMeta):
 
     # -- Abstract methods ----------------------------------------------------
 
-    doc: typing.ClassVar[str] = NotImplemented
+    doc: ClassVar[str] = NotImplemented
+    summary: ClassVar[str] = NotImplemented
 
     @abc.abstractmethod
     def __call__(self) -> int:
@@ -32,15 +34,15 @@ class Command(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        argv: typing.Optional[typing.List[str]] = None,
-        stream: typing.Optional[typing.TextIO] = None,
-        logger: typing.Optional[logging.Logger] = None,
-        options: typing.Optional[typing.Mapping[str, typing.Any]] = None,
-        config: typing.Optional[typing.Dict[typing.Any, typing.Any]] = None,
+        argv: Optional[List[str]] = None,
+        stream: Optional[TextIO] = None,
+        logger: Optional[logging.Logger] = None,
+        options: Optional[Mapping[str, Any]] = None,
+        config: Optional[Dict[Any, Any]] = None,
     ) -> None:
 
         self.argv = argv
-        self.stream: typing.TextIO = stream or sys.stderr
+        self.stream: TextIO = stream or sys.stderr
         self.options = options or dict()
         self.pool = None
         self.config = config
@@ -62,18 +64,17 @@ class Command(metaclass=abc.ABCMeta):
         # Create a new colored logger if needed
         if logger is None:
             logger = verboselogs.VerboseLogger(__progname__)
-            logger.addHandler(logging.StreamHandler())
             loglevel = (loglevel or "INFO").upper()
             coloredlogs.install(
-                level=int(loglevel) if loglevel.isdigit() else loglevel,
-                stream=stream,
                 logger=logger,
+                level=int(loglevel) if loglevel.isdigit() else loglevel,
+                stream=self.stream,
             )
 
         # Use a loggin adapter to use new-style formatting
         self.logger = BraceAdapter(logger)
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> Optional[int]:
         # Assert CLI arguments were parsed Successfully
         if isinstance(self.args, docopt.DocoptExit):
             print(self.args, file=self.stream)
@@ -85,10 +86,10 @@ class Command(metaclass=abc.ABCMeta):
         else:
             return None
 
-    def _get_log_level(self) -> typing.Optional[str]:
+    def _get_log_level(self) -> Optional[str]:
         if self.args.get("--verbose"):
             return "VERBOSE" if self.args.get("--verbose") == 1 else "DEBUG"
         elif self.args.get("--quiet"):
             return "ERROR"
         else:
-            return self.args.get("--log")
+            return typing.cast(Optional[str], self.args.get("--log"))

@@ -14,10 +14,8 @@ from ._base import Command
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
-from ...knn import ClusterKNN
 from ...orf import ORFFinder
 from ...refine import ClusterRefiner
-from ...preprocessing import truncate
 
 
 class Train(Command):
@@ -160,25 +158,12 @@ class Train(Command):
             self.logger.debug("Shuffling data")
             random.shuffle(data_tbl)
 
-        # Truncate the input data if required
-        if self.args["--truncate"] is not None:
-            self.logger.debug("Truncating data to {} rows", self.args["--truncate"])
-            data_tbl = [
-                truncate(
-                    df,
-                    self.args["--truncate"],
-                    Y_col=self.args["--y-col"],
-                    grouping=self.args["--group-col"]
-                )
-                for df in data_tbl
-            ]
-
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
-            Y_col = self.args["--y-col"],
-            feature_cols = self.args["--feature-cols"],
-            group_col = self.args["--group-col"],
-            weight_cols = self.args["--weight-cols"],
+            label_column = self.args["--y-col"],
+            feature_columns = self.args["--feature-cols"],
+            weight_columns = self.args["--weight-cols"],
+            group_column = self.args["--group-col"],
             feature_type = self.args["--feature-type"],
             overlap = self.args["--overlap"],
             algorithm = "lbfgs",
@@ -186,7 +171,7 @@ class Train(Command):
             c2 = self.args["--c2"]
         )
         self.logger.info("Fitting the model")
-        crf.fit(data=data_tbl)
+        crf.fit(data=data_tbl, trunc=self.args["--truncate"])
 
         model_out = f"{self.args['--output']}.crf.model"
         self.logger.info("Writing the model to {!r}", model_out)

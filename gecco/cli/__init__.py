@@ -1,21 +1,24 @@
 # coding: utf-8
 
-import logging
 import sys
 import typing
+from typing import Optional, List, TextIO
 
-import verboselogs
+import demandimport
 
-from .commands._main import Main as _Main
-
+if typing.TYPE_CHECKING:
+    import logging
 
 def main(
-    argv: typing.Optional[typing.List[str]] = None,
-    stream: typing.Optional[typing.TextIO] = None,
-    logger: typing.Optional[logging.Logger] = None,
+    argv: Optional[List[str]] = None,
+    stream: Optional[TextIO] = None,
+    logger: Optional["logging.Logger"] = None,
 ) -> int:
-    return _Main(argv, stream, logger)()
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    # enable demandimport only when importing the command and parsing the
+    # arguments, but disable it for actual execution of the app
+    with demandimport.enabled():
+        demandimport.ignore('msvcrt')
+        demandimport.ignore('_compat_pickle')
+        from .commands._main import Main
+        _main = Main(argv, stream, logger)
+    return _main()

@@ -10,12 +10,12 @@ class ORFFinder(object):
     """
 
     def __init__(
-            self,
-            fasta: str,
-            out_dir: str,
-            method: str ="prodigal",
-            out_formats: Optional[List[str]] = None,
-            other_args: Optional[List[str]] = None
+        self,
+        fasta: str,
+        out_dir: str,
+        method: str = "prodigal",
+        out_formats: Optional[List[str]] = None,
+        other_args: Optional[List[str]] = None,
     ) -> None:
         """Create a new `ORFFinder` to launch PRODIGAL on ``fasta``.
 
@@ -38,7 +38,7 @@ class ORFFinder(object):
         self.method = method
         self._check_method()
 
-        self.out_formats =  ["genes", "coords"] if out_formats is None else out_formats
+        self.out_formats = ["genes", "coords"] if out_formats is None else out_formats
         self.other_args: List[str] = [] if other_args is None else other_args
 
     def run(self) -> str:
@@ -61,7 +61,9 @@ class ORFFinder(object):
             subprocess.run([self.method], stdout=devnull, stderr=devnull)
         except OSError as err:
             if err.errno == errno.ENOENT:
-                raise RuntimeError(f"{self.method} does not seem to be installed. Please install it and re-run GECCO.") from None
+                raise RuntimeError(
+                    f"{self.method} does not seem to be installed. Please install it and re-run GECCO."
+                ) from None
             raise
 
     def _make_commandline(self) -> List[str]:

@@ -1,9 +1,14 @@
 import csv
+import errno
 import os
 import subprocess
 import typing
+from typing import Dict, Optional, List, Type
 
 import pandas
+
+
+_T = typing.TypeVar("_T", bound="DomainRow")
 
 
 class DomainRow(typing.NamedTuple):
@@ -16,10 +21,10 @@ class DomainRow(typing.NamedTuple):
     """
 
     target_name: str
-    target_accession: typing.Optional[str]
+    target_accession: Optional[str]
     target_length: int
     query_name: str
-    query_accession: typing.Optional[str]
+    query_accession: Optional[str]
     query_length: int
     evalue: float
     score: float
@@ -37,37 +42,36 @@ class DomainRow(typing.NamedTuple):
     env_from: int
     env_to: int
     post: float
-    description: typing.Optional[str]
+    description: Optional[str]
 
     @classmethod
-    def from_line(cls, row: str):
+    def from_line(cls: Type[_T], row: str) -> _T:
         line = list(filter(None, row.split(" ")))
         return cls(
-            target_name = line[0],
-            target_accession = None if line[1] == "-" else line[1],
-            target_length = len(line[2]),
-            query_name = line[3],
-            query_accession = None if line[4] == "-" else line[4],
-            query_length = len(line[5]),
-            evalue = float(line[6]),
-            score = float(line[7]),
-            bias = float(line[8]),
-            domain_number = int(line[9]),
-            domain_total = int(line[10]),
-            c_evalue = float(line[11]),
-            i_evalue = float(line[12]),
-            domain_score = float(line[13]),
-            domain_bias = float(line[14]),
-            hmm_from = int(line[15]),
-            hmm_to = int(line[16]),
-            ali_from = int(line[17]),
-            ali_to = int(line[18]),
-            env_from = int(line[19]),
-            env_to = int(line[20]),
-            post = float(line[21]),
-            description = " ".join(line[22:]) if line[22:] else None
+            target_name=line[0],
+            target_accession=None if line[1] == "-" else line[1],
+            target_length=len(line[2]),
+            query_name=line[3],
+            query_accession=None if line[4] == "-" else line[4],
+            query_length=len(line[5]),
+            evalue=float(line[6]),
+            score=float(line[7]),
+            bias=float(line[8]),
+            domain_number=int(line[9]),
+            domain_total=int(line[10]),
+            c_evalue=float(line[11]),
+            i_evalue=float(line[12]),
+            domain_score=float(line[13]),
+            domain_bias=float(line[14]),
+            hmm_from=int(line[15]),
+            hmm_to=int(line[16]),
+            ali_from=int(line[17]),
+            ali_to=int(line[18]),
+            env_from=int(line[19]),
+            env_to=int(line[20]),
+            post=float(line[21]),
+            description=" ".join(line[22:]) if line[22:] else None,
         )
-
 
 
 class HMMER(object):
@@ -80,7 +84,7 @@ class HMMER(object):
         out_dir: str,
         hmms: str,
         prodigal: bool = True,
-        cpus: typing.Optional[int] = None,
+        cpus: Optional[int] = None,
     ) -> None:
         """Prepare a new `HMMER` annotation run.
 
@@ -105,7 +109,7 @@ class HMMER(object):
         self.cpus = cpus
         self._check_hmmer()
 
-    def run(self) -> pandas.DataFrame:
+    def run(self) -> "pandas.DataFrame":
         """Runs HMMER and returns the output as a data frame.
         """
         base, _ = os.path.splitext(os.path.basename(self.fasta))
@@ -126,8 +130,8 @@ class HMMER(object):
         # Extract the result as a dataframe
         return (
             self._to_dataframe(dom_out)
-                .sort_values(["sequence_id", "start", "domain_start"])
-                .reset_index(drop=True)
+            .sort_values(["sequence_id", "start", "domain_start"])
+            .reset_index(drop=True)
         )
 
     def _check_hmmer(self) -> None:
@@ -136,8 +140,10 @@ class HMMER(object):
             devnull = subprocess.DEVNULL
             subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
         except OSError as e:
-            if e.errno == os.errno.ENOENT:
-                raise OSError("HMMER does not seem to be installed. Please install it and re-run GECCO.")
+            if e.errno == errno.ENOENT:
+                raise OSError(
+                    "HMMER does not seem to be installed. Please install it and re-run GECCO."
+                )
             raise
 
     def _to_tsv(self, dom_file: str, out_file: str) -> None:
@@ -151,7 +157,7 @@ class HMMER(object):
             "domain",
             "i_Evalue",
             "domain_start",
-            "domain_end"
+            "domain_end",
         ]
         with open(dom_file, "r") as f, open(out_file, "w") as fout:
             writer = csv.writer(fout, dialect="excel-tab")
@@ -172,9 +178,11 @@ class HMMER(object):
                     end = self.protein_order[pid]
                     strand = "unknown"
                 domain = l[4] or l[3]
-                writer.writerow([sid, pid, start, end, strand, domain, l[12]] + l[17:19])
+                writer.writerow(
+                    [sid, pid, start, end, strand, domain, l[12]] + typing.cast(List[object], l[17:19])
+                )
 
-    def _to_dataframe(self, dom_file: str) -> pandas.DataFrame:
+    def _to_dataframe(self, dom_file: str) -> "pandas.DataFrame":
         """Converts a HMMER domain table to a `pandas.DataFrame`.
         """
         rows = []
@@ -182,10 +190,11 @@ class HMMER(object):
             for line in filter(lambda line: not line.startswith("#"), f):
                 row = DomainRow.from_line(line)
                 if self.prodigal:
-                    sid = row.target_name[:row.target_name.rfind("_")]
+                    sid = row.target_name[: row.target_name.rfind("_")]
                     pid = row.target_name
                     # extract additional metadata from the target description
-                    info = [x.strip() for x in row.description.split("#") if x]
+                    description = typing.cast(str, row.description)
+                    info = [x.strip() for x in description.split("#") if x]
                     start = int(info[0])
                     end = int(info[1])
                     strand = "+" if info[2] == "1" else "-"
@@ -195,24 +204,37 @@ class HMMER(object):
                     end = self.protein_order[pid]
                     strand = "unknown"
                 domain = row.query_accession or row.query_name
-                rows.append((
-                    sid,
-                    pid,
-                    min(start, end),
-                    max(start, end),
-                    strand,
-                    domain,
-                    row.i_evalue,
-                    1-row.i_evalue,
-                    min(row.env_from, row.env_to),
-                    max(row.env_from, row.env_to),
-                ))
-        return pandas.DataFrame(rows, columns=[
-            "sequence_id", "protein_id", "start", "end", "strand",
-            "domain", "i_Evalue", "rev_i_Evalue", "domain_start", "domain_end",
-        ])
+                rows.append(
+                    (
+                        sid,
+                        pid,
+                        min(start, end),
+                        max(start, end),
+                        strand,
+                        domain,
+                        row.i_evalue,
+                        1 - row.i_evalue,
+                        min(row.env_from, row.env_to),
+                        max(row.env_from, row.env_to),
+                    )
+                )
+        return pandas.DataFrame(
+            rows,
+            columns=[
+                "sequence_id",
+                "protein_id",
+                "start",
+                "end",
+                "strand",
+                "domain",
+                "i_Evalue",
+                "rev_i_Evalue",
+                "domain_start",
+                "domain_end",
+            ],
+        )
 
-    def _get_protein_order(self) -> typing.Dict[str, int]:
+    def _get_protein_order(self) -> Dict[str, int]:
         with open(self.fasta, "r") as f:
             pids = [line[1:].split()[0] for line in f if line.startswith(">")]
-        return {pid:i for i, pid in enumerate(pids)}
+        return {pid: i for i, pid in enumerate(pids)}

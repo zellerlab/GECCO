@@ -7,10 +7,6 @@ import random
 import textwrap
 import typing
 
-import numpy
-import pandas
-from Bio import SeqIO
-
 from ._base import Command
 from ._main import Main
 

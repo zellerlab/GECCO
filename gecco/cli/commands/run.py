@@ -5,6 +5,8 @@ import multiprocessing
 import os
 import pickle
 import typing
+import signal
+from typing import Union
 
 import numpy
 import pandas
@@ -12,8 +14,7 @@ from Bio import SeqIO
 
 from ._base import Command
 from ... import data
-from ...data.hmms import ForeignHmm
-from ...crf import ClusterCRF
+from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
 from ...orf import ORFFinder
@@ -129,8 +130,8 @@ class Run(Command):
             os.makedirs(prodigal_out, exist_ok=True)
 
             self.logger.info("Predicting ORFs with PRODIGAL")
-            prodigal = ORFFinder(genome, prodigal_out, method="prodigal")
-            orf_file = prodigal.run()
+            orf_finder = ORFFinder(genome, prodigal_out, method="prodigal")
+            orf_file = orf_finder.run()
             prodigal = True
 
         else:
@@ -142,7 +143,7 @@ class Run(Command):
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm):
+        def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
             self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
@@ -175,6 +176,10 @@ class Run(Command):
         else:
             crf = data.load("model/crf.model")
 
+        # Compute reverse i_Evalue to be used as weight
+        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
+        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
+
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
             data=[seq for _, seq in feats_df.groupby("sequence_id")]
@@ -184,10 +189,6 @@ class Run(Command):
         pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
         self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
         feats_df.to_csv(pred_out, sep="\t", index=False)
-
-        # Compute additional statistics
-        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
-        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting clusters")
