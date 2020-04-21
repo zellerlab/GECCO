@@ -11,6 +11,7 @@ from ._meta import classproperty
 class MissingBinaryError(RuntimeError):
     """A runtime error when a required program could not be found.
     """
+
     def __init__(self, name: str, args: Iterable[str]):
         self.name = name
         self.args = args

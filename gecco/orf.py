@@ -1,5 +1,5 @@
 import abc
-import errno
+import io
 import os
 import subprocess
 import tempfile
@@ -28,7 +28,7 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
 
     BINARY = "prodigal"
 
-    def __init__(self, metagenome=True):
+    def __init__(self, metagenome: bool =True) -> None:
         super().__init__()
         self.metagenome = metagenome
 
@@ -36,20 +36,21 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
         self,
         sequences: List["SeqRecord"],
     ) -> List["SeqRecord"]:
-        _, seqs_path = tempfile.mkstemp(prefix=self.BINARY, suffix=".fna")
-        _, prot_path = tempfile.mkstemp(prefix=self.BINARY, suffix=".faa")
 
         #
-        try:
-            # write a FASTA file containing the sequences in a temporary location
-            Bio.SeqIO.write(sequences, seqs_path, "fasta")
+        with tempfile.NamedTemporaryFile("w+", prefix=self.BINARY, suffix=".faa") as tmp:
+            # write a FASTA buffer to pass as PRODIGAL input
+            buffer = io.TextIOWrapper(io.BytesIO())
+            Bio.SeqIO.write(sequences, buffer, "fasta")
             # build the command line
-            cmd: List[str] = [self.BINARY, "-q", "-i", seqs_path, "-a", prot_path]
+            cmd: List[str] = [self.BINARY, "-q", "-a", tmp.name]
             if self.metagenome:
                 cmd.extend(["-p", "meta"])
-
-            subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
-            return list(Bio.SeqIO.parse(prot_path, "fasta"))
-        finally:
-            os.remove(seqs_path)
-            os.remove(prot_path)
+            # run the program
+            completed = subprocess.run(
+                cmd,
+                input=buffer.detach().getbuffer(),
+                stdout=subprocess.DEVNULL
+            )
+            completed.check_returncode()
+            return list(Bio.SeqIO.parse(tmp, "fasta"))
