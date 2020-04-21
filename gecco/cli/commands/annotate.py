@@ -9,6 +9,7 @@ import typing
 from typing import Optional, List, Tuple
 
 import pandas
+from Bio import SeqIO
 
 from ._base import Command
 from ... import data
