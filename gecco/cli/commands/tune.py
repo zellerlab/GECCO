@@ -45,10 +45,10 @@ class Tune(Command):
 
     Parameters - Training:
         --c1 <n>                        the different values to use for C1. Can
-                                        be given more than once to create a 
+                                        be given more than once to create a
                                         grid. [default: 0 0.15 1 2 10]
         --c2 <n>                        the different values to use for C2. Can
-                                        be given more than once to create a 
+                                        be given more than once to create a
                                         grid. [default: 0 0.15]
         --feature-type <type>           how features should be extracted
                                         (single, overlap, or group).

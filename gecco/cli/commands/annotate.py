@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import random
+import tempfile
 import typing
 from typing import Optional, List, Tuple
 
@@ -12,7 +13,7 @@ import pandas
 from ._base import Command
 from ... import data
 from ...hmmer import HMMER
-from ...orf import ORFFinder
+from ...orf import ProdigalFinder
 from ...refine import ClusterRefiner
 
 
@@ -94,13 +95,18 @@ class Annotate(Command):
             genome = self.args["--genome"]
             base, _ = os.path.splitext(os.path.basename(genome))
 
-            prodigal_out = os.path.join(out_dir, "prodigal")
-            self.logger.debug("Using PRODIGAL output folder: {!r}", prodigal_out)
-            os.makedirs(prodigal_out, exist_ok=True)
+            self.logger.info("Loading sequences from genome: {!r}", genome)
+            sequences = list(SeqIO.parse(genome, "fasta"))
 
-            self.logger.info("Predicting ORFs with PRODIGAL")
-            orf_finder = ORFFinder(genome, prodigal_out, method="prodigal")
-            orf_file = orf_finder.run()
+            self.logger.info("Predicting ORFs with PRODIGAL on {} sequences", len(sequences))
+            orf_finder = ProdigalFinder(metagenome=True)
+            proteins = orf_finder.find_proteins(sequences)
+            self.logger.info("Found {} potential proteins", len(proteins))
+
+            # FIXME: no need to write an ORF file when HMMER works directly
+            #        with records
+            _, orf_file = tempfile.mkstemp(prefix="gecco", suffix=".faa")
+            SeqIO.write(proteins, orf_file, "fasta")
             prodigal = True
 
         else:

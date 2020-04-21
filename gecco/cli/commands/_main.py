@@ -9,7 +9,7 @@ import operator
 import pkg_resources
 
 from ... import __version__
-from .._meta import classproperty, wrap_warnings
+from .._utils import classproperty, wrap_warnings
 from . import __name__ as __parent__
 from ._base import Command
 

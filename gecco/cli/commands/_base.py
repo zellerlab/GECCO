@@ -11,7 +11,7 @@ import docopt
 import verboselogs
 
 from ... import __version__, __name__ as __progname__
-from .._meta import BraceAdapter
+from .._utils import BraceAdapter
 
 
 class Command(metaclass=abc.ABCMeta):

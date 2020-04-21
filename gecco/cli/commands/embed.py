@@ -15,10 +15,9 @@ import tqdm
 from Bio import SeqIO
 
 from ._base import Command
-from .._meta import numpy_error_context
+from .._utils import numpy_error_context
 from ... import data
 from ...hmmer import HMMER
-from ...orf import ORFFinder
 from ...refine import ClusterRefiner
 
 
