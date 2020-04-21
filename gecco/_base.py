@@ -16,6 +16,9 @@ class MissingBinaryError(RuntimeError):
         self.name = name
         self.args = args
 
+    def __str__(self):
+        return f"could not locate binary: {self.name}"
+
 
 class BinaryRunner(metaclass=abc.ABCMeta):
     """A base class that wraps a binary program.

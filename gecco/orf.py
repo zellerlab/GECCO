@@ -4,7 +4,7 @@ import os
 import subprocess
 import tempfile
 import typing
-from typing import Optional, List
+from typing import Iterable, List, Optional
 
 import Bio.SeqIO
 
@@ -21,22 +21,21 @@ class ORFFinder(metaclass=abc.ABCMeta):
         self,
         sequences: List["SeqRecord"],
     ) -> List["SeqRecord"]:
-        return NotImplemented  # tupe: ignore
+        return NotImplemented  # type: ignore
 
 
 class ProdigalFinder(BinaryRunner, ORFFinder):
 
     BINARY = "prodigal"
 
-    def __init__(self, metagenome: bool =True) -> None:
+    def __init__(self, metagenome: bool = True) -> None:
         super().__init__()
         self.metagenome = metagenome
 
     def find_proteins(
         self,
-        sequences: List["SeqRecord"],
+        sequences: Iterable["SeqRecord"],
     ) -> List["SeqRecord"]:
-
         #
         with tempfile.NamedTemporaryFile("w+", prefix=self.BINARY, suffix=".faa") as tmp:
             # write a FASTA buffer to pass as PRODIGAL input

@@ -1,4 +1,4 @@
-"""Test `gecco.preprocessing` members.
+"""Test `gecco.crf.preprocessing` members.
 """
 
 import unittest
