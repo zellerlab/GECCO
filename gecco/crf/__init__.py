@@ -15,9 +15,10 @@ import pandas
 import tqdm
 import sklearn_crfsuite
 import sklearn.model_selection
+import sklearn.preprocessing
 
 from . import preprocessing
-from .cv import LotoSplit, n_folds, n_folds_partial, StratifiedSplit
+from .cv import LotoSplit
 
 
 class ClusterCRF(object):
@@ -249,18 +250,28 @@ class ClusterCRF(object):
             * Make progress bar configurable.
         """
         if strat_col is not None:
-            types = [s[strat_col].values[0].split(",") for s in data]
-            cv_split = StratifiedSplit(types, n_splits=k)
+            # we need to extract the BGC types (given in `s[strat_col]`) and
+            # to linearize them (using "Mixed" as a type if a sequence has
+            # more than one BGC type)
+            strat_labels = [s[strat_col].values[0].split(";") for s in data]
+            y = ["Mixed" if len(label) > 1 else label[0] for label in strat_labels]
+            cross_validator = sklearn.model_selection.StratifiedKFold(k)
+            splits = list(cross_validator.split(data, y=y))
+            # splits = cross_validator.split(data, y=strat_labels)
         else:
-            folds = n_folds(len(data), n=k)
-            cv_split = sklearn.model_selection.PredefinedSplit(folds)
+            cross_validator = sklearn.model_selection.KFold(k)
+            splits = list(cross_validator.split(data))
 
-        pbar = tqdm.tqdm(cv_split.split(), total=k, leave=False)
         return [
             self._single_fold_cv(
-                data, train_idx, test_idx, round_id=f"fold{i}", trunc=trunc, jobs=jobs,
+                data,
+                train_idx=train_idx,
+                test_idx=test_idx,
+                round_id=f"fold{i}",
+                trunc=trunc,
+                jobs=jobs,
             )
-            for i, (train_idx, test_idx) in enumerate(pbar)
+            for i, (train_idx, test_idx) in enumerate(tqdm.tqdm(splits, leave=False))
         ]
 
     def loto_cv(
