@@ -18,7 +18,7 @@ import sklearn.model_selection
 import sklearn.preprocessing
 
 from . import preprocessing
-from .cv import LotoSplit
+from .cv import LeaveOneGroupOut
 
 
 class ClusterCRF(object):
@@ -230,8 +230,9 @@ class ClusterCRF(object):
         Arguments:
             data (`list` of `~pandas.DataFrame`): A list of domain annotation
                 table, corresponding to different samples.
-            strat_col (`str`, optional): The name of the column to use to split
-                the data, or `None` to perform a predefined split.
+            strat_col (`str`, optional): The name of the column to use to
+                stratify the cross-validation folds or `None` to simply split
+                the input data in ``k`` folds.
             k (`int`): The number of cross-validation folds to perform.
             trunc (`int`, optional): The maximum number of rows to use in the
                 training data, or to `None` to use everything.
@@ -250,14 +251,13 @@ class ClusterCRF(object):
             * Make progress bar configurable.
         """
         if strat_col is not None:
+            cross_validator = sklearn.model_selection.StratifiedKFold(k)
             # we need to extract the BGC types (given in `s[strat_col]`) and
             # to linearize them (using "Mixed" as a type if a sequence has
             # more than one BGC type)
             strat_labels = [s[strat_col].values[0].split(";") for s in data]
             y = ["Mixed" if len(label) > 1 else label[0] for label in strat_labels]
-            cross_validator = sklearn.model_selection.StratifiedKFold(k)
             splits = list(cross_validator.split(data, y=y))
-            # splits = cross_validator.split(data, y=strat_labels)
         else:
             cross_validator = sklearn.model_selection.KFold(k)
             splits = list(cross_validator.split(data))
@@ -265,13 +265,13 @@ class ClusterCRF(object):
         return [
             self._single_fold_cv(
                 data,
-                train_idx=train_idx,
-                test_idx=test_idx,
+                train_idx=trn,
+                test_idx=tst,
                 round_id=f"fold{i}",
                 trunc=trunc,
                 jobs=jobs,
             )
-            for i, (train_idx, test_idx) in enumerate(tqdm.tqdm(splits, leave=False))
+            for i, (trn, tst) in enumerate(tqdm.tqdm(splits, leave=False))
         ]
 
     def loto_cv(
@@ -287,7 +287,8 @@ class ClusterCRF(object):
         Arguments:
             data (`list` of `~pandas.DataFrame`): A list of domain annotation
                 table, corresponding to different samples.
-            strat_col (`str`): The name of the column to use to split the data.
+            strat_col (`str`): The name of the column to use to stratify
+                the cross-validation folds.
             trunc (`int`, optional): The maximum number of rows to use in the
                 training data, or to `None` to use everything.
 
@@ -304,16 +305,20 @@ class ClusterCRF(object):
         Todo:
             * Make progress bar configurable.
         """
+        cross_validator = LeaveOneGroupOut()
+        strat_labels = [tuple(s[strat_col].values[0].split(";")) for s in data]
+        splits = list(cross_validator.split(data, groups=strat_labels))
 
-        labels = [s[strat_col].values[0].split(",") for s in data]
-        cv_split = LotoSplit(labels)
-
-        pbar = tqdm.tqdm(list(cv_split.split()), leave=False)
         return [
             self._single_fold_cv(
-                data, train_idx, test_idx, round_id=label, trunc=trunc, jobs=jobs
+                data,
+                train_idx=trn,
+                test_idx=tst,
+                round_id=f"fold{i}",
+                trunc=trunc,
+                jobs=jobs,
             )
-            for train_idx, test_idx, label in pbar
+            for i, (trn, tst) in enumerate(tqdm.tqdm(splits, leave=False))
         ]
 
     def _single_fold_cv(
