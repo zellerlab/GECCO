@@ -1,3 +1,6 @@
+"""BGC prediction using a conditional random field.
+"""
+
 import csv
 import functools
 import operator

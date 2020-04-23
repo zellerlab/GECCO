@@ -12,6 +12,18 @@ if typing.TYPE_CHECKING:
 
 class classproperty(property):
     """A class property decorator.
+
+    Example:
+        >>> class X():
+        ...     __COUNT = 0
+        ...     @classproperty
+        ...     def count(cls):
+        ...         cls.__COUNT += 1
+        ...         return cls.__COUNT
+        >>> X.count()
+        1
+        >>> X.count()
+        2
     """
 
     def __init__(self, f: Callable[["_S"], "_T"]) -> None:

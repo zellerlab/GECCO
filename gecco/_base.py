@@ -13,6 +13,7 @@ class MissingBinaryError(RuntimeError):
     """
 
     def __init__(self, name: str, args: Iterable[str]):
+        super().__init__(name, args)
         self.name = name
         self.args = args
 

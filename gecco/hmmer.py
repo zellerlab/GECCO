@@ -1,3 +1,6 @@
+"""Compatibility wrapper for HMMER binaries and output.
+"""
+
 import csv
 import errno
 import os
@@ -14,7 +17,7 @@ _T = typing.TypeVar("_T", bound="DomainRow")
 class DomainRow(typing.NamedTuple):
     """A single row in a domain table created by ``hmmsearch``.
 
-    See also:
+    See Also:
         The description of each field in page 48 of the `HMMER manual
         <http://eddylab.org/software/hmmer3/3.1b2/Userguide.pdf>`_.
 
@@ -110,7 +113,7 @@ class HMMER(object):
         self._check_hmmer()
 
     def run(self) -> "pandas.DataFrame":
-        """Runs HMMER and returns the output as a data frame.
+        """Run HMMER and return the output as a data frame.
         """
         base, _ = os.path.splitext(os.path.basename(self.fasta))
         dom_out = os.path.join(self.out_dir, f"{base}.hmmer.dom")
@@ -135,7 +138,8 @@ class HMMER(object):
         )
 
     def _check_hmmer(self) -> None:
-        """Checks wether hmmsearch is available. Raises error if not."""
+        """Check wether hmmsearch is available. Raises error if not.
+        """
         try:
             devnull = subprocess.DEVNULL
             subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
@@ -147,7 +151,8 @@ class HMMER(object):
             raise
 
     def _to_tsv(self, dom_file: str, out_file: str) -> None:
-        """Converts HMMER --domtblout output to regular TSV"""
+        """Convert HMMER --domtblout output to regular TSV
+        """
         header = [
             "sequence_id",
             "protein_id",

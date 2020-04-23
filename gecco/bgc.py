@@ -1,8 +1,39 @@
+"""Data layer classes storing some informations on detected BGCs and proteins.
+"""
+
 import csv
 import typing
 from typing import List, Optional
 
 import numpy
+
+# fmt: off
+# `set` of `str`: A set of domains from Pfam considered 'biosynthetic' by AntiSMASH.
+BIO_PFAMS = frozenset({
+    "PF00109", "PF02801", "PF08659", "PF00378", "PF08541", "PF08545",
+    "PF02803", "PF00108", "PF02706", "PF03364", "PF08990", "PF00501",
+    "PF00668", "PF08415", "PF00975", "PF03061", "PF00432", "PF00494",
+    "PF03936", "PF01397", "PF00432", "PF04275", "PF00348", "PF02401",
+    "PF04551", "PF00368", "PF00534", "PF00535", "PF02922", "PF01041",
+    "PF00128", "PF00908", "PF02719", "PF04321", "PF01943", "PF02806",
+    "PF02350", "PF02397", "PF04932", "PF01075", "PF00953", "PF01050",
+    "PF03033", "PF01501", "PF05159", "PF04101", "PF02563", "PF08437",
+    "PF02585", "PF01721", "PF02052", "PF02674", "PF03515", "PF04369",
+    "PF08109", "PF08129", "PF09221", "PF09683", "PF10439", "PF11420",
+    "PF11632", "PF11758", "PF12173", "PF04738", "PF04737", "PF04604",
+    "PF05147", "PF08109", "PF08129", "PF08130", "PF00155", "PF00202",
+    "PF00702", "PF06339", "PF04183", "PF10331", "PF03756", "PF00106",
+    "PF01370", "PF00107", "PF08240", "PF00441", "PF02770", "PF02771",
+    "PF08028", "PF01408", "PF02894", "PF00984", "PF00725", "PF03720",
+    "PF03721", "PF07993", "PF02737", "PF00903", "PF00037", "PF04055",
+    "PF00171", "PF00067", "PF01266", "PF01118", "PF02668", "PF00248",
+    "PF01494", "PF01593", "PF03992", "PF00355", "PF01243", "PF00384",
+    "PF01488", "PF00857", "PF04879", "PF08241", "PF08242", "PF00698",
+    "PF00483", "PF00561", "PF00583", "PF01636", "PF01039", "PF00288",
+    "PF00289", "PF02786", "PF01757", "PF02785", "PF02409", "PF01553",
+    "PF02348", "PF00891", "PF01596", "PF04820", "PF02522", "PF08484",
+    "PF08421",
+})
 
 
 class Protein(object):
@@ -43,6 +74,7 @@ class Protein(object):
         Raises:
             `ValueError`: when ``domains`` and ``weights`` are not the same size.
             `TypeError`: when either ``domains`` or ``weights`` is not iterable.
+
         """
         self.seq_id = seq_id
         self.start = min(start, end)
@@ -64,6 +96,7 @@ class Protein(object):
         Arguments:
             thresh (`float`): The probability threshold above which a protein
                 is considered a potential cluster. Defaults to `0.3`.
+
         """
         return self.probability > thresh
 
@@ -104,6 +137,22 @@ class BGC(object):
         self.type_prob = type_prob
 
     def is_valid(self, criterion: str = "antismash", thresh: float = 0.6) -> bool:
+        """Check whether the BGC is valid with respect to ``criterion``.
+
+        Criterion can be any of the following values:
+
+        ``antismash``
+            Checks that the cluster contains at least 5 'bio Pfams' and 5
+            proteins and then that the average BGC probability for component
+            proteins is greater than ``thresh``.
+        ``gecco``
+            No-op, always considers a BGC valid.
+
+        Arguments:
+            criterion (str): The criterion to use to check the BGC validity.
+            thresh (float): The probability threshold to use, when applicable.
+
+        """
         if criterion == "antismash":
             # These are the default options only
             return self._antismash_check(n_biopfams=5, p_thresh=thresh, n_cds=5)
@@ -120,6 +169,7 @@ class BGC(object):
             long (`bool`, optional): Whether or not to include additional data,
                 such as the protein IDs proteins or the BGC domains, to the
                 written row. Defaults to `False`.
+
         """
         probs = numpy.hstack(self.probabilities)
         row = [
@@ -139,7 +189,7 @@ class BGC(object):
         csv.writer(handle, dialect="excel-tab").writerow(row_str)
 
     def domain_composition(self, all_possible: Optional["numpy.ndarray"] = None) -> "numpy.ndarray":
-        """Computes weighted domain composition with respect to ``all_possible``.
+        """Compute weighted domain composition with respect to ``all_possible``.
 
         Arguments:
             all_possible (`~numpy.ndarray`): An array containing all domain
@@ -149,6 +199,7 @@ class BGC(object):
         Returns:
             `~numpy.ndarray`: A numerical array containing the relative domain
             composition of the BGC.
+
         """
         doms = numpy.hstack(self.domains)
         w = numpy.hstack(self.weights)
@@ -163,39 +214,12 @@ class BGC(object):
         return typing.cast(numpy.ndarray, numpy.nan_to_num(comp_arr, copy=False))
 
     def domain_counts(self, all_possible: Optional["numpy.ndarray"]  = None) -> "numpy.ndarray":
-        """Computes domain counts with respect to ``all_possible``.
+        """Compute domain counts with respect to ``all_possible``.
         """
         doms = list(numpy.hstack(self.domains))
         if all_possible is None:
             all_possible = numpy.unique(doms)
         return numpy.array([doms.count(d) for d in all_possible])
-
-    # fmt: off
-    _BIO_PFAMS = {
-        "PF00109", "PF02801", "PF08659", "PF00378", "PF08541", "PF08545",
-        "PF02803", "PF00108", "PF02706", "PF03364", "PF08990", "PF00501",
-        "PF00668", "PF08415", "PF00975", "PF03061", "PF00432", "PF00494",
-        "PF03936", "PF01397", "PF00432", "PF04275", "PF00348", "PF02401",
-        "PF04551", "PF00368", "PF00534", "PF00535", "PF02922", "PF01041",
-        "PF00128", "PF00908", "PF02719", "PF04321", "PF01943", "PF02806",
-        "PF02350", "PF02397", "PF04932", "PF01075", "PF00953", "PF01050",
-        "PF03033", "PF01501", "PF05159", "PF04101", "PF02563", "PF08437",
-        "PF02585", "PF01721", "PF02052", "PF02674", "PF03515", "PF04369",
-        "PF08109", "PF08129", "PF09221", "PF09683", "PF10439", "PF11420",
-        "PF11632", "PF11758", "PF12173", "PF04738", "PF04737", "PF04604",
-        "PF05147", "PF08109", "PF08129", "PF08130", "PF00155", "PF00202",
-        "PF00702", "PF06339", "PF04183", "PF10331", "PF03756", "PF00106",
-        "PF01370", "PF00107", "PF08240", "PF00441", "PF02770", "PF02771",
-        "PF08028", "PF01408", "PF02894", "PF00984", "PF00725", "PF03720",
-        "PF03721", "PF07993", "PF02737", "PF00903", "PF00037", "PF04055",
-        "PF00171", "PF00067", "PF01266", "PF01118", "PF02668", "PF00248",
-        "PF01494", "PF01593", "PF03992", "PF00355", "PF01243", "PF00384",
-        "PF01488", "PF00857", "PF04879", "PF08241", "PF08242", "PF00698",
-        "PF00483", "PF00561", "PF00583", "PF01636", "PF01039", "PF00288",
-        "PF00289", "PF02786", "PF01757", "PF02785", "PF02409", "PF01553",
-        "PF02348", "PF00891", "PF01596", "PF04820", "PF02522", "PF08484",
-        "PF08421",
-    }
 
     def _antismash_check(self, n_biopfams: int = 5, p_thresh: float = 0.6, n_cds: int = 5) -> bool:
         """Check for cluster validity following AntiSMASH criteria.
@@ -203,13 +227,14 @@ class BGC(object):
         Arguments:
             n_biopfams (`int`): The minimum number of biosynthetic Pfam domains
                 the BGC must contain. A complete list of biosynthetic Pfam
-                accessions can be accessed through `BGC._BIO_PFAMS`.
+                accessions can be accessed through ``gecco.bgc.BIO_PFAMS``.
             p_thresh (`float`): The probability threshold for the BGC. *A BGC
                 is considered valid if the average of its proteins probabilities
                 is above this value.*
             n_cds (`int`): The minimum number of CDS the BGC must contain.
+
         """
-        bio_crit = len(set(numpy.hstack(self.domains)) & self._BIO_PFAMS) >= n_biopfams
+        bio_crit = len(set(numpy.hstack(self.domains)) & BIO_PFAMS) >= n_biopfams
         p_crit = numpy.mean([p.mean() for p in self.probabilities]) >= p_thresh
         cds_crit = len(numpy.hstack(self.prot_ids)) >= n_cds
         return bio_crit and p_crit and cds_crit

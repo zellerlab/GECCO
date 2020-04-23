@@ -1,3 +1,6 @@
+"""Cross-validation utilities for `~gecco.crf.ClusterCRF`.
+"""
+
 import math
 import multiprocessing
 from typing import Iterable, Iterator, List, Set, Tuple
@@ -41,7 +44,7 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         y: object =None,
         groups: Iterable[Iterable[str]] = None
     ) -> int:
-        """Returns the number of splitting iterations in the cross-validator.
+        """Return the number of splitting iterations in the cross-validator.
 
         Arguments:
             X (object): Always ignored, exists for compatibility.
@@ -68,13 +71,14 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
             >>> groups = [["Terpene"], ["NRP"], ["RiPP"], ["Terpene", "NRP"]]
             >>> loto.get_n_splits(groups=groups)
             3
+
         """
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None")
         labels = { label for labels in groups for label in labels }
         return len(labels)
 
-    def _iter_test_masks(self, X: object, y: object, groups: Iterable[Iterable[object]]):
+    def _iter_test_masks(self, X: object, y: object, groups: Iterable[Iterable[object
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None.")
         # We collect the groups to avoid side-effects during iteration

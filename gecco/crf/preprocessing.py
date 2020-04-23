@@ -1,3 +1,6 @@
+"""Features extraction and sanitization utilities for `~gecco.crf.ClusterCRF`.
+"""
+
 import collections
 import math
 import numbers

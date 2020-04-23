@@ -1,8 +1,12 @@
+"""Algorithm to smooth contiguous BGC predictions into single regions. 
+"""
+
 import typing
 from typing import List, Optional
 
 import pandas
 from gecco.bgc import Protein, BGC
+
 
 class ClusterRefiner(object):
 
