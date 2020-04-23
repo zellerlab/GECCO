@@ -109,10 +109,13 @@ class Run(Command):
 
         # Check the hmms exist or use internal ones
         if self.args["--hmm"]:
+            for hmm in self.args["--hmm"]:
+                if not os.path.exists(hmm):
+                    self.logger.error("could not locate hmm file: {!r}", hmm)
+                    return 1
             self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
         else:
             self.args["--hmm"] = list(data.hmms.iter())
-
 
         return None
 
@@ -129,19 +132,22 @@ class Run(Command):
 
             self.logger.info("Loading sequences from genome: {!r}", genome)
             format = guess_sequences_format(genome)
-            sequences = list(SeqIO.parse(genome, format))
-
-            self.logger.info("Predicting ORFs with PRODIGAL on {} sequences", len(sequences))
+            sequences = SeqIO.parse(genome, format)
+            self.logger.info("Predicting ORFs with PRODIGAL")
             orf_finder = ProdigalFinder(metagenome=True)
             proteins = orf_finder.find_proteins(sequences)
-            self.logger.info("Found {} potential proteins", len(proteins))
 
-            # FIXME: no need to write an ORF file when HMMER works directly
-            #        with records
-            _, orf_file = tempfile.mkstemp(prefix="gecco", suffix=".faa")
+            # we need to keep all the ORFs in a file because we will need
+            # them when extracting cluster sequences
+            _orf_file = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
+            orf_file = _orf_file.name
             SeqIO.write(proteins, orf_file, "fasta")
             prodigal = True
 
+            # count the number of detected proteins without keeping them all
+            # in memory
+            index = SeqIO.index(orf_file, "fasta")
+            self.logger.info("Found {} potential proteins", len(index))
         else:
             orf_file = self.args["--proteins"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
@@ -155,10 +161,10 @@ class Run(Command):
             self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(orf_file, hmmer_out, hmm.path, prodigal, self.args["--jobs"])
-            result = hmmer.run().assign(hmm=hmm.id)
+            hmmer = HMMER(hmm.path, self.args["--jobs"])
+            result = hmmer.run(SeqIO.parse(orf_file, "fasta"), prodigal=prodigal)
             self.logger.debug("Finished running HMM {}", hmm.id)
-            return result.assign(domain=hmm.relabel(result.domain))
+            return result.assign(hmm=hmm.id, domain=hmm.relabel(result.domain))
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             features = pool.map(annotate, self.args["--hmm"])
@@ -272,17 +278,15 @@ class Run(Command):
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
+        orf_index = SeqIO.index(orf_file, "fasta")
         for cluster in clusters:
-            prots = []
-            for p in SeqIO.parse(orf_file, "fasta"):
-                if p.id in cluster.prot_ids:
-                    p.description = f"{cluster.name} # {p.description}"
-                    prots.append(p)
-
             prots_out = os.path.join(out_dir, f"{cluster.name}.proteins.faa")
             self.logger.debug("Writing proteins of {} to {!r}", cluster.name, prots_out)
             with open(prots_out, "w") as out:
-                SeqIO.write(prots, out, "fasta")
+                for id_ in cluster.prot_ids:
+                    p = orf_index[id_]
+                    p.description = f"{cluster.name} # {p.description}"
+                    SeqIO.write(p, out, "fasta")
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))

@@ -6,7 +6,7 @@ import os
 import random
 import tempfile
 import typing
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 import pandas
 from Bio import SeqIO
@@ -14,6 +14,7 @@ from Bio import SeqIO
 from ._base import Command
 from .._utils import guess_sequences_format
 from ... import data
+from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...orf import ProdigalFinder
 from ...refine import ClusterRefiner
@@ -77,12 +78,14 @@ class Annotate(Command):
             return 1
 
         # Check the HMM file(s) exist.
-        hmms = glob.glob(os.path.join(data.realpath("hmms"), "*.hmm.gz"))
-        self.args["--hmm"] = self.args["--hmm"] or hmms
-        for hmm in self.args["--hmm"]:
-            if not os.path.exists(hmm):
-                self.logger.error("could not locate hmm file: {!r}", hmm)
-                return 1
+        if self.args["--hmm"]:
+            for hmm in self.args["--hmm"]:
+                if not os.path.exists(hmm):
+                    self.logger.error("could not locate hmm file: {!r}", hmm)
+                    return 1
+            self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
+        else:
+            self.args["--hmm"] = list(data.hmms.iter())
 
         return None
 
@@ -99,19 +102,23 @@ class Annotate(Command):
 
             self.logger.info("Loading sequences from genome: {!r}", genome)
             format = guess_sequences_format(genome)
-            sequences = list(SeqIO.parse(genome, format))
-
-            self.logger.info("Predicting ORFs with PRODIGAL on {} sequences", len(sequences))
+            sequences = SeqIO.parse(genome, format)
+            self.logger.info("Predicting ORFs with PRODIGAL")
             orf_finder = ProdigalFinder(metagenome=True)
             proteins = orf_finder.find_proteins(sequences)
-            self.logger.info("Found {} potential proteins", len(proteins))
 
-            # FIXME: no need to write an ORF file when HMMER works directly
-            #        with records
-            _, orf_file = tempfile.mkstemp(prefix="gecco", suffix=".faa")
+            # we need to keep all the ORFs in a file because we will need
+            # to iterate over them once per HMM, but we don't want to keep
+            # them in memory
+            _orf_file = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
+            orf_file = _orf_file.name
             SeqIO.write(proteins, orf_file, "fasta")
             prodigal = True
 
+            # count the number of detected proteins without keeping them all
+            # in memory
+            index = SeqIO.index(orf_file, "fasta")
+            self.logger.info("Found {} potential proteins", len(index))
         else:
             orf_file = self.args["--proteins"] or self.args["--mibig"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
@@ -120,14 +127,18 @@ class Annotate(Command):
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
 
-        # Run PFAM HMM DB over ORFs to annotate with Pfam domains
-        features = []
-        for hmm in self.args["--hmm"]:
-            self.logger.debug("Using HMM file {!r}", os.path.basename(hmm))
-            hmmer_out = os.path.join(out_dir, "hmmer", os.path.basename(hmm))
+        # Run all HMMs over ORFs to annotate with protein domains
+        def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
+            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(orf_file, hmmer_out, hmm, prodigal, self.args["--jobs"])
-            features.append(hmmer.run())
+            hmmer = HMMER(hmm.path, self.args["--jobs"])
+            result = hmmer.run(SeqIO.parse(orf_file, "fasta"), prodigal=prodigal)
+            self.logger.debug("Finished running HMM {}", hmm.id)
+            return result.assign(hmm=hmm.id, domain=hmm.relabel(result.domain))
+
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            features = pool.map(annotate, self.args["--hmm"])
 
         feats_df = pandas.concat(features, ignore_index=True)
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
