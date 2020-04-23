@@ -9,19 +9,18 @@ from gecco.bgc import Protein, BGC
 
 
 class ClusterRefiner(object):
-
     def __init__(
-            self,
-            threshold: float = 0.4,
-            biosynthetic_domains: int = 5,
-            seq_col: str ="sequence_id",
-            prot_col: str ="protein_id",
-            p_col: str ="p_pred",
-            domain_col: str = "domain",
-            weight_col: str = "log_i_Evalue",
-            min_domains: int = 1,
-            min_proteins: int = 5,
-            join_width: int = 1
+        self,
+        threshold: float = 0.4,
+        biosynthetic_domains: int = 5,
+        seq_col: str = "sequence_id",
+        prot_col: str = "protein_id",
+        p_col: str = "p_pred",
+        domain_col: str = "domain",
+        weight_col: str = "log_i_Evalue",
+        min_domains: int = 1,
+        min_proteins: int = 5,
+        join_width: int = 1,
     ) -> None:
         self.threshold = threshold
         self.n_biodomains = biosynthetic_domains
@@ -37,11 +36,11 @@ class ClusterRefiner(object):
         self.grouping = [seq_col, prot_col]
 
     def find_clusters(
-            self,
-            domains_df: "pandas.DataFrame",
-            method: str = "gecco",
-            prefix: str = "cluster",
-            lower_threshold: Optional[float] = None,
+        self,
+        domains_df: "pandas.DataFrame",
+        method: str = "gecco",
+        prefix: str = "cluster",
+        lower_threshold: Optional[float] = None,
     ) -> typing.List[BGC]:
         if method == "antismash":
             lt = 0.3 if lower_threshold is None else lower_threshold
@@ -52,19 +51,14 @@ class ClusterRefiner(object):
         return self._refine(method, domains_df, lower_threshold=lt)
 
     def _refine(
-        self,
-        method: str,
-        dataframe: "pandas.DataFrame",
-        lower_threshold: float,
+        self, method: str, dataframe: "pandas.DataFrame", lower_threshold: float,
     ) -> List[BGC]:
         segments = self.extract_segments(dataframe, lower_threshold)
         clusters = (self._extract_cluster(dataframe, seg) for seg in segments)
         return [bgc for bgc in clusters if bgc.is_valid(criterion=method)]
 
     def _extract_cluster(
-        self,
-        dataframe: "pandas.DataFrame",
-        segment: "pandas.DataFrame",
+        self, dataframe: "pandas.DataFrame", segment: "pandas.DataFrame",
     ) -> BGC:
         """Takes a DataFrame and a segement and returns a BGC object"""
         cluster_name = segment["cluster_id"].values[0]
@@ -73,21 +67,19 @@ class ClusterRefiner(object):
         prot_list = []
         for pid, subdf in segment.groupby(self.prot_col, sort=False):
             protein = Protein(
-                seq_id = subdf[self.seq_col].values[0],
-                start = subdf["start"].min(),
-                end = subdf["end"].max(),
-                name = pid,
-                domains = subdf[self.domain_col].values,
-                weights = subdf[self.weight_col].values,
-                probability = subdf[self.p_col].mean(),
+                seq_id=subdf[self.seq_col].values[0],
+                start=subdf["start"].min(),
+                end=subdf["end"].max(),
+                name=pid,
+                domains=subdf[self.domain_col].values,
+                weights=subdf[self.weight_col].values,
+                probability=subdf[self.p_col].mean(),
             )
             prot_list.append(protein)
         return BGC(prot_list, name=cluster_name)
 
     def extract_segments(
-        self,
-        df: "pandas.DataFrame",
-        lower_threshold: float,
+        self, df: "pandas.DataFrame", lower_threshold: float,
     ) -> List["pandas.DataFrame"]:
         """
         Extracts segments from a data frame which are determined by p_col.
@@ -127,10 +119,7 @@ class ClusterRefiner(object):
         return cluster_list
 
     def segment(
-        self,
-        df: "pandas.DataFrame",
-        lower_threshold: float,
-        prefix: str,
+        self, df: "pandas.DataFrame", lower_threshold: float, prefix: str,
     ) -> "pandas.DataFrame":
         """
         Determines coordinates of segments determined by p_col over

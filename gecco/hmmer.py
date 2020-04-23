@@ -175,7 +175,8 @@ class HMMER(BinaryRunner):
                     strand = "unknown"
                 domain = l[4] or l[3]
                 writer.writerow(
-                    [sid, pid, start, end, strand, domain, l[12]] + typing.cast(List[object], l[17:19])
+                    [sid, pid, start, end, strand, domain, l[12]]
+                    + typing.cast(List[object], l[17:19])
                 )
 
     def _to_dataframe(self, dom_file: str) -> "pandas.DataFrame":

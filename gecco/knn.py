@@ -10,6 +10,7 @@ import scipy.spatial.distance
 
 if typing.TYPE_CHECKING:
     import numpy
+
     _Metric = typing.Callable[["numpy.ndarray", "numpy.ndarray"], "numpy.ndarray"]
 
 
@@ -38,14 +39,12 @@ class ClusterKNN(object):
         elif name == "tanimoto":
             # NB(@althonos): Tanimoto distance seems to be mostly for boolean
             #                vectors, not probability vectors.
-            return lambda p,q: p*q / (p - q)**2  # type: ignore
+            return lambda p, q: p * q / (p - q) ** 2  # type: ignore
         else:
             raise ValueError(f"unknown metric name: {name!r}")
 
     def __init__(
-            self,
-            metric: Union[str, "_Metric"] = "jensenshannon",
-            **kwargs: object
+        self, metric: Union[str, "_Metric"] = "jensenshannon", **kwargs: object
     ) -> None:
         """Instantiate a new classifier.
 
@@ -67,10 +66,7 @@ class ClusterKNN(object):
             self.metric = self._get_metric(metric)
         else:
             self.metric = metric
-        self.knn = sklearn.neighbors.KNeighborsClassifier(
-            metric=self.metric,
-            **kwargs
-        )
+        self.knn = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
     def fit_predict(self, train_matrix, new_matrix, y):
         """Fit the model and immediately produce a prediction.

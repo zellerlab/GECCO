@@ -39,10 +39,7 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
     """
 
     def get_n_splits(
-        self,
-        X: object = None,
-        y: object =None,
-        groups: Iterable[Iterable[str]] = None
+        self, X: object = None, y: object = None, groups: Iterable[Iterable[str]] = None
     ) -> int:
         """Return the number of splitting iterations in the cross-validator.
 
@@ -75,19 +72,21 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         """
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None")
-        labels = { label for labels in groups for label in labels }
+        labels = {label for labels in groups for label in labels}
         return len(labels)
 
-    def _iter_test_masks(self, X: object, y: object, groups: Iterable[Iterable[object
+    def _iter_test_masks(
+        self, X: object, y: object, groups: Iterable[Iterable[object]]
+    ) -> Iterator["numpy.ndarray"]:
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None.")
         # We collect the groups to avoid side-effects during iteration
         groups: List[Set[object]] = list(map(set, groups))
-        unique_groups = { label for labels in groups for label in labels }
+        unique_groups = {label for labels in groups for label in labels}
         if len(unique_groups) <= 1:
             raise ValueError(
                 "The groups parameter contains fewer than 2 unique groups "
                 f"({unique_groups}). LeaveOneGroupOut expects at least 2."
             )
         for i in sorted(unique_groups):
-            yield numpy.array([ i in group for group in groups ])
+            yield numpy.array([i in group for group in groups])

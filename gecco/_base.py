@@ -12,10 +12,10 @@ class MissingBinaryError(RuntimeError):
     """A runtime error when a required program could not be found.
     """
 
-    def __init__(self, name: str, args: Iterable[str]) -> None:
-        super().__init__(name, args)
+    def __init__(self, name: str, params: Iterable[str]) -> None:
+        super().__init__(name, params)
         self.name = name
-        self.args = args
+        self.params = list(params)
 
     def __str__(self) -> str:
         return f"could not locate binary: {self.name}"
@@ -28,7 +28,9 @@ class BinaryRunner(metaclass=abc.ABCMeta):
     BINARY: typing.ClassVar[str] = NotImplemented
 
     @classmethod
-    def has_binary(cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)) -> bool:
+    def has_binary(
+        cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)
+    ) -> bool:
         try:
             cls.check_binary()
             return True
@@ -36,7 +38,9 @@ class BinaryRunner(metaclass=abc.ABCMeta):
             return False
 
     @classmethod
-    def check_binary(cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)) -> None:
+    def check_binary(
+        cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)
+    ) -> None:
         try:
             subprocess.run([cls.BINARY, *args], stdout=DEVNULL, stderr=DEVNULL)
         except OSError as err:

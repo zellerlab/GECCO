@@ -168,10 +168,7 @@ class ClusterCRF(object):
         self.model.fit(X, Y)
 
     def predict_marginals(
-        self,
-        data: Iterable["pandas.DataFrame"],
-        *,
-        jobs: Optional[int] = None,
+        self, data: Iterable["pandas.DataFrame"], *, jobs: Optional[int] = None,
     ) -> "pandas.DataFrame":
         """Predicts marginals for the input data.
 
@@ -200,12 +197,14 @@ class ClusterCRF(object):
 
         # check if any sample has P(1) == 0
         if any(not prob.all() for prob in cluster_probs):
-            warnings.warn(textwrap.dedent(
-                """
-                Cluster probabilities of test set were found to be zero.
-                Something may be wrong with your input data.
-                """
-            ))
+            warnings.warn(
+                textwrap.dedent(
+                    """
+                    Cluster probabilities of test set were found to be zero.
+                    Something may be wrong with your input data.
+                    """
+                )
+            )
 
         # Merge probs vector with the input dataframe. This is tricky if we are
         # dealing with protein features as length of vector does not fit to dataframe
@@ -372,15 +371,13 @@ class ClusterCRF(object):
         """
         if self.feature_type == "group":
             extract = functools.partial(
-                preprocessing.extract_group_features,
-                group_column=self.group_column,
+                preprocessing.extract_group_features, group_column=self.group_column,
             )
         elif self.feature_type == "single":
             extract = preprocessing.extract_single_features
         elif self.feature_type == "overlap":
             extract = functools.partial(
-                preprocessing.extract_overlapping_features,
-                overlap=self.overlap,
+                preprocessing.extract_overlapping_features, overlap=self.overlap,
             )
         else:
             raise ValueError(f"invalid feature type: {self.feature_type!r}")

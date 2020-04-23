@@ -22,10 +22,7 @@ class ORFFinder(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def find_proteins(
-        self,
-        sequences: List["SeqRecord"],
-    ) -> List["SeqRecord"]:
+    def find_proteins(self, sequences: List["SeqRecord"],) -> List["SeqRecord"]:
         """Find all proteins from a list of DNA sequences.
         """
         return NotImplemented  # type: ignore
@@ -56,11 +53,11 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
         self.metagenome = metagenome
 
     def find_proteins(
-        self,
-        sequences: Iterable["SeqRecord"],
+        self, sequences: Iterable["SeqRecord"],
     ) -> List["SeqRecord"]:  # noqa: D102
-        #
-        with tempfile.NamedTemporaryFile("w+", prefix=self.BINARY, suffix=".faa") as tmp:
+        with tempfile.NamedTemporaryFile(
+            "w+", prefix=self.BINARY, suffix=".faa"
+        ) as tmp:
             # write a FASTA buffer to pass as PRODIGAL input
             buffer = io.TextIOWrapper(io.BytesIO())
             Bio.SeqIO.write(sequences, buffer, "fasta")
@@ -70,9 +67,7 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
                 cmd.extend(["-p", "meta"])
             # run the program
             completed = subprocess.run(
-                cmd,
-                input=buffer.detach().getbuffer(),
-                stdout=subprocess.DEVNULL
+                cmd, input=buffer.detach().getbuffer(), stdout=subprocess.DEVNULL
             )
             completed.check_returncode()
             return list(Bio.SeqIO.parse(tmp, "fasta"))
