@@ -5,15 +5,19 @@ import csv
 import errno
 import os
 import subprocess
+import tempfile
 import typing
-from typing import Dict, Optional, List, Type
+from typing import Dict, Optional, Iterable, List, Type
 
 import pandas
+from Bio import SeqIO
 
 from ._base import BinaryRunner
 
+if typing.TYPE_CHECKING:
+    from Bio.SeqRecord import SeqRecord
 
-_T = typing.TypeVar("_T", bound="DomainRow")
+    _T = typing.TypeVar("_T", bound="DomainRow")
 
 
 class DomainRow(typing.NamedTuple):
@@ -50,7 +54,7 @@ class DomainRow(typing.NamedTuple):
     description: Optional[str]
 
     @classmethod
-    def from_line(cls: Type[_T], row: str) -> _T:
+    def from_line(cls: Type["_T"], row: str) -> "_T":
         line = list(filter(None, row.split(" ")))
         return cls(
             target_name=line[0],
@@ -85,108 +89,76 @@ class HMMER(BinaryRunner):
 
     BINARY = "hmmsearch"
 
-    def __init__(
-        self,
-        fasta: str,
-        out_dir: str,
-        hmms: str,
-        prodigal: bool = True,
-        cpus: Optional[int] = None,
-    ) -> None:
-        """Prepare a new `HMMER` annotation run.
+    def __init__(self, hmms: str, cpus: Optional[int] = None) -> None:
+        """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:
-            fasta (str): The path to the file containing the input sequences.
-            out_dir (str): The path to the directory in which to write output.
             hmms (str): The path to the file containing the HMMs.
-            prodigal (bool, optional): Whether or not the protein files were
-                obtained with PRODIGAL, in which case the extraction of some
-                features to the final dataframe will be a lot more accurate.
-                Defaults to ``True``.
             cpus (int, optional): The number of CPUs to allocate for the
                 ``hmmsearch`` command. Give ``None`` to use the default.
 
         """
         super().__init__()
-        self.fasta = fasta
-        self.prodigal = prodigal
-        if not self.prodigal:
-            self.protein_order = self._get_protein_order()
-        self.out_dir = out_dir
         self.hmms = hmms
         self.cpus = cpus
 
-    def run(self) -> "pandas.DataFrame":
-        """Run HMMER and return the output as a data frame.
+    def run(
+        self,
+        proteins: Iterable["SeqRecord"],
+        prodigal: bool = True,
+    ) -> "pandas.DataFrame":
+        """Run HMMER on ``proteins`` and return found domains as a dataframe.
+
+        Arguments:
+            proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
+                annotate with HMMER.
+            prodigal (bool, optional): Whether or not the protein files were
+                obtained with PRODIGAL, in which case the extraction of some
+                features to the final dataframe will be a lot more accurate.
+                Defaults to ``True``.
+
         """
-        base, _ = os.path.splitext(os.path.basename(self.fasta))
-        dom_out = os.path.join(self.out_dir, f"{base}.hmmer.dom")
-        stdout = os.path.join(self.out_dir, f"{base}.hmmer.out")
-        stderr = os.path.join(self.out_dir, f"{base}.hmmer.err")
+        # create a temporary file to write the input and output to
+        _, seqs_tmp = tempfile.mkstemp(prefix="hmmer", suffix=".faa")
+        _, doms_tmp = tempfile.mkstemp(prefix="hmmer", suffix=".dom")
 
-        # Prepare the command line arguments
-        cmd = ["hmmsearch", "-o", stdout, "--domtblout", dom_out]
-        if self.cpus is not None:
-            cmd.extend(["--cpu", str(self.cpus)])
-        cmd.extend([self.hmms, self.fasta])
+        try:
+            SeqIO.write(proteins, seqs_tmp, "fasta")
 
-        # Run HMMER
-        with open(stderr, "w") as err:
-            subprocess.run(cmd, stderr=err).check_returncode()
+            # Prepare the command line arguments
+            cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp]
+            # if self.cpus is not None:
+            #     cmd.extend(["--cpu", str(self.cpus)])
+            cmd.extend([self.hmms, seqs_tmp])
 
-        # Extract the result as a dataframe
-        return (
-            self._to_dataframe(dom_out)
-            .sort_values(["sequence_id", "start", "domain_start"])
-            .reset_index(drop=True)
-        )
+            # Run HMMER
+            # with open(stderr, "w") as err:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
-    def _to_tsv(self, dom_file: str, out_file: str) -> None:
-        """Convert HMMER --domtblout output to regular TSV
-        """
-        header = [
-            "sequence_id",
-            "protein_id",
-            "start",
-            "end",
-            "strand",
-            "domain",
-            "i_Evalue",
-            "domain_start",
-            "domain_end",
-        ]
-        with open(dom_file, "r") as f, open(out_file, "w") as fout:
-            writer = csv.writer(fout, dialect="excel-tab")
-            writer.writerow(header)
+            # Extract the result as a dataframe
+            return (
+                self._to_dataframe(seqs_tmp, doms_tmp, prodigal=prodigal)
+                .sort_values(["sequence_id", "start", "domain_start"])
+                .reset_index(drop=True)
+            )
+        finally:
+            os.remove(seqs_tmp)
+            os.remove(doms_tmp)
 
-            for line in filter(lambda line: not line.startswith("#"), f):
-                l = line.split()
-                if self.prodigal:
-                    sid = "_".join(l[0].split("_")[:-1])
-                    pid = l[0]
-                    start = min(int(l[23]), int(l[25]))
-                    end = max(int(l[23]), int(l[25]))
-                    strand = "+" if l[27] == "1" else "-"
-                else:
-                    sid = "_".join(l[0].split("_")[:-1])
-                    pid = l[0]
-                    start = self.protein_order[pid]
-                    end = self.protein_order[pid]
-                    strand = "unknown"
-                domain = l[4] or l[3]
-                writer.writerow(
-                    [sid, pid, start, end, strand, domain, l[12]]
-                    + typing.cast(List[object], l[17:19])
-                )
-
-    def _to_dataframe(self, dom_file: str) -> "pandas.DataFrame":
+    def _to_dataframe(self, seqs_file: str, doms_file: str, prodigal: bool) -> "pandas.DataFrame":
         """Converts a HMMER domain table to a `pandas.DataFrame`.
         """
         rows = []
-        with open(dom_file, "r") as f:
+        if not prodigal:
+            sequences = SeqIO.parse(seqs_file, "fasta")
+            protein_order = {seq.id: i for i, seq in enumerate(sequences)}
+
+        with open(doms_file, "r") as f:
             for line in filter(lambda line: not line.startswith("#"), f):
                 row = DomainRow.from_line(line)
-                if self.prodigal:
+                if prodigal:
+                    # extract the sequence ID and the protein ID using
+                    # the PRODIGAL naming convention
                     sid = row.target_name[: row.target_name.rfind("_")]
                     pid = row.target_name
                     # extract additional metadata from the target description
@@ -197,8 +169,7 @@ class HMMER(BinaryRunner):
                     strand = "+" if info[2] == "1" else "-"
                 else:
                     sid = pid = row.target_name
-                    start = self.protein_order[pid]
-                    end = self.protein_order[pid]
+                    start = end = protein_order[pid]
                     strand = "unknown"
                 domain = row.query_accession or row.query_name
                 rows.append(
