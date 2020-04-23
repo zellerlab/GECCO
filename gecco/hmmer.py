@@ -10,6 +10,8 @@ from typing import Dict, Optional, List, Type
 
 import pandas
 
+from ._base import BinaryRunner
+
 
 _T = typing.TypeVar("_T", bound="DomainRow")
 
@@ -77,9 +79,11 @@ class DomainRow(typing.NamedTuple):
         )
 
 
-class HMMER(object):
+class HMMER(BinaryRunner):
     """A wrapper for HMMER that scans a HMM library against protein sequences.
     """
+
+    BINARY = "hmmsearch"
 
     def __init__(
         self,
@@ -103,6 +107,7 @@ class HMMER(object):
                 ``hmmsearch`` command. Give ``None`` to use the default.
 
         """
+        super().__init__()
         self.fasta = fasta
         self.prodigal = prodigal
         if not self.prodigal:
@@ -110,7 +115,6 @@ class HMMER(object):
         self.out_dir = out_dir
         self.hmms = hmms
         self.cpus = cpus
-        self._check_hmmer()
 
     def run(self) -> "pandas.DataFrame":
         """Run HMMER and return the output as a data frame.
@@ -136,19 +140,6 @@ class HMMER(object):
             .sort_values(["sequence_id", "start", "domain_start"])
             .reset_index(drop=True)
         )
-
-    def _check_hmmer(self) -> None:
-        """Check wether hmmsearch is available. Raises error if not.
-        """
-        try:
-            devnull = subprocess.DEVNULL
-            subprocess.run(["hmmsearch"], stdout=devnull, stderr=devnull)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                raise OSError(
-                    "HMMER does not seem to be installed. Please install it and re-run GECCO."
-                )
-            raise
 
     def _to_tsv(self, dom_file: str, out_file: str) -> None:
         """Convert HMMER --domtblout output to regular TSV

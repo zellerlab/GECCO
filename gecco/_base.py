@@ -12,12 +12,12 @@ class MissingBinaryError(RuntimeError):
     """A runtime error when a required program could not be found.
     """
 
-    def __init__(self, name: str, args: Iterable[str]):
+    def __init__(self, name: str, args: Iterable[str]) -> None:
         super().__init__(name, args)
         self.name = name
         self.args = args
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"could not locate binary: {self.name}"
 
 
@@ -44,5 +44,5 @@ class BinaryRunner(metaclass=abc.ABCMeta):
                 raise MissingBinaryError(cls.BINARY, args)
             raise
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.check_binary()
