@@ -7,7 +7,7 @@ import os
 import subprocess
 import tempfile
 import typing
-from typing import Iterable, List, Optional
+from typing import Iterable, Iterator, List, Optional
 
 import Bio.SeqIO
 
@@ -22,7 +22,7 @@ class ORFFinder(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def find_proteins(self, sequences: List["SeqRecord"],) -> List["SeqRecord"]:
+    def find_proteins(self, sequences: Iterable["SeqRecord"],) -> Iterable["SeqRecord"]:
         """Find all proteins from a list of DNA sequences.
         """
         return NotImplemented  # type: ignore
@@ -54,7 +54,7 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
 
     def find_proteins(
         self, sequences: Iterable["SeqRecord"],
-    ) -> List["SeqRecord"]:  # noqa: D102
+    ) -> Iterator["SeqRecord"]:  # noqa: D102
         with tempfile.NamedTemporaryFile(
             "w+", prefix=self.BINARY, suffix=".faa"
         ) as tmp:
@@ -70,4 +70,4 @@ class ProdigalFinder(BinaryRunner, ORFFinder):
                 cmd, input=buffer.detach().getbuffer(), stdout=subprocess.DEVNULL
             )
             completed.check_returncode()
-            return list(Bio.SeqIO.parse(tmp, "fasta"))
+            yield from Bio.SeqIO.parse(tmp, "fasta")
