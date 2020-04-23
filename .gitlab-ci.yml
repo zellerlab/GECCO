@@ -21,8 +21,8 @@ stages:
   script:
     - python setup.py bdist_wheel
     - pip install --upgrade dist/*.whl
-    - gecco --traceback -vv run -o /tmp -g tests/data/SRR492066.fna
-    - gecco --traceback -vv annotate -o /tmp -g tests/data/SRR492066.fna
+    - gecco --traceback -vv run -o /tmp -g tests/data/BGC0001866.gbk
+    - gecco --traceback -vv annotate -o /tmp -g tests/data/BGC0001866.gbk
     - python -m coverage run -p -m unittest discover -vv
 
   after_script:
