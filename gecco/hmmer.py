@@ -1,6 +1,6 @@
 """Compatibility wrapper for HMMER binaries and output.
 """
-
+import contextlib
 import csv
 import errno
 import os
@@ -119,31 +119,28 @@ class HMMER(BinaryRunner):
 
         """
         # create a temporary file to write the input and output to
-        _, seqs_tmp = tempfile.mkstemp(prefix="hmmer", suffix=".faa")
-        _, doms_tmp = tempfile.mkstemp(prefix="hmmer", suffix=".dom")
+        seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
+        doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom")
 
-        try:
-            SeqIO.write(proteins, seqs_tmp, "fasta")
+        SeqIO.write(proteins, seqs_tmp.name, "fasta")
 
-            # Prepare the command line arguments
-            cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp]
-            # if self.cpus is not None:
-            #     cmd.extend(["--cpu", str(self.cpus)])
-            cmd.extend([self.hmms, seqs_tmp])
+        # Prepare the command line arguments
+        cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp.name]
+        # if self.cpus is not None:
+        #     cmd.extend(["--cpu", str(self.cpus)])
+        cmd.extend([self.hmms, seqs_tmp.name])
 
-            # Run HMMER
-            # with open(stderr, "w") as err:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
+        # Run HMMER
+        # with open(stderr, "w") as err:
+        subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
-            # Extract the result as a dataframe
-            return (
-                self._to_dataframe(seqs_tmp, doms_tmp, prodigal=prodigal)
-                .sort_values(["sequence_id", "start", "domain_start"])
-                .reset_index(drop=True)
-            )
-        finally:
-            os.remove(seqs_tmp)
-            os.remove(doms_tmp)
+        # Extract the result as a dataframe
+        return (
+            self._to_dataframe(seqs_tmp.name, doms_tmp.name, prodigal=prodigal)
+            .sort_values(["sequence_id", "start", "domain_start"])
+            .reset_index(drop=True)
+        )
+
 
     def _to_dataframe(self, seqs_file: str, doms_file: str, prodigal: bool) -> "pandas.DataFrame":
         """Converts a HMMER domain table to a `pandas.DataFrame`.
