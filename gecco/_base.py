@@ -2,7 +2,7 @@ import abc
 import errno
 import subprocess
 import typing
-from typing import Iterable, Type
+from typing import Iterable, Optional, Type
 from subprocess import DEVNULL
 
 from ._meta import classproperty
@@ -26,26 +26,28 @@ class BinaryRunner(metaclass=abc.ABCMeta):
     """
 
     BINARY: typing.ClassVar[str] = NotImplemented
+    HELP: typing.ClassVar[str] = "-h"
 
     @classmethod
     def has_binary(
-        cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)
+        cls: Type["BinaryRunner"], args: Optional[Iterable[str]] = None
     ) -> bool:
         try:
-            cls.check_binary()
+            cls.check_binary(args)
             return True
         except MissingBinaryError:
             return False
 
     @classmethod
     def check_binary(
-        cls: Type["BinaryRunner"], args: Iterable[str] = ("--help",)
+        cls: Type["BinaryRunner"], args: Optional[Iterable[str]] = None
     ) -> None:
         try:
-            subprocess.run([cls.BINARY, *args], stdout=DEVNULL, stderr=DEVNULL)
+            _args = [cls.HELP] if args is None else list(args)
+            subprocess.run([cls.BINARY, *_args], stdout=DEVNULL, stderr=DEVNULL)
         except OSError as err:
             if err.errno == errno.ENOENT:
-                raise MissingBinaryError(cls.BINARY, args)
+                raise MissingBinaryError(cls.BINARY, _args)
             raise
 
     def __init__(self) -> None:
