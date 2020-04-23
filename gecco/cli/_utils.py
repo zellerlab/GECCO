@@ -149,3 +149,25 @@ def numpy_error_context(
         yield
     finally:
         numpy.seterr(**old_settings)
+
+
+def guess_sequences_format(path: str) -> Optional[str]:
+    """Guess the format of a sequence file located in ``path``.
+
+    Supports the following formats:
+        * GenBank
+        * FASTA
+
+    """
+    head = ""
+    with open(path, "r") as file:
+        for head in iter(lambda: file.read(256), ""):
+            head = head.strip()
+            if head:
+                break
+    if head.startswith(">"):
+        return "fasta"
+    elif head.startswith("LOCUS"):
+        return "genbank"
+    else:
+        return None

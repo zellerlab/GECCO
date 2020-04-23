@@ -12,7 +12,6 @@ import warnings
 import numpy
 import pandas
 import tqdm
-from Bio import SeqIO
 
 from ._base import Command
 from .._utils import numpy_error_context

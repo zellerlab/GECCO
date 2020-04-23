@@ -8,7 +8,6 @@ import typing
 
 import numpy
 import pandas
-from Bio import SeqIO
 
 from ._base import Command
 from ... import data

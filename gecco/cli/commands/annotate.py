@@ -12,6 +12,7 @@ import pandas
 from Bio import SeqIO
 
 from ._base import Command
+from .._utils import guess_sequences_format
 from ... import data
 from ...hmmer import HMMER
 from ...orf import ProdigalFinder
@@ -97,7 +98,8 @@ class Annotate(Command):
             base, _ = os.path.splitext(os.path.basename(genome))
 
             self.logger.info("Loading sequences from genome: {!r}", genome)
-            sequences = list(SeqIO.parse(genome, "fasta"))
+            format = guess_sequences_format(genome)
+            sequences = list(SeqIO.parse(genome, format))
 
             self.logger.info("Predicting ORFs with PRODIGAL on {} sequences", len(sequences))
             orf_finder = ProdigalFinder(metagenome=True)
