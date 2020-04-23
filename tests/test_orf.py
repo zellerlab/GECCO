@@ -33,14 +33,14 @@ class TestProdigalFinder(unittest.TestCase):
     @mock.patch("subprocess.run")
     def test_metagenome(self, _run):
         orf_finder = ProdigalFinder(metagenome=True)
-        orf_finder.find_proteins(self.samples)
+        list(orf_finder.find_proteins(self.samples))
         self.assertTrue(any(
             _run.call_args[0][0][i:i+2] == ["-p", "meta"]
             for i in range(len(_run.call_args[0][0]))
         ))
 
         orf_finder = ProdigalFinder(metagenome=False)
-        orf_finder.find_proteins(self.samples)
+        list(orf_finder.find_proteins(self.samples))
         self.assertFalse(any(
             _run.call_args[0][0][i:i+2] == ["-p", "meta"]
             for i in range(len(_run.call_args[0][0]))
