@@ -20,9 +20,9 @@ class classproperty(property):
         ...     def count(cls):
         ...         cls.__COUNT += 1
         ...         return cls.__COUNT
-        >>> X.count()
+        >>> X.count
         1
-        >>> X.count()
+        >>> X.count
         2
     """
 
