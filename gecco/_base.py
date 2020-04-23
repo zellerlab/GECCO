@@ -13,9 +13,9 @@ class MissingBinaryError(RuntimeError):
     """
 
     def __init__(self, name: str, params: Iterable[str]) -> None:
-        super().__init__(name, params)
-        self.name = name
         self.params = list(params)
+        self.name = name
+        super().__init__(name, self.params)
 
     def __str__(self) -> str:
         return f"could not locate binary: {self.name}"
