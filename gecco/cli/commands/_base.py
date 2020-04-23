@@ -41,6 +41,7 @@ class Command(metaclass=abc.ABCMeta):
         config: Optional[Dict[Any, Any]] = None,
     ) -> None:
 
+        self._stream: Optional[TextIO] = stream
         self.argv = argv
         self.stream: TextIO = stream or sys.stderr
         self.options = options or dict()

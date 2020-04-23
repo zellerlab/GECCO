@@ -100,7 +100,7 @@ class Main(Command):
         if self.args["--help"] or "-h" in self.args["<args>"] or "--help" in self.args["<args>"]:
             subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
                 argv=["help"] + [self.args["<cmd>"]],
-                stream=self.stream,
+                stream=self._stream,
                 logger=self.logger,
                 options=self.args,
                 config=self.config,
@@ -116,7 +116,7 @@ class Main(Command):
             subcmd = wrap_warnings(self.logger)( # type: ignore
                 typing.cast(Type[Command], subcmd_cls)(
                     argv=[self.args["<cmd>"]] + self.args["<args>"],
-                    stream=self.stream,
+                    stream=self._stream,
                     logger=self.logger,
                     options=self.args,
                     config=self.config,

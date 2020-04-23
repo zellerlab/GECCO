@@ -4,8 +4,10 @@ import multiprocessing
 import os
 import pickle
 import random
+import sys
 import textwrap
 import typing
+
 
 from ._base import Command
 from ._main import Main
@@ -43,5 +45,5 @@ class Help(Command):
 
         # Render the help message
         doc = Main.doc if subcmd_cls is None else subcmd_cls.doc
-        print(textwrap.dedent(doc).lstrip())
+        print(textwrap.dedent(doc).lstrip(), file=self._stream or sys.stdout)
         return 0
