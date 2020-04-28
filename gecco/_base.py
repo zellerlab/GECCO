@@ -47,7 +47,7 @@ class BinaryRunner(metaclass=abc.ABCMeta):
             subprocess.run([cls.BINARY, *_args], stdout=DEVNULL, stderr=DEVNULL)
         except OSError as err:
             if err.errno == errno.ENOENT:
-                raise MissingBinaryError(cls.BINARY, _args)
+                raise MissingBinaryError(cls.BINARY, _args) from err
             raise
 
     def __init__(self) -> None:
