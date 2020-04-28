@@ -1,8 +1,9 @@
-"""Algorithm to smooth contiguous BGC predictions into single regions. 
+"""Algorithm to smooth contiguous BGC predictions into single regions.
 """
 
+import operator
 import typing
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas
 from gecco.bgc import Protein, BGC
@@ -81,42 +82,48 @@ class ClusterRefiner(object):
     def extract_segments(
         self, df: "pandas.DataFrame", lower_threshold: float,
     ) -> List["pandas.DataFrame"]:
-        """
+        """Extract contiguous BGC segments from an BGC prediction table.
+
         Extracts segments from a data frame which are determined by p_col.
         Segments are named with prefix_[cluster_number].
         """
-        cluster_num = 1
-        cluster_state = False
-        cluster_list = []
-        for n in range(len(df)):
-            row = df.iloc[n]
-            if row[self.p_col] >= lower_threshold:
+        in_cluster: int = False
+        clusters: List[pandas.DataFrame] = []  # list of all clusters
+        cluster: List[Tuple[...]] # list of current cluster
+
+        # getter functions to get the probability and the seq_id from the
+        # namedtuple fields
+        p_getter = operator.attrgetter(self.p_col)
+        seq_getter = operator.attrgetter(self.seq_col)
+
+        # process all proteins to find potential BGCs
+        for idx, row in enumerate(df.itertuples()):
+            if p_getter(row) >= lower_threshold:
                 # non-cluster -> cluster
-                if not cluster_state:
-                    cluster_name = f"{row[self.seq_col]}_cluster_{cluster_num}"
-                    row = pandas.DataFrame(row).transpose()
-                    cluster_start = row["start"]
-                    cluster_df = row
-                    cluster_state = True
+                if not in_cluster:
+                    cluster_num = len(clusters) + 1
+                    cluster_id = f"{seq_getter(row)}_cluster_{cluster_num}"
+                    cluster = [row]
+                    in_cluster = True
                 # cluster -> cluster
                 else:
-                    cluster_df = cluster_df.append(row)
-                    # Check if last row
-                    if n == len(df) - 1:
-                        cluster_list.append(
-                            cluster_df.assign(idx=n, cluster_id=cluster_name)
-                        )
-            else:
+                    cluster.append(row)
+            elif in_cluster:
                 # cluster -> non-cluster
-                if cluster_state:
-                    cluster_list.append(
-                        cluster_df.assign(idx=n, cluster_id=cluster_name)
-                    )
-                    cluster_num += 1
-                    cluster_state = False
+                df = pandas.DataFrame(cluster)
+                clusters.append(df.assign(idx=idx, cluster_id=cluster_id))
+                in_cluster = False
                 # non-cluster -> non-cluster
-                # pass
-        return cluster_list
+                # do nothing #
+
+        # if the sequence is over while we were still in a cluster, we need
+        # to recover the last cluster
+        if in_cluster:
+            df = pandas.DataFrame(cluster)
+            clusters.append(df.assign(idx=idx, cluster_id=cluster_id))
+
+        # return the list of extracted cluster
+        return clusters
 
     def segment(
         self, df: "pandas.DataFrame", lower_threshold: float, prefix: str,
@@ -125,28 +132,38 @@ class ClusterRefiner(object):
         Determines coordinates of segments determined by p_col over
         a lower_thresh.
         """
-        cluster_num = 1
-        cluster_state = False
-        cluster_list = []
-        for n in range(len(df)):
-            row = df.iloc[n]
-            if row[self.p_col] >= lower_threshold:
+
+        in_cluster: int = False
+        clusters: List[pandas.DataFrame] = []  # list of all clusters
+
+        # getter functions to get the probability and the seq_id from the
+        # namedtuple fields
+        p_getter = operator.attrgetter(self.p_col)
+        seq_getter = operator.attrgetter(self.seq_col)
+
+        for idx, row in enumerate(df.itertuples()):
+            if p_getter(row) >= lower_threshold:
                 # non-cluster -> cluster
-                if not cluster_state:
+                if not in_cluster:
+                    cluster_num = len(clusters) + 1
                     cluster_dict = {}
-                    cluster_dict[self.seq_col] = row[self.seq_col]
-                    cluster_dict["cluster_id"] = prefix + "_" + str(cluster_num)
+                    cluster_dict[self.seq_col] = seq_getter(row)
+                    cluster_dict["cluster_id"] = f"{prefix}_{cluster_num}"
                     cluster_dict["start"] = min(row.start, row.end)
-                    cluster_state = True
-                # cluster -> cluster
-                # pass
-            else:
                 # cluster -> non-cluster
-                if cluster_state:
-                    cluster_dict["end"] = max(row.start, row.end)
-                    cluster_list.append(cluster_dict)
-                    cluster_num += 1
-                    cluster_state = False
+                # do nothing
+            elif in_cluster:
+                # cluster -> non-cluster
+                cluster_dict["end"] = max(row.start, row.end)
+                clusters.append(cluster_dict)
+                in_cluster = False
                 # non-cluster -> non-cluster
-                # pass
-        return pandas.DataFrame(cluster_list)
+                # do nothing
+
+        # if the sequence is over while we were still in a cluster, we need
+        # to recover the last cluster
+        if in_cluster and not df.empty:
+            cluster_dict["end"] = max(row.start, row.end)
+            clusters.append(cluster_dict)
+
+        return pandas.DataFrame(clusters)
