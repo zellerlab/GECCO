@@ -22,7 +22,10 @@ class TestProdigalFinder(unittest.TestCase):
     # setting PATH to nothing will prevent the subprocess to locate PRODIGAL
     @mock.patch.dict(os.environ, {'PATH':''})
     def test_not_installed(self):
-        self.assertRaises(RuntimeError, ProdigalFinder)
+        with self.assertRaises(RuntimeError) as ctx:
+            ProdigalFinder()
+        self.assertEqual(str(ctx.exception), "could not locate binary: prodigal")
+        self.assertFalse(ProdigalFinder.has_binary())
 
     @unittest.skipUnless(ProdigalFinder.has_binary(), "PRODIGAL not available")
     def test_actual_data(self):

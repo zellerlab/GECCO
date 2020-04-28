@@ -124,6 +124,9 @@ class BGC(object):
                 type was predicted, if any.
 
         """
+        if not proteins:
+            raise ValueError("BGC must contain at least one protein")
+
         self.proteins = proteins
         self.seq_id = self.proteins[0].seq_id
         self.prot_ids = numpy.array([p.name for p in proteins])
@@ -183,10 +186,9 @@ class BGC(object):
             self.type_prob,
         ]
         if long:
-            row.append(",".join(numpy.hstack(self.prot_ids)))  # prots
-            row.append(",".join(numpy.hstack(self.domains)))  # pfam
-        row_str = [str(item) for item in row]
-        csv.writer(handle, dialect="excel-tab").writerow(row_str)
+            row.append(";".join(numpy.hstack(self.prot_ids)))  # prots
+            row.append(";".join(numpy.hstack(self.domains)))  # pfam
+        csv.writer(handle, dialect="excel-tab").writerow(row)
 
     def domain_composition(self, all_possible: Optional["numpy.ndarray"] = None) -> "numpy.ndarray":
         """Compute weighted domain composition with respect to ``all_possible``.
