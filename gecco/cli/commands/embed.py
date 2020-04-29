@@ -91,19 +91,20 @@ class Embed(Command):  # noqa: D101
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             rows = pool.map(read_table, self.args["--no-bgc"])
-            no_bgc_df = pandas.concat(rows).assign(BGC='0')
+            no_bgc_df = pandas.concat(rows).assign(BGC="0")
         self.logger.debug("Sorting non-BGC table")
         no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         no_bgc_list = [
-            s for _, s in no_bgc_df.groupby("sequence_id", sort=False)
+            s
+            for _, s in no_bgc_df.groupby("sequence_id", sort=False)
             if s.shape[0] > self.args["--min-size"]
         ]
 
         # Read the BGC table, assign the Y column to `1`, and sort
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             rows = pool.map(read_table, self.args["--bgc"])
-            bgc_df = pandas.concat(rows).assign(BGC='1')
-            bgc_df['BGC_id'] = bgc_df.protein_id.str.split("|").str[0]
+            bgc_df = pandas.concat(rows).assign(BGC="1")
+            bgc_df["BGC_id"] = bgc_df.protein_id.str.split("|").str[0]
         self.logger.debug("Sorting BGC table")
         bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
@@ -122,7 +123,9 @@ class Embed(Command):  # noqa: D101
             pbar = None
 
         # Make the embeddings
-        def embed(no_bgc: "pandas.DataFrame", bgc: "pandas.DataFrame") -> "pandas.DataFrame":
+        def embed(
+            no_bgc: "pandas.DataFrame", bgc: "pandas.DataFrame"
+        ) -> "pandas.DataFrame":
             by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
             # cut the input in half to insert the bgc in the middle
             index_half = len(by_prots) // 2
@@ -137,8 +140,8 @@ class Embed(Command):  # noqa: D101
                     sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
                     BGC_id=bgc["BGC_id"].values[0],
                     pseudo_pos=range(len(embed)),
-                    rev_i_Evalue = 1 - embed["i_Evalue"],
-                    log_i_Evalue = -numpy.log10(embed["i_Evalue"]),
+                    rev_i_Evalue=1 - embed["i_Evalue"],
+                    log_i_Evalue=-numpy.log10(embed["i_Evalue"]),
                 )
             # Update the progressbar, if any
             if pbar is not None:

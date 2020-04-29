@@ -82,7 +82,6 @@ class ClusterRefiner(object):
         clusters = map(self._extract_cluster, self._iter_segments(data, lt))
         return filter(lambda bgc: bgc.is_valid(criterion=criterion), clusters)
 
-
     def _extract_cluster(self, segment: "pandas.DataFrame") -> BGC:
         """Take a segment of contiguous domains and returns a `BGC`.
         """
@@ -103,9 +102,7 @@ class ClusterRefiner(object):
         )
 
     def _iter_segments(
-        self,
-        df: "pandas.DataFrame",
-        lower_threshold: float,
+        self, df: "pandas.DataFrame", lower_threshold: float,
     ) -> Iterator["pandas.DataFrame"]:
         """Iterate over contiguous BGC segments from a CRF prediction table.
 

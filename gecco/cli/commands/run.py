@@ -161,7 +161,9 @@ class Run(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
-            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            self.logger.debug(
+                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
+            )
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
             hmmer = HMMER(hmm.path, self.args["--jobs"])
@@ -176,7 +178,9 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
@@ -194,8 +198,8 @@ class Run(Command):  # noqa: D101
             crf = data.load("model/crf.model")
 
         # Compute reverse i_Evalue to be used as weight
-        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
-        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
+        feats_df["rev_i_Evalue"] = 1 - feats_df.i_Evalue
+        feats_df["log_i_Evalue"] = numpy.log10(feats_df.i_Evalue)
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
@@ -219,9 +223,7 @@ class Run(Command):  # noqa: D101
                 continue
             clusters.extend(
                 refiner.iter_clusters(
-                    subdf,
-                    criterion=self.args["--postproc"],
-                    prefix=sid,
+                    subdf, criterion=self.args["--postproc"], prefix=sid,
                 )
             )
 
@@ -236,7 +238,7 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Reading embedded training matrix")
         training_matrix = data.realpath("knn/domain_composition.tsv")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[:,1:].values
+        train_comp = train_df.iloc[:, 1:].values
         id_array = train_df["BGC_id"].values
         pfam_array = train_df.columns.values[1:]
 
@@ -264,18 +266,20 @@ class Run(Command):  # noqa: D101
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
-            csv.writer(f, dialect="excel-tab").writerow([
-                "sequence_id",
-                "BGC_id",
-                "start",
-                "end",
-                "average_p",
-                "max_p",
-                "BGC_type",
-                "BGC_type_p",
-                "proteins",
-                "domains",
-            ])
+            csv.writer(f, dialect="excel-tab").writerow(
+                [
+                    "sequence_id",
+                    "BGC_id",
+                    "start",
+                    "end",
+                    "average_p",
+                    "max_p",
+                    "BGC_type",
+                    "BGC_type_p",
+                    "proteins",
+                    "domains",
+                ]
+            )
             for cluster, ty in zip(clusters, knn_pred):
                 cluster.bgc_type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)

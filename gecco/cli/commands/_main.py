@@ -23,8 +23,7 @@ class Main(Command):
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
         return {
-            cmd.name: cmd.load()
-            for cmd in pkg_resources.iter_entry_points(__parent__)
+            cmd.name: cmd.load() for cmd in pkg_resources.iter_entry_points(__parent__)
         }
 
     @classmethod
@@ -39,12 +38,11 @@ class Main(Command):
             return None
 
     @classproperty
-    def doc(cls) -> str: # type: ignore
+    def doc(cls) -> str:  # type: ignore
         commands = (
             "    {:12}{}".format(name, typing.cast(Command, cmd).summary)
             for name, cmd in sorted(
-                cls._get_subcommands().items(),
-                key=operator.itemgetter(0)
+                cls._get_subcommands().items(), key=operator.itemgetter(0)
             )
         )
         return (
@@ -99,7 +97,11 @@ class Main(Command):
             better_exceptions.hook()
 
         # Print a help message if asked for
-        if self.args["--help"] or "-h" in self.args["<args>"] or "--help" in self.args["<args>"]:
+        if (
+            self.args["--help"]
+            or "-h" in self.args["<args>"]
+            or "--help" in self.args["<args>"]
+        ):
             subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
                 argv=["help"] + [self.args["<cmd>"]],
                 stream=self._stream,
@@ -115,7 +117,7 @@ class Main(Command):
 
         # Initialize the command if is valid
         else:
-            subcmd = wrap_warnings(self.logger)( # type: ignore
+            subcmd = wrap_warnings(self.logger)(  # type: ignore
                 typing.cast(Type[Command], subcmd_cls)(
                     argv=[self.args["<cmd>"]] + self.args["<args>"],
                     stream=self._stream,

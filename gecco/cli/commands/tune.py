@@ -118,12 +118,16 @@ class Tune(Command):  # noqa: D101
 
     def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
-        self.logger.info("Loading the data from {!r}", self.args['--input'])
+        self.logger.info("Loading the data from {!r}", self.args["--input"])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Splitting input by column {!r}", self.args["--split-col"])
-        data: List['DataFrame'] = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
+        data: List["DataFrame"] = [
+            s for _, s in data_tbl.groupby(self.args["--split-col"])
+        ]
 
         if self.args["--shuffle"]:
             self.logger.debug("Shuffling rows")
@@ -138,14 +142,14 @@ class Tune(Command):  # noqa: D101
             for c1, c2 in grid:
                 # create a new CRF with C1/C2 parameters
                 crf = ClusterCRF(
-                    feature_columns = self.args["--feature-cols"],
-                    weight_columns = self.args["--weight-cols"],
-                    feature_type = self.args["--feature-type"],
-                    label_column = self.args["--y-col"],
-                    overlap = self.args["--overlap"],
-                    algorithm = "lbfgs",
-                    c1 = c1,
-                    c2 = c2
+                    feature_columns=self.args["--feature-cols"],
+                    weight_columns=self.args["--weight-cols"],
+                    feature_type=self.args["--feature-type"],
+                    label_column=self.args["--y-col"],
+                    overlap=self.args["--overlap"],
+                    algorithm="lbfgs",
+                    c1=c1,
+                    c2=c2,
                 )
                 # choose the right cross-validation method
                 if self.args["loto"]:
@@ -155,7 +159,9 @@ class Tune(Command):  # noqa: D101
                     cv_type = "kfold"
                     cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
                 # run the cross validation
-                self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
+                self.logger.info(
+                    "Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2
+                )
                 raw = cross_validate(
                     data,
                     self.args["--strat-col"],

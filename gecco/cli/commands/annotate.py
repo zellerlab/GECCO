@@ -75,7 +75,9 @@ class Annotate(Command):  # noqa: D101
             self.args["--jobs"] = multiprocessing.cpu_count()
 
         # Check the input exists
-        input: str = next(filter(None, (self.args[x] for x in ("--genome", "--proteins", "--mibig"))))
+        input: str = next(
+            filter(None, (self.args[x] for x in ("--genome", "--proteins", "--mibig")))
+        )
         if not os.path.exists(input):
             self.logger.error("could not locate input file: {!r}", input)
             return 1
@@ -132,7 +134,9 @@ class Annotate(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
-            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            self.logger.debug(
+                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
+            )
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
             hmmer = HMMER(hmm.path, self.args["--jobs"])
@@ -147,7 +151,9 @@ class Annotate(Command):  # noqa: D101
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
@@ -168,8 +174,8 @@ class Annotate(Command):  # noqa: D101
             feats_df = feats_df.assign(
                 sequence_id=sid,
                 strand=strand,
-                start=list(map(min, locs)), # type: ignore
-                end=list(map(max, locs)), # type: ignore
+                start=list(map(min, locs)),  # type: ignore
+                end=list(map(max, locs)),  # type: ignore
             )
 
         # Write feature table to file

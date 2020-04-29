@@ -105,9 +105,7 @@ class HMMER(BinaryRunner):
         self.cpus = cpus
 
     def run(
-        self,
-        proteins: Iterable["SeqRecord"],
-        prodigal: bool = True,
+        self, proteins: Iterable["SeqRecord"], prodigal: bool = True,
     ) -> "pandas.DataFrame":
         """Run HMMER on ``proteins`` and return found domains as a dataframe.
 
@@ -143,8 +141,9 @@ class HMMER(BinaryRunner):
             .reset_index(drop=True)
         )
 
-
-    def _to_dataframe(self, seqs_file: str, doms_file: str, prodigal: bool) -> "pandas.DataFrame":
+    def _to_dataframe(
+        self, seqs_file: str, doms_file: str, prodigal: bool
+    ) -> "pandas.DataFrame":
         """Convert a HMMER domain table to a `pandas.DataFrame`.
         """
         rows = []

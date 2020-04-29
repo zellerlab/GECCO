@@ -80,7 +80,6 @@ class Cv(Command):  # noqa: D101
         if retcode is not None:
             return retcode
 
-
         # Check the input exists
         input_ = self.args["--input"]
         if not os.path.exists(input_):
@@ -114,12 +113,16 @@ class Cv(Command):  # noqa: D101
 
     def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
-        self.logger.info("Loading the data from {!r}", self.args['--input'])
+        self.logger.info("Loading the data from {!r}", self.args["--input"])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Splitting input by column {!r}", self.args["--split-col"])
-        data: List['DataFrame'] = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
+        data: List["DataFrame"] = [
+            s for _, s in data_tbl.groupby(self.args["--split-col"])
+        ]
 
         if self.args["--shuffle"]:
             self.logger.debug("Shuffling rows")
@@ -127,14 +130,14 @@ class Cv(Command):  # noqa: D101
 
         # --- CROSS VALIDATION -----------------------------------------------
         crf = ClusterCRF(
-            feature_columns = self.args["--feature-cols"],
-            weight_columns = self.args["--weight-cols"],
-            feature_type = self.args["--feature-type"],
-            label_column = self.args["--y-col"],
-            overlap = self.args["--overlap"],
-            algorithm = "lbfgs",
-            c1 = self.args["--c1"],
-            c2 = self.args["--c2"],
+            feature_columns=self.args["--feature-cols"],
+            weight_columns=self.args["--weight-cols"],
+            feature_type=self.args["--feature-type"],
+            label_column=self.args["--y-col"],
+            overlap=self.args["--overlap"],
+            algorithm="lbfgs",
+            c1=self.args["--c1"],
+            c2=self.args["--c2"],
         )
 
         if self.args["loto"]:
@@ -145,12 +148,14 @@ class Cv(Command):  # noqa: D101
             cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
 
         self.logger.info("Performing cross-validation")
-        results = pandas.concat(cross_validate(
-            data,
-            self.args["--strat-col"],
-            trunc=self.args["--truncate"],
-            jobs=self.args["--jobs"],
-        ))
+        results = pandas.concat(
+            cross_validate(
+                data,
+                self.args["--strat-col"],
+                trunc=self.args["--truncate"],
+                jobs=self.args["--jobs"],
+            )
+        )
 
         # Add all the arguments given from CLI as table data
         self.logger.info("Formatting results")
