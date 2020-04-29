@@ -10,6 +10,9 @@ from gecco.bgc import Protein, BGC
 
 
 class ClusterRefiner(object):
+    """A post-processor to extract contiguous BGCs from CRF predictions.
+    """
+
     def __init__(
         self,
         threshold: float = 0.4,
@@ -18,11 +21,13 @@ class ClusterRefiner(object):
         prot_col: str = "protein_id",
         p_col: str = "p_pred",
         domain_col: str = "domain",
-        weight_col: str = "log_i_Evalue",
+        weight_col: str = "rev_i_Evalue",
         min_domains: int = 1,
         min_proteins: int = 5,
         join_width: int = 1,
     ) -> None:
+        """Create a new `ClusterRefiner` instance.
+        """
         self.threshold = threshold
         self.n_biodomains = biosynthetic_domains
         self.n_domains = min_domains
