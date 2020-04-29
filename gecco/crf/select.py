@@ -66,8 +66,8 @@ def fisher_significance(
         ...         ["prot7", "C", 0],
         ...     ],
         ... )
-        >>> fisher_significance(data)
-        {'A': 0.047..., 'B': 0.999..., 'C': 0.047...}
+        >>> sorted(fisher_significance(data).items()) 
+        [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
 
         Since *A* and *C* only appear in BGC and non BGC proteins respectively,
         the p-value for a two-tailed Fisher Exact Test is under 5%, while *B*,
