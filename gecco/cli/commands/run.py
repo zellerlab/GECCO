@@ -214,13 +214,13 @@ class Run(Command):
             if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
                 self.logger.warn("Skipping sequence {!r} because it is too short", sid)
                 continue
-            found_clusters = refiner.find_clusters(
-                subdf,
-                method=self.args["--postproc"],
-                prefix=sid,
+            clusters.extend(
+                refiner.iter_clusters(
+                    subdf,
+                    criterion=self.args["--postproc"],
+                    prefix=sid,
+                )
             )
-            if found_clusters:
-                clusters.extend(found_clusters)
 
         if not clusters:
             self.logger.warning("No gene clusters were found")

@@ -17,7 +17,6 @@ from ._base import Command
 from .._utils import numpy_error_context
 from ... import data
 from ...hmmer import HMMER
-from ...refine import ClusterRefiner
 
 
 class Embed(Command):

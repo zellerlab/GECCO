@@ -13,7 +13,6 @@ from ._base import Command
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
-from ...refine import ClusterRefiner
 
 
 class Train(Command):
