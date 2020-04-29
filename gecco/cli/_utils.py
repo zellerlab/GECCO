@@ -1,4 +1,4 @@
-"""A module containing some metaprogramming helpers.
+"""A module containing some utilities only relevant to the CLI.
 """
 
 import contextlib
@@ -11,21 +11,12 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Type
 import numpy
 import verboselogs
 
+from .._meta import classproperty
+
 if typing.TYPE_CHECKING:
     _S = typing.TypeVar("_S")
     _T = typing.TypeVar("_T")
     _F = typing.TypeVar("_F", bound=Callable[..., "_T"])
-
-
-class classproperty(property):
-    """A class property decorator.
-    """
-
-    def __init__(self, f: Callable[["_S"], "_T"]) -> None:
-        self.f = f
-
-    def __get__(self, obj: object, owner: "_S") -> "_T":  # type: ignore
-        return self.f(owner)
 
 
 class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
@@ -158,3 +149,25 @@ def numpy_error_context(
         yield
     finally:
         numpy.seterr(**old_settings)
+
+
+def guess_sequences_format(path: str) -> Optional[str]:
+    """Guess the format of a sequence file located in ``path``.
+
+    Supports the following formats:
+        * GenBank
+        * FASTA
+
+    """
+    head = ""
+    with open(path, "r") as file:
+        for head in iter(lambda: file.read(256), ""):
+            head = head.strip()
+            if head:
+                break
+    if head.startswith(">"):
+        return "fasta"
+    elif head.startswith("LOCUS"):
+        return "genbank"
+    else:
+        return None

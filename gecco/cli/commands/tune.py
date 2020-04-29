@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco tune`` subcommand.
+"""
+
 import functools
 import itertools
 import os
@@ -17,7 +20,7 @@ if typing.TYPE_CHECKING:
     from pandas import DataFrame
 
 
-class Tune(Command):
+class Tune(Command):  # noqa: D101
 
     summary = "optimize value of hyperparameters through cross-validation."
     doc = f"""
@@ -45,10 +48,10 @@ class Tune(Command):
 
     Parameters - Training:
         --c1 <n>                        the different values to use for C1. Can
-                                        be given more than once to create a 
+                                        be given more than once to create a
                                         grid. [default: 0 0.15 1 2 10]
         --c2 <n>                        the different values to use for C2. Can
-                                        be given more than once to create a 
+                                        be given more than once to create a
                                         grid. [default: 0 0.15]
         --feature-type <type>           how features should be extracted
                                         (single, overlap, or group).
@@ -113,14 +116,18 @@ class Tune(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
-        self.logger.info("Loading the data from {!r}", self.args['--input'])
+        self.logger.info("Loading the data from {!r}", self.args["--input"])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Splitting input by column {!r}", self.args["--split-col"])
-        data: List['DataFrame'] = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
+        data: List["DataFrame"] = [
+            s for _, s in data_tbl.groupby(self.args["--split-col"])
+        ]
 
         if self.args["--shuffle"]:
             self.logger.debug("Shuffling rows")
@@ -135,14 +142,14 @@ class Tune(Command):
             for c1, c2 in grid:
                 # create a new CRF with C1/C2 parameters
                 crf = ClusterCRF(
-                    feature_columns = self.args["--feature-cols"],
-                    weight_columns = self.args["--weight-cols"],
-                    feature_type = self.args["--feature-type"],
-                    label_column = self.args["--y-col"],
-                    overlap = self.args["--overlap"],
-                    algorithm = "lbfgs",
-                    c1 = c1,
-                    c2 = c2
+                    feature_columns=self.args["--feature-cols"],
+                    weight_columns=self.args["--weight-cols"],
+                    feature_type=self.args["--feature-type"],
+                    label_column=self.args["--y-col"],
+                    overlap=self.args["--overlap"],
+                    algorithm="lbfgs",
+                    c1=c1,
+                    c2=c2,
                 )
                 # choose the right cross-validation method
                 if self.args["loto"]:
@@ -152,7 +159,9 @@ class Tune(Command):
                     cv_type = "kfold"
                     cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
                 # run the cross validation
-                self.logger.info("Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2)
+                self.logger.info(
+                    "Performing cross-validation with C1={:.02}, C2={:.02}", c1, c2
+                )
                 raw = cross_validate(
                     data,
                     self.args["--strat-col"],

@@ -27,7 +27,7 @@ def open(local_path: str, mode: str = "r") -> Union[IO[str], IO[bytes]]:
     """
     stream = pkg_resources.resource_stream(__name__, local_path)
     if mode == "r":
-        stream = io.TextIOWrapper(stream) # type: ignore
+        stream = io.TextIOWrapper(stream)  # type: ignore
     elif mode not in {"rb", "br"}:
         raise ValueError(f"invalid mode: {mode!r}")
     return stream
@@ -41,7 +41,7 @@ def load(local_path: str) -> object:
         signature = sig.read().strip()
     with open(local_path, "rb") as bin:
         read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
-        for chunk in iter(read, b''):
+        for chunk in iter(read, b""):
             hasher.update(typing.cast(bytes, chunk))
     if hasher.hexdigest().upper() != signature.upper():
         raise RuntimeError("hashes of data does not match signature")

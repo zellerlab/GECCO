@@ -1,9 +1,13 @@
+"""Implementation of the ``gecco run`` subcommand.
+"""
+
 import csv
 import glob
 import logging
 import multiprocessing
 import os
 import pickle
+import tempfile
 import typing
 import signal
 from typing import Union
@@ -13,15 +17,16 @@ import pandas
 from Bio import SeqIO
 
 from ._base import Command
+from .._utils import guess_sequences_format
 from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
-from ...orf import ORFFinder
+from ...orf import ProdigalFinder
 from ...refine import ClusterRefiner
 
 
-class Run(Command):
+class Run(Command):  # noqa: D101
 
     summary = "predict BGC from a genome or from individual proteins."
     doc = f"""
@@ -107,14 +112,17 @@ class Run(Command):
 
         # Check the hmms exist or use internal ones
         if self.args["--hmm"]:
+            for hmm in self.args["--hmm"]:
+                if not os.path.exists(hmm):
+                    self.logger.error("could not locate hmm file: {!r}", hmm)
+                    return 1
             self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
         else:
             self.args["--hmm"] = list(data.hmms.iter())
 
-
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # Make output directory
         out_dir = self.args["--output-dir"]
         self.logger.debug("Using output folder: {!r}", out_dir)
@@ -125,15 +133,24 @@ class Run(Command):
             genome = self.args["--genome"]
             base, _ = os.path.splitext(os.path.basename(genome))
 
-            prodigal_out = os.path.join(out_dir, "prodigal")
-            self.logger.debug("Using PRODIGAL output folder: {!r}", prodigal_out)
-            os.makedirs(prodigal_out, exist_ok=True)
-
+            self.logger.info("Loading sequences from genome: {!r}", genome)
+            format = guess_sequences_format(genome)
+            sequences = SeqIO.parse(genome, format)
             self.logger.info("Predicting ORFs with PRODIGAL")
-            orf_finder = ORFFinder(genome, prodigal_out, method="prodigal")
-            orf_file = orf_finder.run()
+            orf_finder = ProdigalFinder(metagenome=True)
+            proteins = orf_finder.find_proteins(sequences)
+
+            # we need to keep all the ORFs in a file because we will need
+            # them when extracting cluster sequences
+            _orf_file = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
+            orf_file = _orf_file.name
+            SeqIO.write(proteins, orf_file, "fasta")
             prodigal = True
 
+            # count the number of detected proteins without keeping them all
+            # in memory
+            index = SeqIO.index(orf_file, "fasta")
+            self.logger.info("Found {} potential proteins", len(index))
         else:
             orf_file = self.args["--proteins"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
@@ -144,13 +161,15 @@ class Run(Command):
 
         # Run all HMMs over ORFs to annotate with protein domains
         def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
-            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            self.logger.debug(
+                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
+            )
             hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
             os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(orf_file, hmmer_out, hmm.path, prodigal, self.args["--jobs"])
-            result = hmmer.run().assign(hmm=hmm.id)
+            hmmer = HMMER(hmm.path, self.args["--jobs"])
+            result = hmmer.run(SeqIO.parse(orf_file, "fasta"), prodigal=prodigal)
             self.logger.debug("Finished running HMM {}", hmm.id)
-            return result.assign(domain=hmm.relabel(result.domain))
+            return result.assign(hmm=hmm.id, domain=hmm.relabel(result.domain))
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             features = pool.map(annotate, self.args["--hmm"])
@@ -159,7 +178,9 @@ class Run(Command):
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
@@ -177,8 +198,8 @@ class Run(Command):
             crf = data.load("model/crf.model")
 
         # Compute reverse i_Evalue to be used as weight
-        feats_df['rev_i_Evalue'] = 1 - feats_df.i_Evalue
-        feats_df['log_i_Evalue'] = numpy.log10(feats_df.i_Evalue)
+        feats_df["rev_i_Evalue"] = 1 - feats_df.i_Evalue
+        feats_df["log_i_Evalue"] = numpy.log10(feats_df.i_Evalue)
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
@@ -200,13 +221,11 @@ class Run(Command):
             if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
                 self.logger.warn("Skipping sequence {!r} because it is too short", sid)
                 continue
-            found_clusters = refiner.find_clusters(
-                subdf,
-                method=self.args["--postproc"],
-                prefix=sid,
+            clusters.extend(
+                refiner.iter_clusters(
+                    subdf, criterion=self.args["--postproc"], prefix=sid,
+                )
             )
-            if found_clusters:
-                clusters.extend(found_clusters)
 
         if not clusters:
             self.logger.warning("No gene clusters were found")
@@ -219,7 +238,7 @@ class Run(Command):
         self.logger.debug("Reading embedded training matrix")
         training_matrix = data.realpath("knn/domain_composition.tsv")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[:,1:].values
+        train_comp = train_df.iloc[:, 1:].values
         id_array = train_df["BGC_id"].values
         pfam_array = train_df.columns.values[1:]
 
@@ -247,34 +266,34 @@ class Run(Command):
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
-            csv.writer(f, dialect="excel-tab").writerow([
-                "sequence_id",
-                "BGC_id",
-                "start",
-                "end",
-                "average_p",
-                "max_p",
-                "BGC_type",
-                "BGC_type_p",
-                "proteins",
-                "domains",
-            ])
+            csv.writer(f, dialect="excel-tab").writerow(
+                [
+                    "sequence_id",
+                    "BGC_id",
+                    "start",
+                    "end",
+                    "average_p",
+                    "max_p",
+                    "BGC_type",
+                    "BGC_type_p",
+                    "proteins",
+                    "domains",
+                ]
+            )
             for cluster, ty in zip(clusters, knn_pred):
                 cluster.bgc_type, cluster.type_prob = ty
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
+        orf_index = SeqIO.index(orf_file, "fasta")
         for cluster in clusters:
-            prots = []
-            for p in SeqIO.parse(orf_file, "fasta"):
-                if p.id in cluster.prot_ids:
-                    p.description = f"{cluster.name} # {p.description}"
-                    prots.append(p)
-
             prots_out = os.path.join(out_dir, f"{cluster.name}.proteins.faa")
             self.logger.debug("Writing proteins of {} to {!r}", cluster.name, prots_out)
             with open(prots_out, "w") as out:
-                SeqIO.write(prots, out, "fasta")
+                for id_ in cluster.prot_ids:
+                    p = orf_index[id_]
+                    p.description = f"{cluster.name} # {p.description}"
+                    SeqIO.write(p, out, "fasta")
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))

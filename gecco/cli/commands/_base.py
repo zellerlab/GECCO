@@ -11,7 +11,7 @@ import docopt
 import verboselogs
 
 from ... import __version__, __name__ as __progname__
-from .._meta import BraceAdapter
+from .._utils import BraceAdapter
 
 
 class Command(metaclass=abc.ABCMeta):
@@ -41,6 +41,7 @@ class Command(metaclass=abc.ABCMeta):
         config: Optional[Dict[Any, Any]] = None,
     ) -> None:
 
+        self._stream: Optional[TextIO] = stream
         self.argv = argv
         self.stream: TextIO = stream or sys.stderr
         self.options = options or dict()

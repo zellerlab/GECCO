@@ -1,17 +1,22 @@
+"""Implementation of the ``gecco run`` subcommand.
+"""
+
 import csv
 import logging
 import multiprocessing
 import os
 import pickle
 import random
+import sys
 import textwrap
 import typing
+
 
 from ._base import Command
 from ._main import Main
 
 
-class Help(Command):
+class Help(Command):  # noqa: D101
 
     summary = "display the help message of another subcommand."
     doc = f"""
@@ -29,7 +34,7 @@ class Help(Command):
                                    for a given subcommand.
     """
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # Get the subcommand class
         if self.args["<cmd>"] is not None:
             subcmd_cls = Main._get_subcommand(self.args["<cmd>"])
@@ -43,5 +48,5 @@ class Help(Command):
 
         # Render the help message
         doc = Main.doc if subcmd_cls is None else subcmd_cls.doc
-        print(textwrap.dedent(doc).lstrip())
+        print(textwrap.dedent(doc).lstrip(), file=self._stream or sys.stdout)
         return 0

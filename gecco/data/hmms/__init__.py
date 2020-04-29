@@ -28,7 +28,7 @@ class Hmm(typing.NamedTuple):
     def relabel(self, domains: List[str]) -> List[str]:
         if self.relabel_with is None:
             return domains
-        before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups() # type: ignore
+        before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
         regex = re.compile(before)
         return [regex.sub(after, domain) for domain in domains]
 

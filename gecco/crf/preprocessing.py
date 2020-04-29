@@ -1,3 +1,6 @@
+"""Features extraction and sanitization utilities for `~gecco.crf.ClusterCRF`.
+"""
+
 import collections
 import math
 import numbers
@@ -16,9 +19,19 @@ def truncate(
     data: "pandas.DataFrame",
     length: int,
     label_column: str = "BGC",
-    group_column: str = "protein_id"
+    group_column: str = "protein_id",
 ) -> "pandas.DataFrame":
+    """Truncate ``data`` while preserving positively labeled regions.
 
+    Arguments:
+        data (`~pandas.DataFrame`): The data table to truncate.
+        length (`int`): The target length for the new data table.
+        label_column (`str`): The name of the column containing labels in the
+            data table.
+        group_column (`str`): The name of the column to use to group the data.
+            Rows of the same group are kept together or excluded together.
+
+    """
     data0 = data[data[label_column] == 0]
     data1 = data[data[label_column] == 1]
     data0 = [df for _, df in data0.groupby(group_column, sort=False)]
@@ -30,7 +43,6 @@ def truncate(
     #    data_trunc = pandas.concat(data0)
 
     return data0_trunc.append(data1).sort_index().reset_index()
-
 
 
 def extract_group_features(
@@ -88,10 +100,10 @@ def extract_group_features(
     # not necessary.
 
     # first, let's extract all the groups, and create a table that maps each
-    # group to an index: this let's us store the features of each groups in
-    # an array instead of a dictionary, saving us the conversion to list
+    # group to an index: this lets us store the features of each groups in an
+    # array instead of a dictionary, sparing us the list conversion at the end
     groups = list(table[group_column].unique())
-    group_indexer = {group:i for i,group in enumerate(groups)}
+    group_indexer = {group: i for i, group in enumerate(groups)}
     X: List[Dict[str, float]] = [dict() for _ in groups]
 
     # then let's extract all the arrays we need from the input dataframe
@@ -197,7 +209,9 @@ def extract_overlapping_features(
             for feat, weight in zip(features, weights):
                 X[idx][feat] = max(X[idx].get(feat, 0), weight)
     # Only return Y if requested
-    return X, None if label_column is None else list(table[label_column].array.astype(str))
+    if label_column is None:
+        return X, None
+    return X, list(table[label_column].array.astype(str))
 
 
 def extract_single_features(
@@ -246,4 +260,6 @@ def extract_single_features(
         for index, (feature, weight) in enumerate(zip(features, weights)):
             X[index][feature] = weight
     # return Y only if a label column is given
-    return X, None if label_column is None else list(table[label_column].array.astype(str))
+    if label_column is None:
+        return X, None
+    return X, list(table[label_column].array.astype(str))

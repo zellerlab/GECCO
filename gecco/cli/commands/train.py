@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco train`` subcommand.
+"""
+
 import csv
 import logging
 import multiprocessing
@@ -8,17 +11,14 @@ import typing
 
 import numpy
 import pandas
-from Bio import SeqIO
 
 from ._base import Command
 from ... import data
 from ...crf import ClusterCRF
 from ...hmmer import HMMER
-from ...orf import ORFFinder
-from ...refine import ClusterRefiner
 
 
-class Train(Command):
+class Train(Command):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
     doc = f"""
@@ -139,17 +139,19 @@ class Train(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
 
         # Computing reverse i_Evalue
         self.logger.debug("Computing reverse i_Evalue")
-        data_tbl = data_tbl.assign(rev_i_Evalue = 1 - data_tbl["i_Evalue"])
+        data_tbl = data_tbl.assign(rev_i_Evalue=1 - data_tbl["i_Evalue"])
 
         # Grouping column
         self.logger.debug("Splitting data using column {}", self.args["--split-col"])
@@ -160,15 +162,15 @@ class Train(Command):
 
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
-            label_column = self.args["--y-col"],
-            feature_columns = self.args["--feature-cols"],
-            weight_columns = self.args["--weight-cols"],
-            group_column = self.args["--group-col"],
-            feature_type = self.args["--feature-type"],
-            overlap = self.args["--overlap"],
-            algorithm = "lbfgs",
-            c1 = self.args["--c1"],
-            c2 = self.args["--c2"]
+            label_column=self.args["--y-col"],
+            feature_columns=self.args["--feature-cols"],
+            weight_columns=self.args["--weight-cols"],
+            group_column=self.args["--group-col"],
+            feature_type=self.args["--feature-type"],
+            overlap=self.args["--overlap"],
+            algorithm="lbfgs",
+            c1=self.args["--c1"],
+            c2=self.args["--c2"],
         )
         self.logger.info("Fitting the model")
         crf.fit(data=data_tbl, trunc=self.args["--truncate"])
@@ -178,7 +180,9 @@ class Train(Command):
         with open(model_out, "wb") as f:
             pickle.dump(crf, f, protocol=3)
 
-        self.logger.info("Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"])
+        self.logger.info(
+            "Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"]
+        )
         crf.save_weights(self.args["--output"])
 
         return 0

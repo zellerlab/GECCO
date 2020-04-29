@@ -1,3 +1,6 @@
+"""Supervised classifier to predict the biosynthetic class of a putative BGC.
+"""
+
 import functools
 import typing
 from typing import Callable, Dict, Optional, Union
@@ -7,6 +10,7 @@ import scipy.spatial.distance
 
 if typing.TYPE_CHECKING:
     import numpy
+
     _Metric = typing.Callable[["numpy.ndarray", "numpy.ndarray"], "numpy.ndarray"]
 
 
@@ -17,11 +21,15 @@ class ClusterKNN(object):
     provided for convenience.
 
     Attributes:
-        metric (str): The name of the distance metric used by the classifier.
-        dist (function): The actual function performing the distance
-            computation.
+        metric (distance): A distance metric used by the classifier. It takes
+            two probability vectors as arguments, and returns the distance
+            between these two vectors. By default, this is
+            `~scipy.spatial.distance.jensenshannon`, but another function such
+            as `~scipy.spatial.distance.mahalanobis` can be passed as argument
+            to the constructor if needed.
         knn (`sklearn.neighbors.KNeighborsClassifier`): The internal kNN
-            classifier used for the prediction
+            classifier used for the prediction.
+
     """
 
     @classmethod
@@ -31,16 +39,14 @@ class ClusterKNN(object):
         elif name == "tanimoto":
             # NB(@althonos): Tanimoto distance seems to be mostly for boolean
             #                vectors, not probability vectors.
-            return lambda p,q: p*q / (p - q)**2  # type: ignore
+            return lambda p, q: p * q / (p - q) ** 2  # type: ignore
         else:
-            raise ValueError(f"unexpected metric: {name!r}")
+            raise ValueError(f"unknown metric name: {name!r}")
 
     def __init__(
-            self,
-            metric: Union[str, "_Metric"] = "jensenshannon",
-            **kwargs: object
+        self, metric: Union[str, "_Metric"] = "jensenshannon", **kwargs: object
     ) -> None:
-        """Create a new classifier.
+        """Instantiate a new classifier.
 
         Arguments:
             metric (`str` or `function`): The distance metric to use with the
@@ -54,16 +60,13 @@ class ClusterKNN(object):
 
         Raises:
             ValueError: when an unknown distance metric is given.
-        """
 
+        """
         if isinstance(metric, str):
             self.metric = self._get_metric(metric)
         else:
             self.metric = metric
-        self.knn = sklearn.neighbors.KNeighborsClassifier(
-            metric=self.metric,
-            **kwargs
-        )
+        self.knn = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
     def fit_predict(self, train_matrix, new_matrix, y):
         """Fit the model and immediately produce a prediction.

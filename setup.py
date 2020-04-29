@@ -73,7 +73,7 @@ class ResponseProgressBar(object):
         if p >= self.next_p:
             self.next_p = p + 5
             print(
-                "{} : {:>{}}B / {}B [{}%]".format(
+                "{} : {:>{}}B / {}B [{: 3}%]".format(
                     self.desc,
                     c,
                     int(math.ceil(math.log10(self.total))),
