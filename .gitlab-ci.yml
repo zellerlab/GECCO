@@ -1,28 +1,24 @@
 stages:
   - test
   - pages
+  - lint
 
 # --- Stage Templates ----------------------------------------------------------
 
 .test: &test
-
   stage: test
-
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
     - build/lib/gecco/data/hmms
-
   before_script:
     - apt update
     - apt install -y prodigal hmmer
     - pip install --upgrade coverage
-
   script:
     - python setup.py bdist_wheel
-    - pip install --upgrade dist/*.whl
+    - pip install -U dist/*.whl
     - python -m coverage run -p -m unittest discover -vv
-
   after_script:
     - python -m coverage combine
     - python -m coverage report
@@ -30,16 +26,24 @@ stages:
 # --- Stages -------------------------------------------------------------------
 
 test:python3.7:
-    image: python:3.7
-    <<: *test
+  image: python:3.7
+  <<: *test
 
 docs:
-    image: python:3.7
-    stage: pages
-    script:
-      - pip install .
-      - pip install -r docs/requirements.txt
-      - sphinx-build -b html docs public
-    artifacts:
-      paths:
-        - public
+  image: python:3.7
+  stage: pages
+  before_script:
+    - pip install -U -r docs/requirements.txt
+  script:
+    - sphinx-build -b html docs public
+  artifacts:
+    paths:
+      - public
+
+lint:pydocstyle:
+  image: python:3.7
+  stage: lint
+  before_script:
+    - pip install -U pydocstyle
+  script:
+    - pydocstyle gecco
