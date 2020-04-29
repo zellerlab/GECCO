@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco cv`` subcommand.
+"""
+
 import functools
 import os
 import multiprocessing
@@ -14,7 +17,7 @@ if typing.TYPE_CHECKING:
     from pandas import DataFrame
 
 
-class Cv(Command):
+class Cv(Command):  # noqa: D101
 
     summary = "perform cross validation on a training set."
     doc = f"""
@@ -109,7 +112,7 @@ class Cv(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
         self.logger.info("Loading the data from {!r}", self.args['--input'])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")

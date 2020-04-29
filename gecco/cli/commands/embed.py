@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco embed`` subcommand.
+"""
+
 import csv
 import itertools
 import logging
@@ -19,7 +22,7 @@ from ... import data
 from ...hmmer import HMMER
 
 
-class Embed(Command):
+class Embed(Command):  # noqa: D101
 
     summary = "embed BGC annotations into non-BGC contigs for training."
     doc = f"""
@@ -77,7 +80,7 @@ class Embed(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # Load input
         self.logger.info("Reading BGC and non-BGC feature tables")
 

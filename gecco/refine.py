@@ -35,11 +35,11 @@ class ClusterRefiner(object):
                 sequence ID for each row.
             protein_column (`str`): The name of the column containing the
                 protein ID for each row.
-            probability_column (`str`): The name of the columnn containing
-                BGC probability predicted by `~gecco.crf.ClusterCRF`.
-            domain_column (`str`): The name of the column containing the
-                domain name for each row.
-            weight_col (`str`): The name of the column containing the weight
+            probability_column (`str`): The name of the columnn containing BGC
+                probability predicted by `~gecco.crf.ClusterCRF`.
+            domain_column (`str`): The name of the column containing the domain
+                name for each row.
+            weight_column (`str`): The name of the column containing the weight
                 for each row.
 
         """
@@ -76,6 +76,7 @@ class ClusterRefiner(object):
 
         Raises:
             `ValueError`: When ``criterion`` is not an allowed value.
+            
         """
         lt = self.threshold if lower_threshold is None else lower_threshold
         clusters = map(self._extract_cluster, self._iter_segments(data, lt))

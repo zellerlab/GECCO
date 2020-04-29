@@ -55,6 +55,8 @@ class DomainRow(typing.NamedTuple):
 
     @classmethod
     def from_line(cls: Type["_T"], row: str) -> "_T":
+        """Extract a `DomainRow` from a single domain table line.
+        """
         line = list(filter(None, row.split(" ")))
         return cls(
             target_name=line[0],
@@ -143,7 +145,7 @@ class HMMER(BinaryRunner):
 
 
     def _to_dataframe(self, seqs_file: str, doms_file: str, prodigal: bool) -> "pandas.DataFrame":
-        """Converts a HMMER domain table to a `pandas.DataFrame`.
+        """Convert a HMMER domain table to a `pandas.DataFrame`.
         """
         rows = []
         if not prodigal:

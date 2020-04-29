@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco run`` subcommand.
+"""
+
 import csv
 import glob
 import logging
@@ -23,7 +26,7 @@ from ...orf import ProdigalFinder
 from ...refine import ClusterRefiner
 
 
-class Run(Command):
+class Run(Command):  # noqa: D101
 
     summary = "predict BGC from a genome or from individual proteins."
     doc = f"""
@@ -119,7 +122,7 @@ class Run(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # Make output directory
         out_dir = self.args["--output-dir"]
         self.logger.debug("Using output folder: {!r}", out_dir)

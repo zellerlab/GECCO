@@ -1,4 +1,6 @@
-# coding: utf-8
+"""Implementation of the main ``gecco`` command.
+"""
+
 import textwrap
 import typing
 from typing import Mapping, Optional, Type
@@ -15,7 +17,7 @@ from ._base import Command
 
 
 class Main(Command):
-    """The *main* command launched before processing the given subcommand.
+    """The *main* command launched before processing subcommands.
     """
 
     @classmethod

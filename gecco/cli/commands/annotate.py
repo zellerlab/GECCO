@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco annotate`` subcommand.
+"""
+
 import csv
 import glob
 import logging
@@ -20,7 +23,7 @@ from ...orf import ProdigalFinder
 from ...refine import ClusterRefiner
 
 
-class Annotate(Command):
+class Annotate(Command):  # noqa: D101
 
     summary = "use HMMs to annotate features for some proteins."
     doc = f"""
@@ -89,7 +92,7 @@ class Annotate(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # Make output directory
         out_dir = self.args["--output-dir"]
         self.logger.debug("Using output folder: {!r}", out_dir)

@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco tune`` subcommand.
+"""
+
 import functools
 import itertools
 import os
@@ -17,7 +20,7 @@ if typing.TYPE_CHECKING:
     from pandas import DataFrame
 
 
-class Tune(Command):
+class Tune(Command):  # noqa: D101
 
     summary = "optimize value of hyperparameters through cross-validation."
     doc = f"""
@@ -113,7 +116,7 @@ class Tune(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
         self.logger.info("Loading the data from {!r}", self.args['--input'])
         data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")

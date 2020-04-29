@@ -21,7 +21,17 @@ def truncate(
     label_column: str = "BGC",
     group_column: str = "protein_id",
 ) -> "pandas.DataFrame":
+    """Truncate ``data`` while preserving positively labeled regions.
 
+    Arguments:
+        data (`~pandas.DataFrame`): The data table to truncate.
+        length (`int`): The target length for the new data table.
+        label_column (`str`): The name of the column containing labels in the
+            data table.
+        group_column (`str`): The name of the column to use to group the data.
+            Rows of the same group are kept together or excluded together.
+
+    """
     data0 = data[data[label_column] == 0]
     data1 = data[data[label_column] == 1]
     data0 = [df for _, df in data0.groupby(group_column, sort=False)]

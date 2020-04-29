@@ -1,3 +1,6 @@
+"""Implementation of the ``gecco train`` subcommand.
+"""
+
 import csv
 import logging
 import multiprocessing
@@ -15,7 +18,7 @@ from ...crf import ClusterCRF
 from ...hmmer import HMMER
 
 
-class Train(Command):
+class Train(Command):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
     doc = f"""
@@ -136,7 +139,7 @@ class Train(Command):
 
         return None
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # noqa: D102
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
