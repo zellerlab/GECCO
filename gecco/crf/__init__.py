@@ -22,6 +22,7 @@ import sklearn.preprocessing
 
 from . import preprocessing
 from .cv import LeaveOneGroupOut
+from .select import fisher_significance
 
 
 class ClusterCRF(object):
@@ -32,19 +33,19 @@ class ClusterCRF(object):
     supports arbitrary column names that can be changed on initialisation.
 
     Extraction of features can be done in different modes, which change the
-    level at which features are grouped. *Note each model is specific for
+    level at which features are grouped. *Note that each model is specific for
     a ``feature_type`` value, since changing the extraction method will lead
     to different training data for the model*. The following methods are
     supported:
 
     ``single``
-        features are extracted on a row level, which corresponds to single
+        Features are extracted on a row level, which corresponds to single
         domains most of the time.
     ``overlap``
-        features are extracted in overlapping windows, allowing to group
+        Features are extracted in overlapping windows, allowing to group
         together contiguous domains.
     ``group``
-        features are extracted in groupings determined
+        Features are extracted in groupings determined
         by a column in the data frame. *This is most useful when
         dealing with proteins, but can handle arbitrary grouping
         levels*.
@@ -118,6 +119,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
+        self.significant_features = {}
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
@@ -139,6 +141,7 @@ class ClusterCRF(object):
         self,
         data: Iterable["pandas.DataFrame"],
         trunc: Optional[int] = None,
+        select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
     ) -> None:
@@ -150,6 +153,12 @@ class ClusterCRF(object):
                 (as defined on `ClusterCRF` initialisation): ``weight_columns``,
                 ``feature_columns`` and ``label_column``, as well as
                 ``group_column`` if the feature extraction method is *group*.
+            trunc (`int`, optional): A number of maximum rows to truncate the
+                data groups to.
+            select (`float`, optional): The fraction of most significant
+                features to keep, or `None` to disable feature selection. For
+                instance, a value of :math:`0.1` means the 10% most
+                significant features will be used for training and prediction.
 
         Keyword Arguments:
             jobs (`int`, optional): The number of jobs to use to extract the
@@ -157,6 +166,9 @@ class ClusterCRF(object):
                 as there are CPUs.
 
         """
+        # Collect data to avoid iteration issues
+        data = list(data)
+
         # Truncate data if requested
         if trunc is not None:
             data = [
@@ -164,6 +176,19 @@ class ClusterCRF(object):
                 for df in data
             ]
 
+        # Find most significant domains in the training data
+        # QUESTION(@althonos): should it be before or after data truncation ?
+        if select is not None:
+            if select <= 0 or select > 1:
+                raise ValueError(f"invalid value for select: {select}")
+            for feat in self.feature_columns:
+                sig = fisher_significance(data, feat, self.label_column, self.group_column)
+                sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
+                self.significant_features[feat] = frozenset(sorted_sig)
+            for column, features in self.significant_features.items():
+                data = [ df[ df[column].isin(features) ] for df in data ]
+
+        # Do the actual training
         X, Y = self._extract_features(data, jobs=jobs)
         self.model.fit(X, Y)
 
@@ -185,7 +210,13 @@ class ClusterCRF(object):
                 as there are CPUs.
 
         """
-        # convert data to `CRFSuite` format
+        # Filter data using most significant features
+        # (this is a no-op if `ClusterCRF` was trained without feature
+        # selection since the `significant_features` dict is empty)
+        for column, features in self.significant_features.items():
+            data = [ df[ df[column].isin(features) ] for df in data ]
+
+        # Convert data to `CRFSuite` format
         X, _ = self._extract_features(data, X_only=True, jobs=jobs)
 
         # Extract cluster (1) probabilities from marginal
@@ -195,7 +226,7 @@ class ClusterCRF(object):
             for sample in marginal_probs
         ]
 
-        # check if any sample has P(1) == 0
+        # Check if any sample has P(1) == 0
         if any(not prob.all() for prob in cluster_probs):
             warnings.warn(
                 textwrap.dedent(
