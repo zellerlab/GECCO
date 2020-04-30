@@ -2,14 +2,19 @@
 """
 
 import collections
+import typing
+from typing import Iterable
 
 import fisher
 import pandas
 import tqdm
 
+if typing.TYPE_CHECKING:
+    from ..bgc import BGC
+
 
 def fisher_significance(
-    data: "~pandas.DataFrame",
+    data: Iterable["~pandas.DataFrame"],
     feature_column: str = "domain",
     label_column: str = "BGC",
     protein_column: str = "protein_id",
@@ -66,7 +71,7 @@ def fisher_significance(
         ...         ["prot7", "C", 0],
         ...     ],
         ... )
-        >>> sorted(fisher_significance(data).items()) 
+        >>> sorted(fisher_significance([data]).items())
         [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
 
         Since *A* and *C* only appear in BGC and non BGC proteins respectively,
@@ -79,16 +84,17 @@ def fisher_significance(
     proteins = set(), set()
     features = collections.defaultdict(set), collections.defaultdict(set)
 
-    # directly work on numpy arrays to avoid using `groupby`
-    array_prot = data[protein_column].values
-    array_feat = data[feature_column].values
-    array_bgc = data[label_column].values
-
-    # for each feature, extract whether they are in a BGC or not, and store
-    # the identifier of the protein they are part of
-    for prot, feature, in_bgc in zip(array_prot, array_feat, array_bgc):
-        proteins[in_bgc].add(prot)
-        features[in_bgc][feature].add(prot)
+    # collect proteins / features for all data tables
+    for df in data:
+        # directly work on numpy arrays to avoid using `groupby`
+        array_prot = df[protein_column].values
+        array_feat = df[feature_column].values
+        array_bgc = df[label_column].values
+        # for each feature, extract whether they are in a BGC or not, and store
+        # the identifier of the protein they are part of
+        for prot, feature, in_bgc in zip(array_prot, array_feat, array_bgc):
+            proteins[in_bgc].add(prot)
+            features[in_bgc][feature].add(prot)
 
     # make the contigency table for each feature
     significance = {}
