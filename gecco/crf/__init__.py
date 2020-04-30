@@ -255,6 +255,7 @@ class ClusterCRF(object):
         strat_col: Optional[str] = None,
         k: int = 10,
         trunc: Optional[int] = None,
+        select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
     ) -> List["pandas.DataFrame"]:
@@ -269,6 +270,10 @@ class ClusterCRF(object):
             k (`int`): The number of cross-validation folds to perform.
             trunc (`int`, optional): The maximum number of rows to use in the
                 training data, or to `None` to use everything.
+            select (`float`, optional): The fraction of most significant
+                features to keep, or `None` to disable feature selection. For
+                instance, a value of :math:`0.1` means the 10% most
+                significant features will be used for training and prediction.
 
         Keyword Arguments:
             jobs (`int`): The number of jobs to use to extract the features from
@@ -302,6 +307,7 @@ class ClusterCRF(object):
                 test_idx=tst,
                 round_id=f"fold{i}",
                 trunc=trunc,
+                select=select,
                 jobs=jobs,
             )
             for i, (trn, tst) in enumerate(tqdm.tqdm(splits, leave=False))
@@ -312,6 +318,7 @@ class ClusterCRF(object):
         data: List["pandas.DataFrame"],
         strat_col: str,
         trunc: Optional[int] = None,
+        select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
     ) -> List["pandas.DataFrame"]:
@@ -324,6 +331,10 @@ class ClusterCRF(object):
                 the cross-validation folds.
             trunc (`int`, optional): The maximum number of rows to use in the
                 training data, or to `None` to use everything.
+            select (`float`, optional): The fraction of most significant
+                features to keep, or `None` to disable feature selection. For
+                instance, a value of :math:`0.1` means the 10% most
+                significant features will be used for training and prediction.
 
         Keyword Arguments:
             jobs (`int`): The number of jobs to use to extract the features from
@@ -349,6 +360,7 @@ class ClusterCRF(object):
                 test_idx=tst,
                 round_id=f"fold{i}",
                 trunc=trunc,
+                select=select,
                 jobs=jobs,
             )
             for i, (trn, tst) in enumerate(tqdm.tqdm(splits, leave=False))
@@ -361,6 +373,7 @@ class ClusterCRF(object):
         test_idx: "numpy.ndarray",
         round_id: Optional[str] = None,
         trunc: Optional[int] = None,
+        select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
     ) -> "pandas.DataFrame":
@@ -376,7 +389,7 @@ class ClusterCRF(object):
             ]
 
         # Fit the model
-        self.fit(train_data, jobs=jobs)
+        self.fit(train_data, jobs=jobs, select=select)
 
         # Predict marginals on test data and return predictions
         test_data = [data[i].reset_index() for i in test_idx]
