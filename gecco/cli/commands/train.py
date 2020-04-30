@@ -68,6 +68,8 @@ class Train(Command):  # noqa: D101
                                         features overlap. [default: 2]
         --no-shuffle                    disable shuffling of the data before
                                         fitting the model.
+        --select <N>                    fraction of most significant features
+                                        to select from the training data.
 
     Parameters - Column Names:
         -y <col>, --y-col <col>         column with class label. [default: BGC]
@@ -122,6 +124,8 @@ class Train(Command):  # noqa: D101
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
+        if self.args["--select"] is not None:
+            self.args["--select"] = float(self.args["--select"])
 
         # Use default threshold value dependeing on postprocessing method
         if self.args["--threshold"] is None:
@@ -173,7 +177,7 @@ class Train(Command):  # noqa: D101
             c2=self.args["--c2"],
         )
         self.logger.info("Fitting the model")
-        crf.fit(data=data_tbl, trunc=self.args["--truncate"])
+        crf.fit(data=data_tbl, trunc=self.args["--truncate"], select=self.args["--select"])
 
         model_out = f"{self.args['--output']}.crf.model"
         self.logger.info("Writing the model to {!r}", model_out)
