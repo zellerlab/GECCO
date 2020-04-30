@@ -3,14 +3,41 @@
 
 import collections
 import typing
-from typing import Iterable
+from typing import Dict, Iterable, Mapping, Optional
 
 import fisher
 import pandas
-import tqdm
+import numpy
+from statsmodels.stats.multitest import multipletests
 
 if typing.TYPE_CHECKING:
     from ..bgc import BGC
+
+
+def multiple_test_correction(
+    significance: Mapping[str, float], method: str,
+) -> Dict[str, float]:
+    """Perform multiple test correction on the ``significance`` dictionary.
+
+    Arguments:
+        significance (dict): A dictionary which maps feature names to Fisher
+            p-values.
+        method (str): The correction method to use. See allowed values in the
+            documentation of `statsmodels.stats.multitest.multipletests`.
+
+    Returns:
+        dict: A dictionary which maps feature names to corrected p-values.
+
+    Example:
+        >>> s = {"A": 0.6, "B": 0.05, "C": 1, "D": 0}
+        >>> sorted(multiple_test_correction(s, method="fdr_bh").items())
+        [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
+
+    """
+    features = sorted(significance, key=significance.__getitem__)
+    pvalues = numpy.array([significance[feature] for feature in features])
+    _, corrected, _, _ = multipletests(pvalues, method=method, is_sorted=True)
+    return dict(zip(features, corrected))
 
 
 def fisher_significance(
@@ -18,7 +45,8 @@ def fisher_significance(
     feature_column: str = "domain",
     label_column: str = "BGC",
     protein_column: str = "protein_id",
-):
+    correction_method: Optional[str] = "fdr_bh",
+) -> Dict[str, float]:
     r"""Estimate the significance of each feature on the label prediction.
 
     For each feature $F$, we create the following contingency table, by
@@ -72,12 +100,18 @@ def fisher_significance(
         ...     ],
         ... )
         >>> sorted(fisher_significance([data]).items())
-        [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
+        [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]
 
         Since *A* and *C* only appear in BGC and non BGC proteins respectively,
         the p-value for a two-tailed Fisher Exact Test is under 5%, while *B*,
         which appears in half of the BGC proteins and in half of the non-BGC
         proteins, is not significant with regards to the fisher test.
+
+        It's also possible to get the uncorrected values by giving `None`
+        instead of a correction method:
+
+        >>> sorted(fisher_significance([data], correction_method=None).items())
+        [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
 
     """
     # set of all proteins, +proteins grouped by features
@@ -106,4 +140,9 @@ def fisher_significance(
             len(proteins[0]) - len(features[0][feature]),
         )
         significance[feature] = pvalue.two_tail
+
+    # perform multiple test correction if needed
+    if correction_method is not None:
+        significance = multiple_test_correction(significance, correction_method)
+
     return significance
