@@ -8,35 +8,35 @@ from typing import Dict, Iterable, Mapping, Optional
 import fisher
 import pandas
 import numpy
-from statsmodels.stats.multitest import multipletests
+from statsmodels.stats.multitest import fdrcorrection
 
 if typing.TYPE_CHECKING:
     from ..bgc import BGC
 
 
-def multiple_test_correction(
+def significance_correction(
     significance: Mapping[str, float], method: str,
 ) -> Dict[str, float]:
-    """Perform multiple test correction on the ``significance`` dictionary.
+    """Perform FDR correction on the ``significance`` dictionary.
 
     Arguments:
         significance (dict): A dictionary which maps feature names to Fisher
             p-values.
         method (str): The correction method to use. See allowed values in the
-            documentation of `statsmodels.stats.multitest.multipletests`.
+            documentation of `statsmodels.stats.multitest.fdrcorrection`.
 
     Returns:
         dict: A dictionary which maps feature names to corrected p-values.
 
     Example:
         >>> s = {"A": 0.6, "B": 0.05, "C": 1, "D": 0}
-        >>> sorted(multiple_test_correction(s, method="fdr_bh").items())
+        >>> sorted(significance_correction(s, method="indep").items())
         [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
 
     """
     features = sorted(significance, key=significance.__getitem__)
     pvalues = numpy.array([significance[feature] for feature in features])
-    _, corrected, _, _ = multipletests(pvalues, method=method, is_sorted=True)
+    _, corrected = fdrcorrection(pvalues, method=method, is_sorted=True)
     return dict(zip(features, corrected))
 
 
@@ -45,7 +45,7 @@ def fisher_significance(
     feature_column: str = "domain",
     label_column: str = "BGC",
     protein_column: str = "protein_id",
-    correction_method: Optional[str] = "fdr_bh",
+    correction_method: Optional[str] = "indep",
 ) -> Dict[str, float]:
     r"""Estimate the significance of each feature on the label prediction.
 
@@ -76,7 +76,12 @@ def fisher_significance(
             should be either *0* or *1* depending on whether the protein is in
             a BGC.
         protein_column (`str`): The name of the column containing protein
-            identifiers, since contigency counting occurs at the
+            identifiers, since contigency counting occurs at the protein level
+            independently of the feature extraction method used for the CRF.
+        correction_method (`str`, optional): The name of the multiple test
+            correction method to use when computing significance, or `None` to
+            skip correction. See `statsmodels.stats.multitest.fdrcorrection`
+            for allowed values.
 
     Returns:
         dict: A dictionary which to each feature associates the p-value of
@@ -143,6 +148,6 @@ def fisher_significance(
 
     # perform multiple test correction if needed
     if correction_method is not None:
-        significance = multiple_test_correction(significance, correction_method)
+        significance = significance_correction(significance, correction_method)
 
     return significance
