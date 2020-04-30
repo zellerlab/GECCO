@@ -192,6 +192,7 @@ intersphinx_mapping = {
     'sklearn-crfsuite': ("https://sklearn-crfsuite.readthedocs.io/en/latest/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "statsmodels": ("https://tedboy.github.io/statsmodels_doc/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
