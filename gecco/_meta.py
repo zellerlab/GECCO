@@ -14,6 +14,9 @@ class classproperty(property):
     """A class property decorator.
 
     Example:
+        Use `classproperty` to create a property which counts the number of
+        times it has been accessed:
+
         >>> class X():
         ...     __COUNT = 0
         ...     @classproperty
@@ -24,6 +27,7 @@ class classproperty(property):
         1
         >>> X.count
         2
+
     """
 
     def __init__(self, f: Callable[["_S"], "_T"]) -> None:

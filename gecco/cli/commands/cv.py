@@ -57,6 +57,8 @@ class Cv(Command):  # noqa: D101
                                         features overlap. [default: 2]
         --splits <N>                    number of folds for cross-validation
                                         (if running `kfold`). [default: 10]
+        --select <N>                    fraction of most significant features
+                                        to select from the training data.
         --shuffle                       enable shuffling of stratified rows.
 
     Parameters - Column Names:
@@ -103,6 +105,8 @@ class Cv(Command):  # noqa: D101
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
+        if self.args["--select"] is not None:
+            self.args["--select"] = float(self.args["--select"])
 
         # Check the `--jobs`flag
         self.args["--jobs"] = jobs = int(self.args["--jobs"])
@@ -153,6 +157,7 @@ class Cv(Command):  # noqa: D101
                 data,
                 self.args["--strat-col"],
                 trunc=self.args["--truncate"],
+                select=self.args["--select"],
                 jobs=self.args["--jobs"],
             )
         )
