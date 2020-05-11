@@ -199,7 +199,6 @@ class Run(Command):  # noqa: D101
 
         # Compute reverse i_Evalue to be used as weight
         feats_df["rev_i_Evalue"] = 1 - feats_df.i_Evalue
-        feats_df["log_i_Evalue"] = numpy.log10(feats_df.i_Evalue)
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
