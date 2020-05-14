@@ -67,7 +67,7 @@ class ClusterCRF(object):
         group_column: str = "protein_id",
         label_column: str = "BGC",
         feature_type: str = "single",
-        algorithm: str = "lbsgf",
+        algorithm: str = "lbfgs",
         overlap: int = 2,
         pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = Pool,
         **kwargs: Dict[str, object],
