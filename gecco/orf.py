@@ -40,9 +40,17 @@ class PyrodigalFinder(ORFFinder):
 
     See Also:
         .. [PMC2848648] https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648/
+
     """
 
     def __init__(self, metagenome: bool = True) -> None:
+        """Create a new `PyrodigalFinder` instance.
+
+        Arguments:
+            metagenome (bool): Whether or not to run PRODIGAL in metagenome
+                mode, defaults to `True`.
+
+        """
         super().__init__()
         self.metagenome = metagenome
         self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
