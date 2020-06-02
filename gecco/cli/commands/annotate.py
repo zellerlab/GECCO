@@ -19,7 +19,7 @@ from .._utils import guess_sequences_format
 from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
-from ...orf import ProdigalFinder
+from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
 
 
@@ -109,7 +109,7 @@ class Annotate(Command):  # noqa: D101
             format = guess_sequences_format(genome)
             sequences = SeqIO.parse(genome, format)
             self.logger.info("Predicting ORFs with PRODIGAL")
-            orf_finder = ProdigalFinder(metagenome=True)
+            orf_finder = PyrodigalFinder(metagenome=True)
             proteins = orf_finder.find_proteins(sequences)
 
             # we need to keep all the ORFs in a file because we will need
