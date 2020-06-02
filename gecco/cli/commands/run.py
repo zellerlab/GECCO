@@ -142,19 +142,21 @@ class Run(Command):  # noqa: D101
 
             # we need to keep all the ORFs in a file because we will need
             # them when extracting cluster sequences
-            _orf_file = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
-            orf_file = _orf_file.name
+            _orf_temp = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
+            orf_file = _orf_temp.name
             SeqIO.write(proteins, orf_file, "fasta")
             prodigal = True
 
-            # count the number of detected proteins without keeping them all
-            # in memory
-            index = SeqIO.index(orf_file, "fasta")
-            self.logger.info("Found {} potential proteins", len(index))
         else:
+            _orf_temp = None
             orf_file = self.args["--proteins"]
             base, _ = os.path.splitext(os.path.basename(orf_file))
             prodigal = False
+
+        # count the number of detected proteins without keeping them all
+        # in memory
+        orf_index = SeqIO.index(orf_file, "fasta")
+        self.logger.info("Found {} potential proteins", len(orf_index))
 
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
@@ -284,7 +286,6 @@ class Run(Command):  # noqa: D101
                 cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
-        orf_index = SeqIO.index(orf_file, "fasta")
         for cluster in clusters:
             prots_out = os.path.join(out_dir, f"{cluster.name}.proteins.faa")
             self.logger.debug("Writing proteins of {} to {!r}", cluster.name, prots_out)
@@ -293,6 +294,11 @@ class Run(Command):  # noqa: D101
                     p = orf_index[id_]
                     p.description = f"{cluster.name} # {p.description}"
                     SeqIO.write(p, out, "fasta")
+
+        # Remove the temporary protein file is needed to get rid of resource
+        # warnings
+        if _orf_temp is not None:
+            _orf_temp.close()
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))
