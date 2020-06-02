@@ -13,7 +13,7 @@ stages:
     - build/lib/gecco/data/hmms
   before_script:
     - apt update
-    - apt install -y prodigal hmmer
+    - apt install -y hmmer
     - pip install --upgrade coverage
   script:
     - python setup.py bdist_wheel

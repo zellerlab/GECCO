@@ -10,6 +10,10 @@ import typing
 from typing import Iterable, Iterator, List, Optional
 
 import Bio.SeqIO
+import pyrodigal
+from Bio.Alphabet import ProteinAlphabet
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 from ._base import BinaryRunner
 
@@ -26,6 +30,51 @@ class ORFFinder(metaclass=abc.ABCMeta):
         """Find all proteins from a list of DNA sequences.
         """
         return NotImplemented  # type: ignore
+
+
+class PyrodigalFinder(ORFFinder):
+    """An `ORFFinder` that uses the Pyrodigal bindings to PRODIGAL.
+
+    PRODIGAL is a fast and reliable protein-coding gene prediction for
+    prokaryotic genomes, with support for draft genomes and metagenomes.
+
+    See Also:
+        .. [PMC2848648] https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648/
+    """
+
+    def __init__(self, metagenome: bool = True) -> None:
+        super().__init__()
+        self.metagenome = metagenome
+        self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
+
+    def find_proteins(
+        self, sequences: Iterable["SeqRecord"],
+    ) -> Iterator["SeqRecord"]:  # noqa: D102
+        for i, dna_sequence in enumerate(sequences):
+            # find all genes in the given DNA sequence
+            genes = self.pyrodigal.find_genes(str(dna_sequence.seq))
+            for j, gene in enumerate(genes):
+                # translate the gene to a protein sequence
+                seq = Seq(gene.translate(), ProteinAlphabet())
+                protein = SeqRecord(seq)
+                # convert the gene to a biopython `SeqRecord` with the same
+                # content as the PRODIGAL record description that's expected
+                # in the rest of the program
+                protein.id = protein.name = f"{dna_sequence.id}_{j+1}"
+
+
+
+                protein.description = " # ".join(map(str, [
+                    protein.id,
+                    gene.begin,
+                    gene.end,
+                    gene.strand,
+                    f"ID={i+1}_{j+1};partial={int(gene.partial_begin)}{int(gene.partial_end)};"
+                    f"start_type={gene.start_type};rbs_motif={gene.rbs_motif};"
+                    f"rbs_spacer={gene.rbs_spacer};gc_cont={gene.gc_cont:0.3f}"
+                ]))
+
+                yield protein
 
 
 class ProdigalFinder(BinaryRunner, ORFFinder):
