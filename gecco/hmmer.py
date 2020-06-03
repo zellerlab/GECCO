@@ -126,8 +126,8 @@ class HMMER(BinaryRunner):
 
         # Prepare the command line arguments
         cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp.name]
-        # if self.cpus is not None:
-        #     cmd.extend(["--cpu", str(self.cpus)])
+        if self.cpus is not None:
+            cmd.extend(["--cpu", str(self.cpus)])
         cmd.extend([self.hmms, seqs_tmp.name])
 
         # Run HMMER
