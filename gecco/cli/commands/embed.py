@@ -110,8 +110,8 @@ class Embed(Command):  # noqa: D101
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
         # Check we have enough non-BGC contigs to fit the BGCs into
-        no_bgc_count, bgc_count = len(no_bgc_list), len(bgc_list)
-        if no_bgc_count - self.args["--skip"] < bgc_count:
+        no_bgc_count, bgc_count = len(no_bgc_list) - self.args["--skip"], len(bgc_list)
+        if no_bgc_count < bgc_count:
             msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
@@ -129,9 +129,15 @@ class Embed(Command):  # noqa: D101
             by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
             # cut the input in half to insert the bgc in the middle
             index_half = len(by_prots) // 2
-            start, end = by_prots[:index_half], by_prots[index_half:]
+            before, after = by_prots[:index_half], by_prots[index_half:]
+            # compute offsets
+            insert_position = (before[-1].end.max() + after[0].start.min()) // 2
+            bgc_length = bgc.end.max() - bgc.start.min()
+            # update offsets
+            bgc = bgc.assign(start=bgc.start + insert_position, end=bgc.end+insert_position)
+            after = [x.assign(start=x.start + bgc_length, end=x.end + bgc_length) for x in after]
             # concat the embedding together and filter by e_value
-            embed = pandas.concat(start + [bgc] + end, sort=False)
+            embed = pandas.concat(before + [bgc] + after, sort=False)
             embed = embed.reset_index(drop=True)
             embed = embed[embed["i_Evalue"] < self.args["--e-filter"]]
             # add additional columns based on info from BGC and non-BGC
@@ -153,6 +159,7 @@ class Embed(Command):  # noqa: D101
             embeddings = pandas.concat(pool.starmap(embed, it))
 
         # Write the resulting table
+        embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         self.logger.info("Writing embedding table")
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
