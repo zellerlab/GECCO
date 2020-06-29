@@ -153,7 +153,7 @@ class update_model(distutils.cmd.Command):
 
         # Update the domain composition table
         self.info("Copying the domain composition table to the in-source location")
-        with open(gecco.data.realpath("data/knn/domain_composition.tsv"), "wb") as dst:
+        with open(gecco.data.realpath("knn/domain_composition.tsv"), "wb") as dst:
             with open(self.domain, "rb") as src:
                 shutil.copyfileobj(src, dst)
 
