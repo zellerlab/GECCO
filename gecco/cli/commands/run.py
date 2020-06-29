@@ -235,24 +235,18 @@ class Run(Command):  # noqa: D101
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
 
-        # Reformat training matrix
+        # Read embedded training matrix
         self.logger.debug("Reading embedded training matrix")
         training_matrix = data.realpath("knn/domain_composition.tsv")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[:, 1:].values
+        train_comp = train_df.iloc[:, 2:].values
         id_array = train_df["BGC_id"].values
-        pfam_array = train_df.columns.values[1:]
-
-        # Reformat type labels
-        self.logger.debug("Reading embedded type labels")
-        labels = data.realpath("knn/type_labels.tsv")
-        types_df = pandas.read_csv(labels, sep="\t", encoding="utf-8")
-        types_array = types_df["cluster_type"].values
-        subtypes_array = types_df["subtype"].values
+        types_array = train_df["BGC_type"]
+        domains_array = train_df.columns.values[2:]
 
         # Calculate new domain composition
         self.logger.debug("Calulating domain composition for each cluster")
-        new_comp = numpy.array([c.domain_composition(pfam_array) for c in clusters])
+        new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
 
         # Inititate kNN and predict types
         distance = self.args["--distance"]
