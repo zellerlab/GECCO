@@ -15,6 +15,7 @@ import pandas
 from ._base import Command
 from ... import data
 from ...crf import ClusterCRF
+from ...refine import ClusterRefiner
 from ...hmmer import HMMER
 
 
@@ -43,16 +44,6 @@ class Train(Command):  # noqa: D101
     Parameters - Domain Annotation:
         -e <e>, --e-filter <e>          the e-value cutoff for domains to
                                         be included [default: 1e-5]
-
-    Parameters - Cluster Detection:
-        --min-orfs <N>                  how many ORFs are required for a
-                                        sequence to be considered. [default: 5]
-        -m <m>, --threshold <m>         the probability threshold for cluster
-                                        prediction. Default depends on the
-                                        post-processing method (0.4 for gecco,
-                                        0.6 for antismash).
-        --postproc <method>             the method used for cluster extraction
-                                        (antismash or gecco). [default: gecco]
 
     Parameters - Training:
         --c1 <C1>                       parameter for L1 regularisation.
@@ -89,10 +80,10 @@ class Train(Command):  # noqa: D101
                                         samples (BGC types).
 
     Parameters - Type Prediction:
-        -d <d>, --distance <d>          the distance metric to use for kNN type
-                                        prediction. [default: jensenshannon]
-        -k <n>, --neighbors <n>         the number of neighbors to use for
-                                        kNN type prediction [default: 5]
+        --type-col <col>                column containing BGC types to use for
+                                        domain composition. [default: BGC_type]
+        --id-col <col>                  column containing BGC id to use for
+                                        BGC labelling. [default: BGC_id]
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -116,25 +107,14 @@ class Train(Command):  # noqa: D101
         if self.args["--truncate"] is not None:
             self.args["--truncate"] = int(self.args["--truncate"])
         self.args["--overlap"] = int(self.args["--overlap"])
-        self.args["--min-orfs"] = int(self.args["--min-orfs"])
         self.args["--c1"] = float(self.args["--c1"])
         self.args["--c2"] = float(self.args["--c2"])
-        self.args["--neighbors"] = int(self.args["--neighbors"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
         if self.args["--select"] is not None:
             self.args["--select"] = float(self.args["--select"])
-
-        # Use default threshold value dependeing on postprocessing method
-        if self.args["--threshold"] is None:
-            if self.args["--postproc"] == "gecco":
-                self.args["--threshold"] = 0.4
-            elif self.args["--postproc"] == "antismash":
-                self.args["--threshold"] = 0.6
-        else:
-            self.args["--threshold"] = float(self.args["--threshold"])
 
         # Check the `--jobs`flag
         self.args["--jobs"] = jobs = int(self.args["--jobs"])
@@ -188,5 +168,37 @@ class Train(Command):  # noqa: D101
             "Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"]
         )
         crf.save_weights(self.args["--output"])
+
+        # --- DOMAIN COMPOSITION ----------------------------------------------
+        self.logger.info("Extracting clusters")
+        refiner = ClusterRefiner(
+            threshold=0.5,
+            sequence_column=self.args["--split-col"],
+            protein_column=self.args["--group-col"],
+            probability_column="p_pred",
+            domain_column=self.args["--feature-cols"][0],
+            weight_column=self.args["--weight-cols"][0],
+        )
+
+        self.logger.debug("Finding the complete list of possible domains")
+        if crf.significant_features:
+            all_possible = sorted({d for domains in crf.significant_features.values() for d in domains})
+        else:
+            all_possible = sorted({d for subdf in data_tbl for key in self.args["--feature-cols"] for d in  subdf[key].unique()})
+
+        comp_out =  f"{self.args['--output']}.domain_composition.tsv"
+        self.logger.info("Writing domain composition table to {!r}", comp_out)
+        with open(comp_out, "w") as f:
+            writer = csv.writer(f, dialect="excel-tab")
+            writer.writerow(["BGC_id", "BGC_type"] + all_possible)
+            for subdf in data_tbl:
+                bgc = subdf[subdf[self.args["--y-col"]] == 1].assign(p_pred=1)
+                cluster = next(refiner.iter_clusters(bgc))
+                writer.writerow(
+                    [
+                        bgc[self.args["--id-col"]].values[0],
+                        bgc[self.args["--type-col"]].values[0],
+                    ] + list(cluster.domain_composition()),
+                )
 
         return 0
