@@ -11,6 +11,7 @@ import io
 import math
 import os
 import re
+import shutil
 import sys
 import tarfile
 import urllib.request
@@ -112,16 +113,22 @@ class update_model(distutils.cmd.Command):
     description = 'update the CRF model embedded in the source'
     user_options = [
       ('model=', 'm', 'the path to the new CRF model to use'),
+      ('domain=', 'd', 'the path to the new domain composition table'),
     ]
 
     def initialize_options(self):
         self.model = None
+        self.domain = None
 
     def finalize_options(self):
         if self.model is None:
             raise ValueError("--model argument must be given")
         elif not os.path.exists(self.model):
             raise FileNotFoundError(self.model)
+        if self.domain is None:
+            raise ValueError("--domain argument must be given")
+        elif not os.path.exists(self.domain):
+            raise FileNotFoundError(self.domain)
 
     def info(self, msg):
         self.announce(msg, level=distutils.log.INFO)
@@ -143,6 +150,12 @@ class update_model(distutils.cmd.Command):
         self.info("Writing the MD5 signature file")
         with open(gecco.data.realpath("model/crf.model.md5"), "w") as sig:
             sig.write(hasher.hexdigest())
+
+        # Update the domain composition table
+        self.info("Copying the domain composition table to the in-source location")
+        with open(gecco.data.realpath("data/knn/domain_composition.tsv"), "wb") as dst:
+            with open(self.domain, "rb") as src:
+                shutil.copyfileobj(src, dst)
 
 
 class build_py(_build_py):
