@@ -198,7 +198,7 @@ class Train(Command):  # noqa: D101
                     [
                         bgc[self.args["--id-col"]].values[0],
                         bgc[self.args["--type-col"]].values[0],
-                    ] + list(cluster.domain_composition()),
+                    ] + list(cluster.domain_composition(all_possible)),
                 )
 
         return 0
