@@ -1,6 +1,7 @@
 """Data layer classes storing some informations on detected BGCs and proteins.
 """
 
+import collections
 import csv
 import typing
 from typing import List, Optional
@@ -204,12 +205,13 @@ class BGC(object):
 
         """
         doms = numpy.hstack(self.domains)
+        counts = collections.Counter(doms)
         w = numpy.hstack(self.weights)
         if all_possible is None:
             all_possible = numpy.unique(doms)
         comp_arr = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
-            n = list(doms).count(dom)
+            n = counts[dom]
             weight = w[doms == dom].mean() if n > 0 else 0
             comp_arr[i] = n * weight
         comp_arr = comp_arr / comp_arr.sum()
@@ -219,9 +221,10 @@ class BGC(object):
         """Compute domain counts with respect to ``all_possible``.
         """
         doms = list(numpy.hstack(self.domains))
+        counts = collections.Counter(doms)
         if all_possible is None:
             all_possible = numpy.unique(doms)
-        return numpy.array([doms.count(d) for d in all_possible])
+        return numpy.array([counts[d] for d in all_possible])
 
     def _antismash_check(self, n_biopfams: int = 5, p_thresh: float = 0.6, n_cds: int = 5) -> bool:
         """Check for cluster validity following AntiSMASH criteria.
