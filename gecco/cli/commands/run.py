@@ -237,7 +237,7 @@ class Run(Command):  # noqa: D101
 
         # Read embedded training matrix
         self.logger.debug("Reading embedded training matrix")
-        training_matrix = data.realpath("knn/domain_composition.tsv")
+        training_matrix = data.realpath("knn/domain_composition.tsv.gz")
         train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
         train_comp = train_df.iloc[:, 2:].values
         id_array = train_df["BGC_id"].values
