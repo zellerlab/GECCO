@@ -190,40 +190,16 @@ class build_py(_build_py):
         for in_ in glob.glob(os.path.join(self.hmms, "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
-            action = getattr(self, '_{}'.format(cfg.get('hmm', 'action')))
             out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
             try:
-                self.make_file([in_], out, action, [out, dict(cfg.items('hmm'))])
+                self.make_file([in_], out, self.download, [out, dict(cfg.items('hmm'))])
             except:
                 if os.path.exists(out):
                     os.remove(out)
                 raise
 
-    def _extract(self, output, options):
-        res = urllib.request.urlopen(options['url'])
-        with ResponseProgressBar(res, desc=os.path.basename(output)) as src:
-            with open(output, "wb") as dst:
-                read = partial(src.read, io.DEFAULT_BUFFER_SIZE)
-                for chunk in iter(read, b''):
-                    dst.write(chunk)
-                    self._flush_progress_bar(src)
-
-    def _merge(self, output, options):
-        rx = re.compile(options.get("matching", r".*\.hmm"), re.IGNORECASE)
-        res = urllib.request.urlopen(options['url'])
-        with ResponseProgressBar(res, desc=os.path.basename(output)) as src:
-            with gzip.open(output, "wb") as dst:
-                tar = tarfile.open(fileobj=src, mode="r|gz")
-                members = filter(
-                    lambda member: rx.match(member.name),
-                    iter(tar.next, None)
-                )
-                for member in members:
-                    with tar.extractfile(member) as mem:
-                        read = partial(mem.read, io.DEFAULT_BUFFER_SIZE)
-                        for chunk in iter(read, b""):
-                            dst.write(chunk)
-                            self._flush_progress_bar(src)
+    def download(self, output, options):
+        raise RuntimeError("TODO")
 
 
 if __name__ == "__main__":
