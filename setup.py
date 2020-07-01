@@ -199,7 +199,12 @@ class build_py(_build_py):
                 raise
 
     def download(self, output, options):
-        raise RuntimeError("TODO")
+        base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
+        url = base.format(id=options["id"], version=self.distribution.get_version())
+        self.announce("fetching {}".format(url), level=distutils.log.INFO)
+        with ResponseProgressBar(urllib.request.urlopen(url), desc=os.path.basename(output)) as src:
+            with open(output, "wb") as dst:
+                shutil.copyfileobj(src, dst)
 
 
 if __name__ == "__main__":
