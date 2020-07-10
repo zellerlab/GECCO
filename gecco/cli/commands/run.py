@@ -186,6 +186,10 @@ class Run(Command):  # noqa: D101
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
+        # Sort by location
+        self.logger.debug("Sorting annotations by protein coordinates")
+        feats_df.sort_values(by=["sequence_id", "protein_id", "start", "domain_start"], inplace=True)
+
         # Write feature table to file
         feat_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", feat_out)
