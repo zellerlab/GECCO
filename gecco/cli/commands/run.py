@@ -35,7 +35,6 @@ class Run(Command):  # noqa: D101
     Usage:
         gecco run (-h | --help)
         gecco run --genome <file>   [--hmm <hmm>]... [options]
-        gecco run --proteins <file> [--hmm <hmm>]... [options]
 
     Arguments:
         -g <file>, --genome <file>    a FASTA or GenBank file containing a
@@ -129,29 +128,22 @@ class Run(Command):  # noqa: D101
         os.makedirs(out_dir, exist_ok=True)
 
         # --- ORFs -----------------------------------------------------------
-        if self.args["--genome"] is not None:
-            genome = self.args["--genome"]
-            base, _ = os.path.splitext(os.path.basename(genome))
+        genome = self.args["--genome"]
+        base, _ = os.path.splitext(os.path.basename(genome))
 
-            self.logger.info("Loading sequences from genome: {!r}", genome)
-            format = guess_sequences_format(genome)
-            sequences = SeqIO.index(genome, format)
-            self.logger.info("Predicting ORFs with PRODIGAL")
-            orf_finder = PyrodigalFinder(metagenome=True)
-            proteins = orf_finder.find_proteins(sequences.values())
+        self.logger.info("Loading sequences from genome: {!r}", genome)
+        format = guess_sequences_format(genome)
+        sequences = SeqIO.index(genome, format)
+        self.logger.info("Predicting ORFs with PRODIGAL")
+        orf_finder = PyrodigalFinder(metagenome=True)
+        proteins = orf_finder.find_proteins(sequences.values())
 
-            # we need to keep all the ORFs in a file because we will need
-            # them when extracting cluster sequences
-            _orf_temp = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
-            orf_file = _orf_temp.name
-            SeqIO.write(proteins, orf_file, "fasta")
-            prodigal = True
-
-        else:
-            _orf_temp = None
-            orf_file = self.args["--proteins"]
-            base, _ = os.path.splitext(os.path.basename(orf_file))
-            prodigal = False
+        # we need to keep all the ORFs in a file because we will need
+        # them when extracting cluster sequences
+        _orf_temp = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
+        orf_file = _orf_temp.name
+        SeqIO.write(proteins, orf_file, "fasta")
+        prodigal = True
 
         # count the number of detected proteins without keeping them all
         # in memory
