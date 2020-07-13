@@ -3,6 +3,9 @@ stages:
   - pages
   - lint
 
+variables:
+  TERM: ansi
+
 # --- Stage Templates ----------------------------------------------------------
 
 .test: &test
@@ -10,11 +13,9 @@ stages:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-    - build/lib/gecco/data/hmms
+    - ci/cache
   before_script:
-    - apt update
-    - apt install -y hmmer
-    - pip install --upgrade coverage
+    - ./ci/gitlab/test.before_script.sh
   script:
     - python setup.py bdist_wheel
     - pip install -U dist/*.whl
@@ -29,8 +30,12 @@ test:python3.7:
   image: python:3.7
   <<: *test
 
+test:python3.8:
+  image: python:3.8
+  <<: *test
+
 docs:
-  image: python:3.7
+  image: python:3.8
   stage: pages
   before_script:
     - pip install -U -r docs/requirements.txt
@@ -41,7 +46,7 @@ docs:
       - public
 
 lint:pydocstyle:
-  image: python:3.7
+  image: python:3.8
   stage: lint
   before_script:
     - pip install -U pydocstyle

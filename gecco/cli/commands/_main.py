@@ -92,10 +92,6 @@ class Main(Command):
             self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
             return 1
 
-        # Setup better exceptions if traceback is rendered
-        if self.args["--traceback"]:
-            better_exceptions.hook()
-
         # Print a help message if asked for
         if (
             self.args["--help"]
@@ -138,7 +134,10 @@ class Main(Command):
         except Exception as e:
             self.logger.critical("{}", e)
             if self.args["--traceback"]:
-                raise
+                print(
+                    better_exceptions.format_exception(type(e), e, e.__traceback__),
+                    file=sys.stderr,
+                )
             # return errno if exception has any
             return typing.cast(int, getattr(e, "errno", 1))
         else:

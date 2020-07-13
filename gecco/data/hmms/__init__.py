@@ -15,9 +15,6 @@ class Hmm(typing.NamedTuple):
     id: str
     version: str
     url: str
-    action: str
-    md5: Optional[str] = None
-    matching: Optional[str] = None
     relabel_with: Optional[str] = None
 
     @property
