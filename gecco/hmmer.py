@@ -1,5 +1,6 @@
 """Compatibility wrapper for HMMER binaries and output.
 """
+import collections
 import contextlib
 import csv
 import errno
@@ -7,12 +8,13 @@ import os
 import subprocess
 import tempfile
 import typing
-from typing import Dict, Optional, Iterable, List, Type
+from typing import Dict, Optional, Iterable, List, Mapping, Type, Sequence
 
 import pandas
 from Bio import SeqIO
 
 from ._base import BinaryRunner
+from .model import Gene, Domain
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
@@ -104,25 +106,25 @@ class HMMER(BinaryRunner):
         self.hmms = hmms
         self.cpus = cpus
 
-    def run(
-        self, proteins: Iterable["SeqRecord"], prodigal: bool = True,
-    ) -> "pandas.DataFrame":
-        """Run HMMER on ``proteins`` and return found domains as a dataframe.
-
-        Arguments:
-            proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
-                annotate with HMMER.
-            prodigal (bool, optional): Whether or not the protein files were
-                obtained with PRODIGAL, in which case the extraction of some
-                features to the final dataframe will be a lot more accurate.
-                Defaults to ``True``.
-
-        """
+    def run(self, genes: Mapping[str, Gene]) -> Sequence[Gene]:
+        # """Run HMMER on ``proteins`` and return found domains as a dataframe.
+        #
+        # Arguments:
+        #     proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
+        #         annotate with HMMER.
+        #     prodigal (bool, optional): Whether or not the protein files were
+        #         obtained with PRODIGAL, in which case the extraction of some
+        #         features to the final dataframe will be a lot more accurate.
+        #         Defaults to ``True``.
+        #
+        # """
         # create a temporary file to write the input and output to
         seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
-        doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom")
+        doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
 
-        SeqIO.write(proteins, seqs_tmp.name, "fasta")
+        # write protein sequences
+        protein_records = (g.protein.to_record() for g in genes.values())
+        SeqIO.write(protein_records, seqs_tmp.name, "fasta")
 
         # Prepare the command line arguments
         cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp.name]
@@ -131,15 +133,55 @@ class HMMER(BinaryRunner):
         cmd.extend([self.hmms, seqs_tmp.name])
 
         # Run HMMER
-        # with open(stderr, "w") as err:
         subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
-        # Extract the result as a dataframe
-        return (
-            self._to_dataframe(seqs_tmp.name, doms_tmp.name, prodigal=prodigal)
-            .sort_values(["sequence_id", "start", "domain_start"])
-            .reset_index(drop=True)
+        # Read the domain table and group domaiins by gene
+        lines = filter(lambda line: not line.startswith("#"), doms_tmp)
+        rows = map(DomainRow.from_line, lines)
+        domains_by_gene = collections.defaultdict(list)
+        for row in rows:
+            domains_by_gene[genes[row.target_name]].append(row)
+
+        # Build the feature table
+        return pandas.DataFrame(
+            data = [
+                (
+                    gene.seq_id,
+                    gene.id,
+                    gene.start,
+                    gene.end,
+                    gene.strand.sign,
+                    domain.query_accession or domain.query_name,
+                    domain.i_evalue,
+                    1 - domain.i_evalue,
+                    domain.env_from,
+                    domain.env_to,
+                )
+                for gene, domains in domains_by_gene.items()
+                for domain in domains
+            ],
+            columns=[
+                "sequence_id",
+                "protein_id",
+                "start",
+                "end",
+                "strand",
+                "domain",
+                "i_Evalue",
+                "rev_i_Evalue",
+                "domain_start",
+                "domain_end",
+            ],
         )
+
+
+
+        # # Extract the result as a dataframe
+        # return (
+        #     self._to_dataframe(seqs_tmp.name, doms_tmp.name, prodigal=prodigal)
+        #     .sort_values(["sequence_id", "start", "domain_start"])
+        #     .reset_index(drop=True)
+        # )
 
     def _to_dataframe(
         self, seqs_file: str, doms_file: str, prodigal: bool
@@ -165,10 +207,7 @@ class HMMER(BinaryRunner):
                     start = int(info[0])
                     end = int(info[1])
                     strand = "+" if info[2] == "1" else "-"
-                else:
-                    sid = pid = row.target_name
-                    start = end = protein_order[pid]
-                    strand = "unknown"
+
                 domain = row.query_accession or row.query_name
                 rows.append(
                     (

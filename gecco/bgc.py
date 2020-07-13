@@ -231,7 +231,6 @@ class BGC(object):
 
         return bgc
 
-
     def domain_composition(self, all_possible: Optional["numpy.ndarray"] = None) -> "numpy.ndarray":
         """Compute weighted domain composition with respect to ``all_possible``.
 

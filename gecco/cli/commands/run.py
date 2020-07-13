@@ -134,21 +134,11 @@ class Run(Command):  # noqa: D101
         self.logger.info("Loading sequences from genome: {!r}", genome)
         format = guess_sequences_format(genome)
         sequences = SeqIO.index(genome, format)
-        self.logger.info("Predicting ORFs with PRODIGAL")
+
+        self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
-        proteins = orf_finder.find_proteins(sequences.values())
-
-        # we need to keep all the ORFs in a file because we will need
-        # them when extracting cluster sequences
-        _orf_temp = tempfile.NamedTemporaryFile(prefix="gecco", suffix=".faa")
-        orf_file = _orf_temp.name
-        SeqIO.write(proteins, orf_file, "fasta")
-        prodigal = True
-
-        # count the number of detected proteins without keeping them all
-        # in memory
-        orf_index = SeqIO.index(orf_file, "fasta")
-        self.logger.info("Found {} potential proteins", len(orf_index))
+        genes = {g.id : g for g in orf_finder.find_genes(sequences.values())}
+        self.logger.info("Found {} potential genes", len(genes))
 
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
@@ -158,12 +148,9 @@ class Run(Command):  # noqa: D101
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )
-            hmmer_out = os.path.join(out_dir, "hmmer", hmm.id)
-            os.makedirs(hmmer_out, exist_ok=True)
-            hmmer = HMMER(hmm.path, self.args["--jobs"])
-            result = hmmer.run(SeqIO.parse(orf_file, "fasta"), prodigal=prodigal)
+            features = HMMER(hmm.path, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
-            return result.assign(hmm=hmm.id, domain=hmm.relabel(result.domain))
+            return features.assign(hmm=hmm.id, domain=hmm.relabel(features.domain))
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             features = pool.map(annotate, self.args["--hmm"])
@@ -182,11 +169,6 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Sorting annotations by protein coordinates")
         feats_df.sort_values(by=["sequence_id", "protein_id", "start", "domain_start"], inplace=True)
 
-        # Write feature table to file
-        feat_out = os.path.join(out_dir, f"{base}.features.tsv")
-        self.logger.debug("Writing feature table to {!r}", feat_out)
-        feats_df.to_csv(feat_out, sep="\t", index=False)
-
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
         if self.args["--model"] is not None:
@@ -195,12 +177,9 @@ class Run(Command):  # noqa: D101
         else:
             crf = data.load("model/crf.model")
 
-        # Compute reverse i_Evalue to be used as weight
-        feats_df["rev_i_Evalue"] = 1 - feats_df.i_Evalue
-
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(
-            data=[seq for _, seq in feats_df.groupby("sequence_id")]
+            data=[group for _, group in feats_df.groupby("sequence_id")]
         )
 
         # Write predictions to file
@@ -281,11 +260,6 @@ class Run(Command):  # noqa: D101
             self.logger.debug("Writing cluster {} to {!r}", cluster.name, gbk_out)
             record = cluster.to_record(sequences[cluster.seq_id])
             SeqIO.write(record, gbk_out, "genbank")
-
-        # Remove the temporary protein file is needed to get rid of resource
-        # warnings
-        if _orf_temp is not None:
-            _orf_temp.close()
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))
