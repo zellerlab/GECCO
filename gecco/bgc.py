@@ -6,7 +6,12 @@ import csv
 import typing
 from typing import List, Optional
 
+import Bio.Alphabet
 import numpy
+from Bio.SeqRecord import SeqRecord
+from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
+
+from . import __version__
 
 # fmt: off
 # `set` of `str`: A set of domains from Pfam considered 'biosynthetic' by AntiSMASH.
@@ -47,6 +52,7 @@ class Protein(object):
         start: int,
         end: int,
         name: str,
+        strand: str,
         probability: float = 0.0,
         domains: Optional[List[str]] = None,
         weights: Optional[List[float]] = None,
@@ -65,6 +71,8 @@ class Protein(object):
             end (`int`): The index where the protein ends in the source
                 sequence.
             name (`str`): The identifier of the protein itself.
+            strand (`str`): The strand this protein is on (either `+` for the
+                direct strand, or `-` for the reverse strand).
             probability (`float`): The probability with which the protein was
                 predicted.
             domains (iterable of `str`, optional): The domains of the protein,
@@ -81,6 +89,7 @@ class Protein(object):
         self.start = min(start, end)
         self.end = max(start, end)
         self.name = name
+        self.strand = strand
         self.probability: float = probability
 
         self.domains = numpy.array([] if domains is None else list(domains))
@@ -190,6 +199,38 @@ class BGC(object):
             row.append(";".join(numpy.hstack(self.prot_ids)))  # prots
             row.append(";".join(numpy.hstack(self.domains)))  # pfam
         csv.writer(handle, dialect="excel-tab").writerow(row)
+
+    def to_record(self, sequence: SeqRecord) -> SeqRecord:
+        bgc = sequence[self.start:self.end]
+        bgc.id = bgc.name = self.name
+        bgc.seq.alphabet = Bio.Alphabet.generic_dna
+
+        # copy sequence annotations
+        bgc.annotations["topology"] = "linear"
+        bgc.annotations["organism"] = sequence.annotations.get("organism")
+        bgc.annotations["source"] = sequence.annotations.get("source")
+        bgc.annotations["comment"] = ["Detected with GECCO v{}".format(__version__)]
+
+        # add proteins as CDS features
+        for protein in self.proteins:
+            start = protein.start - self.start - 1
+            end = protein.end - self.start - 1
+            strand = 1 if protein.strand == "+" else -1 if protein.strand == "-" else None
+            loc = FeatureLocation(start=start, end=end, strand=strand)
+
+            #
+            cds = SeqFeature(location=loc, type="cds", id=protein.name)
+            cds.qualifiers["protein_id"] = protein.name
+            cds.qualifiers["inference"] = [
+                # FIXME: check which Prodigal version is wrapped by Pyrodigal
+                "EXISTENCE:ab initio prediction:PRODIGAL:2.6"
+            ]
+            bgc.features.append(cds)
+
+            # TODO: include domain annotations
+
+        return bgc
+
 
     def domain_composition(self, all_possible: Optional["numpy.ndarray"] = None) -> "numpy.ndarray":
         """Compute weighted domain composition with respect to ``all_possible``.

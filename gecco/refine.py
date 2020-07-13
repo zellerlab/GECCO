@@ -3,9 +3,10 @@
 
 import operator
 import typing
-from typing import List, Optional, Tuple, Iterator
+from typing import List, Mapping, Optional, Tuple, Iterator
 
 import pandas
+from Bio.SeqRecord import SeqRecord
 from gecco.bgc import Protein, BGC
 
 
@@ -76,7 +77,7 @@ class ClusterRefiner(object):
 
         Raises:
             `ValueError`: When ``criterion`` is not an allowed value.
-            
+
         """
         lt = self.threshold if lower_threshold is None else lower_threshold
         clusters = map(self._extract_cluster, self._iter_segments(data, lt))
@@ -90,9 +91,10 @@ class ClusterRefiner(object):
             proteins=[
                 Protein(
                     seq_id=prot_df[self.sequence_column].values[0],
-                    start=prot_df.start.min(),
-                    end=prot_df.end.max(),
+                    start=int(prot_df.start.min()),
+                    end=int(prot_df.end.max()),
                     name=prot_id,
+                    strand=prot_df.strand.values[0],
                     domains=prot_df[self.domain_column].values,
                     weights=prot_df[self.weight_column].values,
                     probability=prot_df[self.probability_column].mean(),

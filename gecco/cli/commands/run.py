@@ -135,10 +135,10 @@ class Run(Command):  # noqa: D101
 
             self.logger.info("Loading sequences from genome: {!r}", genome)
             format = guess_sequences_format(genome)
-            sequences = SeqIO.parse(genome, format)
+            sequences = SeqIO.index(genome, format)
             self.logger.info("Predicting ORFs with PRODIGAL")
             orf_finder = PyrodigalFinder(metagenome=True)
-            proteins = orf_finder.find_proteins(sequences)
+            proteins = orf_finder.find_proteins(sequences.values())
 
             # we need to keep all the ORFs in a file because we will need
             # them when extracting cluster sequences
@@ -228,7 +228,7 @@ class Run(Command):  # noqa: D101
                 continue
             clusters.extend(
                 refiner.iter_clusters(
-                    subdf, criterion=self.args["--postproc"], prefix=sid,
+                    data=subdf, criterion=self.args["--postproc"], prefix=sid,
                 )
             )
 
@@ -285,13 +285,10 @@ class Run(Command):  # noqa: D101
 
         # Write predicted cluster sequences to file
         for cluster in clusters:
-            prots_out = os.path.join(out_dir, f"{cluster.name}.proteins.faa")
-            self.logger.debug("Writing proteins of {} to {!r}", cluster.name, prots_out)
-            with open(prots_out, "w") as out:
-                for id_ in cluster.prot_ids:
-                    p = orf_index[id_]
-                    p.description = f"{cluster.name} # {p.description}"
-                    SeqIO.write(p, out, "fasta")
+            gbk_out = os.path.join(out_dir, f"{cluster.name}.gbk")
+            self.logger.debug("Writing cluster {} to {!r}", cluster.name, gbk_out)
+            record = cluster.to_record(sequences[cluster.seq_id])
+            SeqIO.write(record, gbk_out, "genbank")
 
         # Remove the temporary protein file is needed to get rid of resource
         # warnings
