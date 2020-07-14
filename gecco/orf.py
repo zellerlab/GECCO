@@ -63,13 +63,11 @@ class PyrodigalFinder(ORFFinder):
             # find all ORFs in the given DNA sequence
             orfs = self.pyrodigal.find_genes(str(dna_sequence.seq))
             for j, orf in enumerate(orfs):
-
                 # wrap the protein into a Protein object
                 protein = Protein(
                     id=f"{dna_sequence.id}_{j+1}",
                     seq=Seq(orf.translate(), Bio.Alphabet.generic_protein),
                 )
-
                 # wrap the gene into a Gene
                 gene = Gene(
                     seq_id=dna_sequence.id,
@@ -78,66 +76,4 @@ class PyrodigalFinder(ORFFinder):
                     strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
                     protein=protein
                 )
-
-                #protein = SeqRecord(seq)
-                # convert the gene to a biopython `SeqRecord` with the same
-                # content as the PRODIGAL record description that's expected
-                # in the rest of the program
-                # protein.id = protein.name = f"{dna_sequence.id}_{j+1}"
-
-                # protein.description = " # ".join(map(str, [
-                #     protein.id,
-                #     gene.begin,
-                #     gene.end,
-                #     gene.strand,
-                #     f"ID={i+1}_{j+1};partial={int(gene.partial_begin)}{int(gene.partial_end)};"
-                #     f"start_type={gene.start_type};rbs_motif={gene.rbs_motif};"
-                #     f"rbs_spacer={gene.rbs_spacer};gc_cont={gene.gc_cont:0.3f}"
-                # ]))
-
                 yield gene
-
-
-# class ProdigalFinder(BinaryRunner, ORFFinder):
-#     """An `ORFFinder` that wraps the PRODIGAL binary.
-#
-#     PRODIGAL is a fast and reliable protein-coding gene prediction for
-#     prokaryotic genomes, with support for draft genomes and metagenomes.
-#
-#     See Also:
-#         .. [PMC2848648] https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648/
-#
-#     """
-#
-#     BINARY = "prodigal"
-#
-#     def __init__(self, metagenome: bool = True) -> None:
-#         """Create a new `ProdigalFinder` instance.
-#
-#         Arguments:
-#             metagenome (bool): Whether or not to run PRODIGAL in metagenome
-#                 mode, defaults to `True`.
-#
-#         """
-#         super().__init__()
-#         self.metagenome = metagenome
-#
-#     def find_proteins(
-#         self, sequences: Iterable["SeqRecord"],
-#     ) -> Iterator["SeqRecord"]:  # noqa: D102
-#         with tempfile.NamedTemporaryFile(
-#             "w+", prefix=self.BINARY, suffix=".faa"
-#         ) as tmp:
-#             # write a FASTA buffer to pass as PRODIGAL input
-#             buffer = io.TextIOWrapper(io.BytesIO())
-#             Bio.SeqIO.write(sequences, buffer, "fasta")
-#             # build the command line
-#             cmd: List[str] = [self.BINARY, "-q", "-a", tmp.name]
-#             if self.metagenome:
-#                 cmd.extend(["-p", "meta"])
-#             # run the program
-#             completed = subprocess.run(
-#                 cmd, input=buffer.detach().getbuffer(), stdout=subprocess.DEVNULL
-#             )
-#             completed.check_returncode()
-#             yield from Bio.SeqIO.parse(tmp, "fasta")
