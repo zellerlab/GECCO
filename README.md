@@ -7,10 +7,11 @@
 
 * [Python](https://www.python.org/downloads/) 3.6 or higher
 * [HMMER](http://hmmer.org/) v3.2 or higher
-* [Prodigal](https://github.com/hyattpd/Prodigal) v2.6.3 or higher
 
-Both HMMER and Prodigal can be installed through [conda](https://anaconda.org/).
-They have to be in the `$PATH` variable before running GECCO.
+HMMER can be installed through [conda](https://anaconda.org/). It has to
+be in the `$PATH` variable before running GECCO. GECCO also requires
+additional Python libraries, but they are normally installed automatically
+by `pip` or `conda` when installing GECCO.
 
 
 ## Installing GECCO
