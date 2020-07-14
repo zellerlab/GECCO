@@ -178,11 +178,14 @@ class Run(Command):  # noqa: D101
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
 
+        # Load trained CRF model
         if self.args["--model"] is not None:
+            self.logger.debug("Loading model from {!r}", self.args["--model"])
             with open(self.args["--model"], "rb") as bin:
                 crf = pickle.load(bin)
         else:
-            crf = data.load("model/crf.model")
+            self.logger.debug("Loading model from package resources")
+            crf = data.model.load()
 
         # If extracted from genome, split input dataframe into sequence
         feats_df = crf.predict_marginals(

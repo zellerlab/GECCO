@@ -7,7 +7,7 @@ import pkg_resources
 import typing
 from typing import BinaryIO, IO, Union
 
-from . import hmms
+from . import hmms, model
 
 
 def realpath(local_path: str) -> str:
@@ -31,19 +31,3 @@ def open(local_path: str, mode: str = "r") -> Union[IO[str], IO[bytes]]:
     elif mode not in {"rb", "br"}:
         raise ValueError(f"invalid mode: {mode!r}")
     return stream
-
-
-def load(local_path: str) -> object:
-    """Unpickle an object from the `gecco.data` after checking its hash.
-    """
-    hasher = hashlib.md5()
-    with open(f"{local_path}.md5") as sig:
-        signature = sig.read().strip()
-    with open(local_path, "rb") as bin:
-        read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
-        for chunk in iter(read, b""):
-            hasher.update(typing.cast(bytes, chunk))
-    if hasher.hexdigest().upper() != signature.upper():
-        raise RuntimeError("hashes of data does not match signature")
-    with open(local_path, "rb") as bin:
-        return pickle.load(typing.cast(BinaryIO, bin))
