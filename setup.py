@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import configparser
-import distutils.cmd
-import distutils.log
 import glob
 import gzip
 import hashlib
@@ -106,7 +104,7 @@ class sdist(_sdist):
         _sdist.run(self)
 
 
-class update_model(distutils.cmd.Command):
+class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.
     """
 
@@ -131,7 +129,7 @@ class update_model(distutils.cmd.Command):
             raise FileNotFoundError(self.domain)
 
     def info(self, msg):
-        self.announce(msg, level=distutils.log.INFO)
+        self.announce(msg, level=2)
 
     def run(self):
         import gecco.data
@@ -201,7 +199,7 @@ class build_py(_build_py):
     def download(self, output, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
-        self.announce("fetching {}".format(url), level=distutils.log.INFO)
+        self.announce("fetching {}".format(url), level=2)
         with ResponseProgressBar(urllib.request.urlopen(url), desc=os.path.basename(output)) as src:
             with open(output, "wb") as dst:
                 shutil.copyfileobj(src, dst)
