@@ -9,11 +9,39 @@ from typing import List, Mapping, Optional, Tuple, Iterator
 import pandas
 from Bio.SeqRecord import SeqRecord
 
-from .bgc import Protein, BGC
 from .model import Cluster, ClusterGene, ClusterProtein, Domain, Gene, Strand
 
 
-class ClusterRefiner(object):
+# fmt: off
+# `set` of `str`: A set of domains from Pfam considered 'biosynthetic' by AntiSMASH.
+BIO_PFAMS = frozenset({
+    "PF00109", "PF02801", "PF08659", "PF00378", "PF08541", "PF08545",
+    "PF02803", "PF00108", "PF02706", "PF03364", "PF08990", "PF00501",
+    "PF00668", "PF08415", "PF00975", "PF03061", "PF00432", "PF00494",
+    "PF03936", "PF01397", "PF00432", "PF04275", "PF00348", "PF02401",
+    "PF04551", "PF00368", "PF00534", "PF00535", "PF02922", "PF01041",
+    "PF00128", "PF00908", "PF02719", "PF04321", "PF01943", "PF02806",
+    "PF02350", "PF02397", "PF04932", "PF01075", "PF00953", "PF01050",
+    "PF03033", "PF01501", "PF05159", "PF04101", "PF02563", "PF08437",
+    "PF02585", "PF01721", "PF02052", "PF02674", "PF03515", "PF04369",
+    "PF08109", "PF08129", "PF09221", "PF09683", "PF10439", "PF11420",
+    "PF11632", "PF11758", "PF12173", "PF04738", "PF04737", "PF04604",
+    "PF05147", "PF08109", "PF08129", "PF08130", "PF00155", "PF00202",
+    "PF00702", "PF06339", "PF04183", "PF10331", "PF03756", "PF00106",
+    "PF01370", "PF00107", "PF08240", "PF00441", "PF02770", "PF02771",
+    "PF08028", "PF01408", "PF02894", "PF00984", "PF00725", "PF03720",
+    "PF03721", "PF07993", "PF02737", "PF00903", "PF00037", "PF04055",
+    "PF00171", "PF00067", "PF01266", "PF01118", "PF02668", "PF00248",
+    "PF01494", "PF01593", "PF03992", "PF00355", "PF01243", "PF00384",
+    "PF01488", "PF00857", "PF04879", "PF08241", "PF08242", "PF00698",
+    "PF00483", "PF00561", "PF00583", "PF01636", "PF01039", "PF00288",
+    "PF00289", "PF02786", "PF01757", "PF02785", "PF02409", "PF01553",
+    "PF02348", "PF00891", "PF01596", "PF04820", "PF02522", "PF08484",
+    "PF08421",
+})
+
+
+class ClusterRefiner:
     """A post-processor to extract contiguous BGCs from CRF predictions.
 
     Like `~gecco.crf.ClusterCRF`, it can be configured to support non-standard
@@ -84,15 +112,16 @@ class ClusterRefiner(object):
 
         """
         _extract_cluster = functools.partial(self._extract_cluster, genes)
+        _validate_cluster = functools.partial(self._validate_cluster, criterion=criterion)
         lt = self.threshold if lower_threshold is None else lower_threshold
         clusters = map(_extract_cluster, self._iter_segments(features, lt))
-        return filter(lambda bgc: bgc.is_valid(criterion=criterion), clusters)
+        return filter(_validate_cluster, clusters)
 
     def _extract_cluster(
         self,
         genes: Mapping[str, Gene],
         segment: "pandas.DataFrame",
-    ) -> BGC:
+    ) -> Cluster:
         """Take a segment of contiguous domains and returns a `BGC`.
         """
         cluster_genes = []
@@ -112,12 +141,31 @@ class ClusterRefiner(object):
                 end=genes[prot_id].end,
                 strand=genes[prot_id].strand,
                 protein=cluster_protein,
+                probability=subdf[self.probability_column].mean()
             )
             cluster_genes.append(cluster_gene)
         return Cluster(
             id=segment.cluster_id.values[0],
             genes=cluster_genes,
         )
+
+    def _validate_cluster(
+        self,
+        cluster: Cluster,
+        criterion: str = "gecco",
+        threshold: float = 0.6,
+        n_cds: int = 5,
+    ) -> bool:
+        if criterion == "gecco":
+            return True
+        elif criterion == "antismash":
+            domains = {d.name for gene in cluster.genes for d in gene.protein.domains}
+            p_crit = numpy.mean([g.probability for g in cluster.genes]) >= threshold
+            bio_crit = len(domains & BIO_PFAMS) >= n_biopfams
+            cds_crit = len(cluster.genes) >= n_cds
+            return p_crit # TODO: & bio_crit & cds_crit
+        else:
+            raise ValueError(f"unknown BGC filtering criterion: {criterion}")
 
         # return BGC(
         #     name=segment.cluster_id.values[0],
