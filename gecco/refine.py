@@ -1,13 +1,16 @@
 """Algorithm to smooth contiguous BGC predictions into single regions.
 """
 
+import functools
 import operator
 import typing
 from typing import List, Mapping, Optional, Tuple, Iterator
 
 import pandas
 from Bio.SeqRecord import SeqRecord
-from gecco.bgc import Protein, BGC
+
+from .bgc import Protein, BGC
+from .model import Cluster, ClusterGene, ClusterProtein, Domain, Gene, Strand
 
 
 class ClusterRefiner(object):
@@ -53,7 +56,8 @@ class ClusterRefiner(object):
 
     def iter_clusters(
         self,
-        data: "pandas.DataFrame",
+        genes: Mapping[str, Gene],
+        features: "pandas.DataFrame",
         criterion: str = "gecco",
         prefix: str = "cluster",
         lower_threshold: Optional[float] = None,
@@ -61,7 +65,7 @@ class ClusterRefiner(object):
         """Find all clusters in a table of CRF predictions.
 
         Arguments:
-            data (`~pandas.DataFrame`): The data frame containing BGC
+            features (`~pandas.DataFrame`): The data frame containing BGC
                 probability predictions, obtained by `~gecco.crf.ClusterCRF`.
             criterion (`str`): The criterion to use when checking for BGC
                 validity. See `gecco.bgc.BGC.is_valid` documentation for
@@ -79,38 +83,69 @@ class ClusterRefiner(object):
             `ValueError`: When ``criterion`` is not an allowed value.
 
         """
+        _extract_cluster = functools.partial(self._extract_cluster, genes)
         lt = self.threshold if lower_threshold is None else lower_threshold
-        clusters = map(self._extract_cluster, self._iter_segments(data, lt))
+        clusters = map(_extract_cluster, self._iter_segments(features, lt))
         return filter(lambda bgc: bgc.is_valid(criterion=criterion), clusters)
 
-    def _extract_cluster(self, segment: "pandas.DataFrame") -> BGC:
+    def _extract_cluster(
+        self,
+        genes: Mapping[str, Gene],
+        segment: "pandas.DataFrame",
+    ) -> BGC:
         """Take a segment of contiguous domains and returns a `BGC`.
         """
-        return BGC(
-            name=segment.cluster_id.values[0],
-            proteins=[
-                Protein(
-                    seq_id=prot_df[self.sequence_column].values[0],
-                    start=int(prot_df.start.min()),
-                    end=int(prot_df.end.max()),
-                    name=prot_id,
-                    strand=prot_df.strand.values[0],
-                    domains=prot_df[self.domain_column].values,
-                    weights=prot_df[self.weight_column].values,
-                    probability=prot_df[self.probability_column].mean(),
-                )
-                for prot_id, prot_df in segment.groupby(self.protein_column, sort=False)
-            ],
+        cluster_genes = []
+        for prot_id, subdf in segment.groupby(self.protein_column, sort=False):
+            domains = [
+                Domain(row.domain, row.domain_start, row.domain_end, row.i_Evalue)
+                for row in subdf.itertuples()
+            ]
+            cluster_protein = ClusterProtein(
+                id=prot_id,
+                seq=genes[prot_id].protein.seq,
+                domains=domains,
+            )
+            cluster_gene = ClusterGene(
+                seq_id=genes[prot_id].seq_id,
+                start=genes[prot_id].start,
+                end=genes[prot_id].end,
+                strand=genes[prot_id].strand,
+                protein=cluster_protein,
+            )
+            cluster_genes.append(cluster_gene)
+        return Cluster(
+            id=segment.cluster_id.values[0],
+            genes=cluster_genes,
         )
 
+        # return BGC(
+        #     name=segment.cluster_id.values[0],
+        #     proteins=[
+        #         Protein(
+        #             seq_id=prot_df[self.sequence_column].values[0],
+        #             start=int(prot_df.start.min()),
+        #             end=int(prot_df.end.max()),
+        #             name=prot_id,
+        #             strand=prot_df.strand.values[0],
+        #             domains=prot_df[self.domain_column].values,
+        #             weights=prot_df[self.weight_column].values,
+        #             probability=prot_df[self.probability_column].mean(),
+        #         )
+        #         for prot_id, prot_df in segment.groupby(self.protein_column, sort=False)
+        #     ],
+        # )
+
     def _iter_segments(
-        self, df: "pandas.DataFrame", lower_threshold: float,
+        self,
+        features: "pandas.DataFrame",
+        lower_threshold: float,
     ) -> Iterator["pandas.DataFrame"]:
         """Iterate over contiguous BGC segments from a CRF prediction table.
 
         Yields:
             `~pandas.DataFrame`: A data frame containing one or more
-            consecutive proteins, found to be part of the same BGC cluster.
+            consecutive proteins, found to be part of the same gene cluster.
 
         """
         in_cluster: int = False
@@ -123,7 +158,7 @@ class ClusterRefiner(object):
         seq_getter = operator.attrgetter(self.sequence_column)
 
         # process all proteins to find potential BGCs
-        for idx, row in enumerate(df.itertuples()):
+        for idx, row in enumerate(features.itertuples()):
             if p_getter(row) >= lower_threshold:
                 # non-cluster -> cluster
                 if not in_cluster:

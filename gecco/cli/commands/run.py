@@ -124,14 +124,14 @@ class Run(Command):  # noqa: D101
     def __call__(self) -> int:  # noqa: D102
         # Make output directory
         out_dir = self.args["--output-dir"]
-        self.logger.debug("Using output folder: {!r}", out_dir)
+        self.logger.debug("Using output folder {!r}", out_dir)
         os.makedirs(out_dir, exist_ok=True)
 
         # --- ORFs -----------------------------------------------------------
         genome = self.args["--genome"]
         base, _ = os.path.splitext(os.path.basename(genome))
 
-        self.logger.info("Loading sequences from genome: {!r}", genome)
+        self.logger.info("Loading sequences from genome file {!r}", genome)
         format = guess_sequences_format(genome)
         sequences = SeqIO.index(genome, format)
 
@@ -166,11 +166,18 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
         # Sort by location
-        self.logger.debug("Sorting annotations by protein coordinates")
-        feats_df.sort_values(by=["sequence_id", "protein_id", "start", "domain_start"], inplace=True)
+        self.logger.debug("Sorting annotations by gene coordinates")
+        feats_df.sort_values(by=["sequence_id", "strand", "start", "domain_start"], inplace=True)
+
+        # Remove sequences not containing enough genes
+        for seq_id, subdf in feats_df.groupby("protein_id"):
+            if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
+                self.logger.warn("Removing sequence {!r} because it contains too few genes", seq_id)
+                feats_df = feats_df[feats_df.sequence_id != seq_id]
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
+
         if self.args["--model"] is not None:
             with open(self.args["--model"], "rb") as bin:
                 crf = pickle.load(bin)
@@ -188,76 +195,80 @@ class Run(Command):  # noqa: D101
         feats_df.to_csv(pred_out, sep="\t", index=False)
 
         # --- REFINE ---------------------------------------------------------
-        self.logger.info("Extracting clusters")
+        self.logger.info("Extracting gene clusters from prediction")
+
+        # Extract clusters from the predicted probability spectrum
         self.logger.debug("Using probability threshold of {}", self.args["--threshold"])
         refiner = ClusterRefiner(threshold=self.args["--threshold"])
-
-        clusters = []
-        for sid, subdf in feats_df.groupby("sequence_id"):
-            if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
-                self.logger.warn("Skipping sequence {!r} because it is too short", sid)
-                continue
-            clusters.extend(
-                refiner.iter_clusters(
-                    data=subdf, criterion=self.args["--postproc"], prefix=sid,
-                )
+        clusters = [
+            cluster
+            for seq_id, subdf in feats_df.groupby("sequence_id")
+            for cluster in refiner.iter_clusters(
+                genes=genes,
+                features=subdf,
+                criterion=self.args["--postproc"],
+                prefix=seq_id,
             )
+        ]
 
-        if not clusters:
+        # Abort here if not clusters were found
+        if clusters:
+            self.logger.info("Found {} potential clusters", len(clusters))
+        else:
             self.logger.warning("No gene clusters were found")
             return 0
 
-        # --- KNN ------------------------------------------------------------
-        self.logger.info("Predicting BGC types")
-
-        # Read embedded training matrix
-        self.logger.debug("Reading embedded training matrix")
-        training_matrix = data.realpath("knn/domain_composition.tsv.gz")
-        train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[:, 2:].values
-        id_array = train_df["BGC_id"].values
-        types_array = train_df["BGC_type"]
-        domains_array = train_df.columns.values[2:]
-
-        # Calculate new domain composition
-        self.logger.debug("Calulating domain composition for each cluster")
-        new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
-
-        # Inititate kNN and predict types
-        distance = self.args["--distance"]
-        self.logger.debug("Running kNN classifier with metric: {!r}", distance)
-        knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
-        knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
+        # # --- KNN ------------------------------------------------------------
+        # self.logger.info("Predicting BGC types")
+        #
+        # # Read embedded training matrix
+        # self.logger.debug("Reading embedded training matrix")
+        # training_matrix = data.realpath("knn/domain_composition.tsv.gz")
+        # train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
+        # train_comp = train_df.iloc[:, 2:].values
+        # id_array = train_df["BGC_id"].values
+        # types_array = train_df["BGC_type"]
+        # domains_array = train_df.columns.values[2:]
+        #
+        # # Calculate new domain composition
+        # self.logger.debug("Calulating domain composition for each cluster")
+        # new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
+        #
+        # # Inititate kNN and predict types
+        # distance = self.args["--distance"]
+        # self.logger.debug("Running kNN classifier with {!r} metric", distance)
+        # knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
+        # knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
 
         # --- RESULTS --------------------------------------------------------
-        self.logger.info("Writing final results file")
+        self.logger.info("Writing final result files to folder {!r}", out_dir)
 
-        # Write predicted cluster coordinates to file
-        cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
-        self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
-        with open(cluster_out, "wt") as f:
-            csv.writer(f, dialect="excel-tab").writerow(
-                [
-                    "sequence_id",
-                    "BGC_id",
-                    "start",
-                    "end",
-                    "average_p",
-                    "max_p",
-                    "BGC_type",
-                    "BGC_type_p",
-                    "proteins",
-                    "domains",
-                ]
-            )
-            for cluster, ty in zip(clusters, knn_pred):
-                cluster.bgc_type, cluster.type_prob = ty
-                cluster.write_to_file(f, long=True)
+        # # Write predicted cluster coordinates to file
+        # cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
+        # self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
+        # with open(cluster_out, "wt") as f:
+        #     csv.writer(f, dialect="excel-tab").writerow(
+        #         [
+        #             "sequence_id",
+        #             "BGC_id",
+        #             "start",
+        #             "end",
+        #             "average_p",
+        #             "max_p",
+        #             "BGC_type",
+        #             "BGC_type_p",
+        #             "proteins",
+        #             "domains",
+        #         ]
+        #     )
+        #     for cluster, ty in zip(clusters, knn_pred):
+        #         cluster.bgc_type, cluster.type_prob = ty
+        #         cluster.write_to_file(f, long=True)
 
         # Write predicted cluster sequences to file
         for cluster in clusters:
-            gbk_out = os.path.join(out_dir, f"{cluster.name}.gbk")
-            self.logger.debug("Writing cluster {} to {!r}", cluster.name, gbk_out)
+            gbk_out = os.path.join(out_dir, f"{cluster.id}.gbk")
+            self.logger.debug("Writing cluster {} to {!r}", cluster.id, gbk_out)
             record = cluster.to_record(sequences[cluster.seq_id])
             SeqIO.write(record, gbk_out, "genbank")
 
