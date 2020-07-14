@@ -29,12 +29,12 @@ for ini_file in gecco/data/hmms/*.ini; do
   if ! [ -e "$cache_file" ]; then
     if [ "$hmm" = "Panther" ]; then
       log Extracting $hmm v$version
-      wget "$url" -O- \
+      wget "$url" -q -O- \
         | tar xz tar xvz --wildcards --no-wildcards-match-slash --no-anchored PTHR\*/hmmer.hmm -O \
         | gzip > "$cache_file"
     else
       log Downloading $hmm v$version
-      wget "$url" -O "$cache_file"
+      wget "$url" -q -O "$cache_file"
     fi
   else
     log Using cached $hmm v$version
