@@ -1,13 +1,10 @@
-import functools
-import hashlib
 import io
 import os
-import pickle
 import pkg_resources
 import typing
 from typing import BinaryIO, IO, Union
 
-from . import hmms, model
+from . import hmms, model, knn
 
 
 def realpath(local_path: str) -> str:

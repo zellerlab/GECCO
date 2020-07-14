@@ -1,6 +1,9 @@
+import functools
 import hashlib
+import io
 import pickle
 import pkg_resources
+import typing
 
 if typing.TYPE_CHECKING:
     from ...crf import ClusterCRF

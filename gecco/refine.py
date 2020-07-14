@@ -89,7 +89,7 @@ class ClusterRefiner:
         criterion: str = "gecco",
         prefix: str = "cluster",
         lower_threshold: Optional[float] = None,
-    ) -> Iterator[BGC]:
+    ) -> Iterator[Cluster]:
         """Find all clusters in a table of CRF predictions.
 
         Arguments:

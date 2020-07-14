@@ -226,22 +226,17 @@ class Run(Command):  # noqa: D101
 
         # Read embedded training matrix
         self.logger.debug("Reading embedded training matrix")
-        training_matrix = data.realpath("knn/domain_composition.tsv.gz")
-        train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        train_comp = train_df.iloc[:, 2:].values
-        id_array = train_df["BGC_id"].values
-        types_array = train_df["BGC_type"]
-        domains_array = train_df.columns.values[2:]
+        training = data.knn.load_training_matrix()
 
         # Calculate new domain composition
         self.logger.debug("Calulating domain composition for each cluster")
-        new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
+        new_comp = numpy.array([c.domain_composition(training.domains) for c in clusters])
 
         # Inititate kNN and predict types
         distance = self.args["--distance"]
         self.logger.debug("Running kNN classifier with {!r} metric", distance)
         knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
-        knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
+        knn_pred = knn.fit_predict(training.compositions, new_comp, y=training.types)
 
         # Record predictions to the data classes
         for cluster, ty in zip(clusters, knn_pred):
@@ -251,7 +246,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Writing final result files to folder {!r}", out_dir)
 
         # Write predicted cluster coordinates to file
-        cluster_out = os.path.join(out_dir, f"{base}.clusters.new.tsv")
+        cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
             writer = csv.writer(f, dialect="excel-tab")
@@ -267,7 +262,6 @@ class Run(Command):  # noqa: D101
                 "proteins",
                 "domains",
             ])
-
             for cluster in clusters:
                 probs = numpy.array([ gene.probability for gene in cluster.genes ])
                 writer.writerow([
@@ -286,7 +280,6 @@ class Run(Command):  # noqa: D101
                         for domain in gene.protein.domains
                     })),
                 ])
-
 
         # Write predicted cluster sequences to file
         for cluster in clusters:
