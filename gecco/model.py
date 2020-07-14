@@ -1,8 +1,11 @@
+import collections
 import enum
 import typing
-from typing import List, Optional
+from typing import List, Optional, Sequence
+from dataclasses import dataclass
 
 import Bio.Alphabet
+import numpy
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
@@ -23,7 +26,8 @@ class Strand(enum.IntEnum):
 # ----------------------------------------------------------------------------
 
 
-class Protein(typing.NamedTuple):
+@dataclass
+class Protein:
     id: str
     seq: Seq
 
@@ -31,12 +35,16 @@ class Protein(typing.NamedTuple):
         return SeqRecord(self.seq, id=self.id, name=self.id)
 
 
-class Gene(typing.NamedTuple):
+@dataclass
+class Gene:
     seq_id: str
     start: int
     end: int
     strand: Strand
     protein: Protein
+
+    def __hash__(self):
+        return hash(self.id)
 
     @property
     def id(self):
@@ -46,37 +54,42 @@ class Gene(typing.NamedTuple):
 # ----------------------------------------------------------------------------
 
 
-class Domain(typing.NamedTuple):
+@dataclass
+class Domain:
     name: str
     start: int
     end: int
-    i_evalue: float
+    i_evalue: float = 0.0
 
 
-class ClusterProtein(typing.NamedTuple, Protein):
+@dataclass
+class ClusterProtein(Protein):
     id: str
     seq: Seq
     domains: List[Domain]
 
 
-class ClusterGene(typing.NamedTuple, Gene):
+@dataclass
+class ClusterGene(Gene):
     seq_id: str
     start: int
     end: int
     strand: Strand
     protein: ClusterProtein
+    probability: float
 
     @property
     def id(self):
         return self.protein.id
 
 
-class Cluster(typing.NamedTuple):
+@dataclass
+class Cluster:
     id: str
     genes: List[ClusterGene]
 
     type: str = "Other"
-    type_prob: float = 0
+    type_probability: float = 0.0
 
     @property
     def seq_id(self):
@@ -90,10 +103,31 @@ class Cluster(typing.NamedTuple):
     def end(self):
         return max(gene.end for gene in self.genes)
 
-    def is_valid(self, criterion: str = "gecco"):
-        return True # TODO
+    # ---
 
-    def to_record(self, sequence: SeqRecord):
+    def domain_composition(self, all_possible: Optional[Sequence[str]] = None) -> numpy.ndarray:
+        domains = [d for gene in self.genes for d in gene.protein.domains]
+        names = numpy.array([domain.name for domain in domains])
+        weights = numpy.array([1 - domain.i_evalue for domain in domains])
+        counts = collections.Counter(names)
+        if all_possible is None:
+            all_possible = numpy.unique(names)
+        composition = numpy.zeros(len(all_possible))
+        for i, dom in enumerate(all_possible):
+            n = counts[dom]
+            w = weights[names == dom].mean() if n > 0 else 0
+            composition[i] = n * w
+        return composition / (composition.sum() or 1)
+
+    # ---
+
+    def to_record(self, sequence: SeqRecord) -> SeqRecord:
+        if sequence.id != self.genes[0].seq_id:
+            raise ValueError(
+                f"invalid sequence {sequence.id!r} "
+                f"(expected {self.genes[0].seq_id!r})"
+            )
+
         bgc = sequence[self.start:self.end]
         bgc.id = bgc.name = self.id
         bgc.seq.alphabet = Bio.Alphabet.generic_dna
@@ -111,12 +145,19 @@ class Cluster(typing.NamedTuple):
             end = gene.end - self.start
             loc = FeatureLocation(start=start, end=end, strand=int(gene.strand))
             # write protein as a /cds GenBank record
-            cds = SeqFeature(location=loc, type="cds", id=gene.id)
+            cds = SeqFeature(location=loc, type="cds")
             cds.qualifiers["label"] = gene.id
             cds.qualifiers["inference"] = ["EXISTENCE:ab initio prediction:PRODIGAL:2.6"]
             cds.qualifiers["translation"] = str(gene.protein.seq)
             bgc.features.append(cds)
 
-            # TODO: include domain annotations
+            # write domains as /misc_feature annotations
+            for domain in gene.protein.domains:
+                dom_start = start + domain.start * 3
+                dom_end = start + domain.end * 3
+                loc = FeatureLocation(dom_start, dom_end, strand=int(gene.strand))
+                misc = SeqFeature(location=loc, type="misc_feature")
+                misc.qualifiers["label"] = domain.name
+                bgc.features.append(misc)
 
         return bgc
