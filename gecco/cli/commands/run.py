@@ -28,13 +28,13 @@ from ...refine import ClusterRefiner
 
 class Run(Command):  # noqa: D101
 
-    summary = "predict BGC from a genome or from individual proteins."
+    summary = "predict BGC from one or several contigs."
     doc = f"""
     gecco run - {summary}
 
     Usage:
         gecco run (-h | --help)
-        gecco run --genome <file>   [--hmm <hmm>]... [options]
+        gecco run --genome <file> [--hmm <hmm>]... [options]
 
     Arguments:
         -g <file>, --genome <file>    a FASTA or GenBank file containing a
@@ -167,10 +167,10 @@ class Run(Command):  # noqa: D101
 
         # Sort by location
         self.logger.debug("Sorting annotations by gene coordinates")
-        feats_df.sort_values(by=["sequence_id", "strand", "start", "domain_start"], inplace=True)
+        feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
 
         # Remove sequences not containing enough genes
-        for seq_id, subdf in feats_df.groupby("protein_id"):
+        for seq_id, subdf in feats_df.groupby("sequence_id"):
             if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
                 self.logger.warn("Removing sequence {!r} because it contains too few genes", seq_id)
                 feats_df = feats_df[feats_df.sequence_id != seq_id]
@@ -190,8 +190,8 @@ class Run(Command):  # noqa: D101
         )
 
         # Write predictions to file
-        pred_out = os.path.join(out_dir, f"{base}.pred.tsv")
-        self.logger.debug("Writing cluster probabilities to {!r}", pred_out)
+        pred_out = os.path.join(out_dir, f"{base}.features.tsv")
+        self.logger.debug("Writing feature table to {!r}", pred_out)
         feats_df.to_csv(pred_out, sep="\t", index=False)
 
         # --- REFINE ---------------------------------------------------------
@@ -219,51 +219,71 @@ class Run(Command):  # noqa: D101
             return 0
 
         # # --- KNN ------------------------------------------------------------
-        # self.logger.info("Predicting BGC types")
-        #
-        # # Read embedded training matrix
-        # self.logger.debug("Reading embedded training matrix")
-        # training_matrix = data.realpath("knn/domain_composition.tsv.gz")
-        # train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
-        # train_comp = train_df.iloc[:, 2:].values
-        # id_array = train_df["BGC_id"].values
-        # types_array = train_df["BGC_type"]
-        # domains_array = train_df.columns.values[2:]
-        #
-        # # Calculate new domain composition
-        # self.logger.debug("Calulating domain composition for each cluster")
-        # new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
-        #
-        # # Inititate kNN and predict types
-        # distance = self.args["--distance"]
-        # self.logger.debug("Running kNN classifier with {!r} metric", distance)
-        # knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
-        # knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
+        self.logger.info("Predicting BGC types")
+
+        # Read embedded training matrix
+        self.logger.debug("Reading embedded training matrix")
+        training_matrix = data.realpath("knn/domain_composition.tsv.gz")
+        train_df = pandas.read_csv(training_matrix, sep="\t", encoding="utf-8")
+        train_comp = train_df.iloc[:, 2:].values
+        id_array = train_df["BGC_id"].values
+        types_array = train_df["BGC_type"]
+        domains_array = train_df.columns.values[2:]
+
+        # Calculate new domain composition
+        self.logger.debug("Calulating domain composition for each cluster")
+        new_comp = numpy.array([c.domain_composition(domains_array) for c in clusters])
+
+        # Inititate kNN and predict types
+        distance = self.args["--distance"]
+        self.logger.debug("Running kNN classifier with {!r} metric", distance)
+        knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
+        knn_pred = knn.fit_predict(train_comp, new_comp, y=types_array)
+
+        # Record predictions to the data classes
+        for cluster, ty in zip(clusters, knn_pred):
+            cluster.type, cluster.type_probability = ty
 
         # --- RESULTS --------------------------------------------------------
         self.logger.info("Writing final result files to folder {!r}", out_dir)
 
-        # # Write predicted cluster coordinates to file
-        # cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
-        # self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
-        # with open(cluster_out, "wt") as f:
-        #     csv.writer(f, dialect="excel-tab").writerow(
-        #         [
-        #             "sequence_id",
-        #             "BGC_id",
-        #             "start",
-        #             "end",
-        #             "average_p",
-        #             "max_p",
-        #             "BGC_type",
-        #             "BGC_type_p",
-        #             "proteins",
-        #             "domains",
-        #         ]
-        #     )
-        #     for cluster, ty in zip(clusters, knn_pred):
-        #         cluster.bgc_type, cluster.type_prob = ty
-        #         cluster.write_to_file(f, long=True)
+        # Write predicted cluster coordinates to file
+        cluster_out = os.path.join(out_dir, f"{base}.clusters.new.tsv")
+        self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
+        with open(cluster_out, "wt") as f:
+            writer = csv.writer(f, dialect="excel-tab")
+            writer.writerow([
+                "sequence_id",
+                "BGC_id",
+                "start",
+                "end",
+                "average_p",
+                "max_p",
+                "BGC_type",
+                "BGC_type_p",
+                "proteins",
+                "domains",
+            ])
+
+            for cluster in clusters:
+                probs = numpy.array([ gene.probability for gene in cluster.genes ])
+                writer.writerow([
+                    cluster.seq_id,
+                    cluster.id,
+                    cluster.start,
+                    cluster.end,
+                    probs.mean(),
+                    probs.max(),
+                    cluster.type,
+                    cluster.type_probability,
+                    ";".join([gene.id for gene in cluster.genes]),
+                    ";".join(sorted({
+                        domain.name
+                        for gene in cluster.genes
+                        for domain in gene.protein.domains
+                    })),
+                ])
+
 
         # Write predicted cluster sequences to file
         for cluster in clusters:

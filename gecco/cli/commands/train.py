@@ -137,11 +137,14 @@ class Train(Command):  # noqa: D101
         self.logger.debug("Computing reverse i_Evalue")
         data_tbl = data_tbl.assign(rev_i_Evalue=1 - data_tbl["i_Evalue"])
 
+        # Sorting data
+        data_tbl.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
+
         # Grouping column
         self.logger.debug("Splitting data using column {}", self.args["--split-col"])
         data_tbl = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
         if not self.args["--no-shuffle"]:
-            self.logger.debug("Shuffling data")
+            self.logger.debug("Shuffling splits randomly")
             random.shuffle(data_tbl)
 
         # --- MODEL FITTING --------------------------------------------------
