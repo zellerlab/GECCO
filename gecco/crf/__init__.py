@@ -4,9 +4,10 @@
 import csv
 import functools
 import itertools
-import operator
 import math
 import numbers
+import operator
+import os
 import random
 import textwrap
 import typing
@@ -475,13 +476,13 @@ class ClusterCRF(object):
         unidf[self.group_column] = df[self.group_column].unique()
         return df.merge(unidf)
 
-    def save_weights(self, basename: str) -> None:
-        with open(f"{basename}.trans.tsv", "w") as f:
+    def save_weights(self, directory: str) -> None:
+        with open(os.path.join(directory, "model.trans.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["from", "to", "weight"])
             for labels, weight in self.model.transition_features_.items():
                 writer.writerow([*labels, weight])
-        with open(f"{basename}.state.tsv", "w") as f:
+        with open(os.path.join(directory, "model.trans.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["attr", "label", "weight"])
             for attrs, weight in self.model.state_features_.items():

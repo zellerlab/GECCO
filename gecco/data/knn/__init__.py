@@ -1,10 +1,12 @@
 import csv
+import io
 import itertools
 import gzip
 import pkg_resources
 import typing
 
 import numpy
+import scipy.sparse
 
 
 class TrainingMatrix(typing.NamedTuple):
@@ -15,17 +17,19 @@ class TrainingMatrix(typing.NamedTuple):
 
 
 def load_training_matrix() -> TrainingMatrix:
-    with pkg_resources.resource_stream(__name__, "training_matrix.tsv.gz") as bin:
-        stream = gzip.open(bin, mode="rt")
-        reader = csv.reader(stream, dialect="excel-tab")
-        compositions, labels, types, domains = [], [], [], next(reader)[2:]
-        for line in reader:
-            labels.append(line[0])
-            types.append(line[1])
-            compositions.append(numpy.array(line[2:]).astype(float))
-        return TrainingMatrix(
-            compositions=numpy.array(compositions),
-            labels=numpy.array(labels),
-            types=numpy.array(types),
-            domains=numpy.array(domains)
-        )
+    with pkg_resources.resource_stream(__name__, "domains.tsv") as f:
+        domains = f.read().decode("ascii").splitlines()
+    with pkg_resources.resource_stream(__name__, "types.tsv") as f:
+        reader = csv.reader(io.TextIOWrapper(f), dialect="excel-tab")
+        labels, types = [], []
+        for row in reader:
+            labels.append(row[0])
+            types.append(row[1])
+    with pkg_resources.resource_stream(__name__, "compositions.npz") as f:
+        compositions = scipy.sparse.load_npz(f)
+    return TrainingMatrix(
+        compositions=compositions.toarray(),
+        labels=numpy.array(labels),
+        types=numpy.array(types),
+        domains=numpy.array(domains)
+    )

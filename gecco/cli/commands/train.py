@@ -35,8 +35,8 @@ class Train(Command):  # noqa: D101
                                         labeled as BGCs and non-BGCs.
 
     Parameters:
-        -o <out>, --output <out>        the basename to use for the output
-                                        model. [default: CRF]
+        -o <out>, --output-dir <out>    the directory to use for the model
+                                        files. [default: CRF]
         -j <jobs>, --jobs <jobs>        the number of CPUs to use for
                                         multithreading. Use 0 to use all of the
                                         available CPUs. [default: 0]
@@ -162,46 +162,60 @@ class Train(Command):  # noqa: D101
         self.logger.info("Fitting the model")
         crf.fit(data=data_tbl, trunc=self.args["--truncate"], select=self.args["--select"])
 
-        model_out = f"{self.args['--output']}.crf.model"
+        os.makedirs(self.args["--output-dir"], exist_ok=True)
+        model_out = os.path.join(self.args["--output-dir"], "model.pkl")
         self.logger.info("Writing the model to {!r}", model_out)
         with open(model_out, "wb") as f:
-            pickle.dump(crf, f, protocol=3)
+            pickle.dump(crf, f, protocol=4)
 
-        self.logger.info(
-            "Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"]
-        )
-        crf.save_weights(self.args["--output"])
+        self.logger.info("Writing transitions and state weights")
+        crf.save_weights(self.args["--output-dir"])
 
-        # --- DOMAIN COMPOSITION ----------------------------------------------
-        self.logger.info("Extracting clusters")
-        refiner = ClusterRefiner(
-            threshold=0.5,
-            sequence_column=self.args["--split-col"],
-            protein_column=self.args["--group-col"],
-            probability_column="p_pred",
-            domain_column=self.args["--feature-cols"][0],
-            weight_column=self.args["--weight-cols"][0],
-        )
+        #
+        raise NotImplementedError("domain composition files")
 
-        self.logger.debug("Finding the complete list of possible domains")
-        if crf.significant_features:
-            all_possible = sorted({d for domains in crf.significant_features.values() for d in domains})
-        else:
-            all_possible = sorted({d for subdf in data_tbl for key in self.args["--feature-cols"] for d in  subdf[key].unique()})
-
-        comp_out =  f"{self.args['--output']}.domain_composition.tsv"
-        self.logger.info("Writing domain composition table to {!r}", comp_out)
-        with open(comp_out, "w") as f:
-            writer = csv.writer(f, dialect="excel-tab")
-            writer.writerow(["BGC_id", "BGC_type"] + all_possible)
-            for subdf in data_tbl:
-                bgc = subdf[subdf[self.args["--y-col"]] == 1].assign(p_pred=1)
-                cluster = next(refiner.iter_clusters(bgc))
-                writer.writerow(
-                    [
-                        bgc[self.args["--id-col"]].values[0],
-                        bgc[self.args["--type-col"]].values[0],
-                    ] + list(cluster.domain_composition(all_possible)),
-                )
-
-        return 0
+        # # --- DOMAIN COMPOSITION ----------------------------------------------
+        # self.logger.info("Extracting clusters")
+        # refiner = ClusterRefiner(
+        #     threshold=0.5,
+        #     sequence_column=self.args["--split-col"],
+        #     protein_column=self.args["--group-col"],
+        #     probability_column="p_pred",
+        #     domain_column=self.args["--feature-cols"][0],
+        #     weight_column=self.args["--weight-cols"][0],
+        # )
+        #
+        # self.logger.debug("Finding the complete list of possible domains")
+        # if crf.significant_features:
+        #     all_possible = sorted({d for domains in crf.significant_features.values() for d in domains})
+        # else:
+        #     all_possible = sorted({d for subdf in data_tbl for key in self.args["--feature-cols"] for d in  subdf[key].unique()})
+        #
+        # self.logger.info("Saving training matrix for BGC type classifier")
+        # doms_out = os.path.join(self.args["--output-dir"], "domains.tsv")
+        # pandas.Series(all_possible).to_csv(doms_out, sep="\t", index=False, header=False)
+        #
+        # types_out = os.path.join(self.args["--output-dir"], "types.tsv")
+        # df = pandas.DataFrame({"labels": bgc[self.args["--id-col"]], "ty": bgc[self.args["--type-col"]]})
+        # df.to_csv(types_out, sep="\t", index=False, header=False)
+        #
+        # self.logger.debug("Writing domain composition table to {!r}", comp_out)
+        # comp_out = os.path.join(self.args['--output-dir'], "compositions.tsv")
+        # comp = numpy.array( [c.domain_composition(all_possible) for c in refiner.iter_clusters()] )
+        #
+        # clusters = list()
+        #
+        # with open(comp_out, "w") as f:
+        #     writer = csv.writer(f, dialect="excel-tab")
+        #     writer.writerow(["BGC_id", "BGC_type"] + all_possible)
+        #     for subdf in data_tbl:
+        #         bgc = subdf[subdf[self.args["--y-col"]] == 1].assign(p_pred=1)
+        #         cluster = next(refiner.iter_clusters(bgc))
+        #         writer.writerow(
+        #             [
+        #                 bgc[self.args["--id-col"]].values[0],
+        #                 bgc[self.args["--type-col"]].values[0],
+        #             ] + list(cluster.domain_composition(all_possible)),
+        #         )
+        #
+        # return 0
