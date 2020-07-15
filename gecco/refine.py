@@ -118,7 +118,7 @@ class ClusterRefiner:
         """Iterate over contiguous BGC segments from a list of genes.
         """
         thr = self.threshold
-        k1 = operator.attrgetter("seq_id")
+        k1 = operator.attrgetter("source.id")
         k2 = operator.attrgetter("start", "end")
 
         for seq_id, sequence in itertools.groupby(sorted(genes, key=k1), key=k1):
@@ -129,7 +129,7 @@ class ClusterRefiner:
                 if not in_cluster:
                     # not cluster -> cluster
                     if gene.probability is not None and gene.probability >= thr:
-                        cluster = Cluster(id=f"{gene.seq_id}_cluster_{cluster_num}")
+                        cluster = Cluster(id=f"{gene.source.id}_cluster_{cluster_num}")
                         cluster.genes = [gene]
                         in_cluster = True
                     # not cluster -> not cluster

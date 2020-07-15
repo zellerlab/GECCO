@@ -70,7 +70,7 @@ class PyrodigalFinder(ORFFinder):
                 )
                 # wrap the gene into a Gene
                 gene = Gene(
-                    seq_id=dna_sequence.id,
+                    source=dna_sequence,
                     start=min(orf.begin, orf.end),
                     end=max(orf.begin, orf.end),
                     strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,

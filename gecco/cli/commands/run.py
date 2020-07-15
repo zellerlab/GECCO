@@ -132,11 +132,11 @@ class Run(Command):  # noqa: D101
 
         self.logger.info("Loading sequences from genome file {!r}", genome)
         format = guess_sequences_format(genome)
-        sequences = {x.id: x for x in SeqIO.parse(genome, format)}
+        sequences = list(SeqIO.parse(genome, format))
 
         self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
-        genes = list(orf_finder.find_genes(sequences.values()))
+        genes = list(orf_finder.find_genes(sequences))
         self.logger.info("Found {} potential genes", len(genes))
 
         # --- HMMER ----------------------------------------------------------
@@ -168,7 +168,7 @@ class Run(Command):  # noqa: D101
 
         # Sort genes
         self.logger.debug("Sort genes by coordinates")
-        genes.sort(key=lambda g: (g.seq_id, g.start, g.end))
+        genes.sort(key=lambda g: (g.source.id, g.start, g.end))
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
@@ -192,7 +192,7 @@ class Run(Command):  # noqa: D101
 
         # Assign probabilities to data classes
         for gene in genes:
-            rows = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.seq_id)]
+            rows = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.source.id)]
             gene.probability = rows.p_pred.mean() if len(rows) else None
 
         # Write predictions to file
@@ -253,8 +253,7 @@ class Run(Command):  # noqa: D101
         for cluster in clusters:
             gbk_out = os.path.join(out_dir, f"{cluster.id}.gbk")
             self.logger.debug("Writing cluster {} to {!r}", cluster.id, gbk_out)
-            record = cluster.to_record(sequences[cluster.seq_id])
-            SeqIO.write(record, gbk_out, "genbank")
+            SeqIO.write(cluster.to_record(), gbk_out, "genbank")
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))

@@ -7,6 +7,7 @@ import textwrap
 import unittest
 from unittest import mock
 
+import Bio.SeqIO
 import pandas
 from Bio.Seq import Seq
 
@@ -90,14 +91,14 @@ class TestRun(TestCommand, unittest.TestCase):
 
     def test_fasta_genome(self):
         sequence = os.path.join(DATADIR, "BGC0001866.fna")
+        source = Bio.SeqIO.read(sequence, "fasta")
         with open(os.path.join(DATADIR, "BGC0001866.features.tsv")) as f:
             feats_df = pandas.read_table(f)
 
         genes = []
         for prot_id, df in feats_df.groupby("protein_id"):
-            seq_id = df.sequence_id.values[0]
             prot = Protein(prot_id, seq=Seq("M"))
-            gene = Gene(seq_id, min(df.start), max(df.end), Strand.Coding, prot, max(df.p_pred))
+            gene = Gene(source, min(df.start), max(df.end), Strand.Coding, prot, max(df.p_pred))
             for t in df.itertuples():
                 d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue)
                 gene.protein.domains.append(d)

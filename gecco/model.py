@@ -89,7 +89,8 @@ class Gene:
     """A nucleotide sequence coding a protein.
 
     Attributes:
-        seq_id (`str`): The identifier of the sequence this gene was found in.
+        source (`~Bio.SeqRecord.SeqRecord`): The DNA sequence this gene was
+            found in, as a Biopython record.
         start (`int`): The index of the leftmost nucleotide of the gene within
             the source sequence, independent of the strandedness.
         end (`int`): The index of the rightmost nucleotide of the gene within
@@ -101,7 +102,7 @@ class Gene:
 
     """
 
-    seq_id: str
+    source: SeqRecord
     start: int
     end: int
     strand: Strand
@@ -128,7 +129,7 @@ class Gene:
         return pandas.DataFrame(
             data = [
                 (
-                    self.seq_id,
+                    self.source.id,
                     self.id,
                     self.start,
                     self.end,
@@ -191,10 +192,10 @@ class Cluster:
         self.type_probability = type_probability
 
     @property
-    def seq_id(self):
-        """`str`: The identifier of the sequence this cluster was found in.
+    def source(self):
+        """`~Bio.SeqRecord.SeqRecord`: The sequence this cluster was found in.
         """
-        return self.genes[0].seq_id
+        return self.genes[0].source
 
     @property
     def start(self):
@@ -253,7 +254,7 @@ class Cluster:
 
     # ---
 
-    def to_record(self, sequence: SeqRecord) -> SeqRecord:
+    def to_record(self) -> SeqRecord:
         """Convert the cluster to a single record.
 
         Annotations of the source sequence are kept intact if they don't
@@ -262,20 +263,14 @@ class Cluster:
         *misc_feature*.
 
         """
-        if sequence.id != self.genes[0].seq_id:
-            raise ValueError(
-                f"invalid sequence {sequence.id!r} "
-                f"(expected {self.genes[0].seq_id!r})"
-            )
-
-        bgc = sequence[self.start:self.end]
+        bgc = self.source[self.start:self.end]
         bgc.id = bgc.name = self.id
         bgc.seq.alphabet = Bio.Alphabet.generic_dna
 
         # copy sequence annotations
         bgc.annotations["topology"] = "linear"
-        bgc.annotations["organism"] = sequence.annotations.get("organism")
-        bgc.annotations["source"] = sequence.annotations.get("source")
+        bgc.annotations["organism"] = self.source.annotations.get("organism")
+        bgc.annotations["source"] = self.source.annotations.get("source")
         bgc.annotations["comment"] = ["Detected with GECCO v{}".format(__version__)]
 
         # add proteins as CDS features
@@ -313,7 +308,7 @@ class Cluster:
         return pandas.DataFrame(
             data = [
                 (
-                    self.seq_id,
+                    self.source.id,
                     self.id,
                     self.start,
                     self.end,
