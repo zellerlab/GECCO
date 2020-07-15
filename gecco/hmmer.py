@@ -18,6 +18,7 @@ from .model import Gene, Domain
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
+    from .data.hmms import Hmm
 
     _T = typing.TypeVar("_T", bound="DomainRow")
 
@@ -93,7 +94,7 @@ class HMMER(BinaryRunner):
 
     BINARY = "hmmsearch"
 
-    def __init__(self, hmms: str, cpus: Optional[int] = None) -> None:
+    def __init__(self, hmm: str, cpus: Optional[int] = None) -> None:
         """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:
@@ -103,143 +104,50 @@ class HMMER(BinaryRunner):
 
         """
         super().__init__()
-        self.hmms = hmms
+        self.hmm = hmm
         self.cpus = cpus
 
-    def run(self, genes: Mapping[str, Gene]) -> Sequence[Gene]:
-        # """Run HMMER on ``proteins`` and return found domains as a dataframe.
-        #
-        # Arguments:
-        #     proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
-        #         annotate with HMMER.
-        #     prodigal (bool, optional): Whether or not the protein files were
-        #         obtained with PRODIGAL, in which case the extraction of some
-        #         features to the final dataframe will be a lot more accurate.
-        #         Defaults to ``True``.
-        #
-        # """
+    def run(self, genes: Sequence[Gene]) -> Sequence[Gene]:
+        """Run HMMER on ``proteins`` and return found domains as a dataframe.
+
+        Arguments:
+            proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
+                annotate with HMMER.
+            prodigal (bool, optional): Whether or not the protein files were
+                obtained with PRODIGAL, in which case the extraction of some
+                features to the final dataframe will be a lot more accurate.
+                Defaults to ``True``.
+
+        """
+        # collect genes and build an index of genes by protein id
+        gene_index = { gene.id: gene for gene in genes }
+
         # create a temporary file to write the input and output to
         seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
         doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
 
         # write protein sequences
-        protein_records = (g.protein.to_record() for g in genes.values())
+        protein_records = (g.protein.to_record() for g in genes)
         SeqIO.write(protein_records, seqs_tmp.name, "fasta")
 
         # Prepare the command line arguments
         cmd = ["hmmsearch", "--noali", "--domtblout", doms_tmp.name]
         if self.cpus is not None:
             cmd.extend(["--cpu", str(self.cpus)])
-        cmd.extend([self.hmms, seqs_tmp.name])
+        cmd.extend([self.hmm.path, seqs_tmp.name])
 
         # Run HMMER
         subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
-        # Read the domain table and group domaiins by gene
+        # Read the domain table and update protein domains
         lines = filter(lambda line: not line.startswith("#"), doms_tmp)
         rows = map(DomainRow.from_line, lines)
-        domains_by_gene = collections.defaultdict(list)
+
         for row in rows:
-            domains_by_gene[genes[row.target_name]].append(row)
+            assert row.env_from <= row.env_to
+            gene = gene_index[row.target_name]
+            name = self.hmm.relabel(row.query_accession or row.query_name)
+            domain = Domain(name, row.env_from, row.env_to, self.hmm.id, row.i_evalue)
+            gene.protein.domains.append(domain)
 
-        # Build the feature table
-        return pandas.DataFrame(
-            data = [
-                (
-                    gene.seq_id,
-                    gene.id,
-                    gene.start,
-                    gene.end,
-                    gene.strand.sign,
-                    domain.query_accession or domain.query_name,
-                    domain.i_evalue,
-                    1 - domain.i_evalue,
-                    domain.env_from,
-                    domain.env_to,
-                )
-                for gene, domains in domains_by_gene.items()
-                for domain in domains
-            ],
-            columns=[
-                "sequence_id",
-                "protein_id",
-                "start",
-                "end",
-                "strand",
-                "domain",
-                "i_Evalue",
-                "rev_i_Evalue",
-                "domain_start",
-                "domain_end",
-            ],
-        )
-
-
-
-        # # Extract the result as a dataframe
-        # return (
-        #     self._to_dataframe(seqs_tmp.name, doms_tmp.name, prodigal=prodigal)
-        #     .sort_values(["sequence_id", "start", "domain_start"])
-        #     .reset_index(drop=True)
-        # )
-
-    def _to_dataframe(
-        self, seqs_file: str, doms_file: str, prodigal: bool
-    ) -> "pandas.DataFrame":
-        """Convert a HMMER domain table to a `pandas.DataFrame`.
-        """
-        rows = []
-        if not prodigal:
-            sequences = SeqIO.parse(seqs_file, "fasta")
-            protein_order = {seq.id: i for i, seq in enumerate(sequences)}
-
-        with open(doms_file, "r") as f:
-            for line in filter(lambda line: not line.startswith("#"), f):
-                row = DomainRow.from_line(line)
-                if prodigal:
-                    # extract the sequence ID and the protein ID using
-                    # the PRODIGAL naming convention
-                    sid = row.target_name[: row.target_name.rfind("_")]
-                    pid = row.target_name
-                    # extract additional metadata from the target description
-                    description = typing.cast(str, row.description)
-                    info = [x.strip() for x in description.split("#") if x]
-                    start = int(info[0])
-                    end = int(info[1])
-                    strand = "+" if info[2] == "1" else "-"
-
-                domain = row.query_accession or row.query_name
-                rows.append(
-                    (
-                        sid,
-                        pid,
-                        min(start, end),
-                        max(start, end),
-                        strand,
-                        domain,
-                        row.i_evalue,
-                        1 - row.i_evalue,
-                        min(row.env_from, row.env_to),
-                        max(row.env_from, row.env_to),
-                    )
-                )
-        return pandas.DataFrame(
-            rows,
-            columns=[
-                "sequence_id",
-                "protein_id",
-                "start",
-                "end",
-                "strand",
-                "domain",
-                "i_Evalue",
-                "rev_i_Evalue",
-                "domain_start",
-                "domain_end",
-            ],
-        )
-
-    def _get_protein_order(self) -> Dict[str, int]:
-        with open(self.fasta, "r") as f:
-            pids = [line[1:].split()[0] for line in f if line.startswith(">")]
-        return {pid: i for i, pid in enumerate(pids)}
+        return genes
