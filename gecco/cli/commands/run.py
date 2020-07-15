@@ -1,7 +1,6 @@
 """Implementation of the ``gecco run`` subcommand.
 """
 
-import csv
 import glob
 import logging
 import multiprocessing
@@ -22,7 +21,6 @@ from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
-from ...model import clusters_to_csv, genes_to_features
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
 
@@ -51,8 +49,8 @@ class Run(Command):  # noqa: D101
                                       available CPUs. [default: 0]
 
     Parameters - Domain Annotation:
-        -e <e>, --e-filter <e>        the e-value cutoff for PFam domains to
-                                      be included. [default: 1e-5]
+        -e <e>, --e-filter <e>        the e-value cutoff for protein domains
+                                      to be included. [default: 1e-5]
 
     Parameters - Cluster Detection:
         --min-orfs <N>                how many ORFs are required for a
@@ -146,9 +144,7 @@ class Run(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
-            self.logger.debug(
-                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
-            )
+            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             features = HMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
 
@@ -170,22 +166,16 @@ class Run(Command):  # noqa: D101
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.logger.debug("Using remaining {} domains", count)
 
-        # Sorting genes
+        # Sort genes
         self.logger.debug("Sort genes by coordinates")
         genes.sort(key=lambda g: (g.seq_id, g.start, g.end))
-
-        # # Remove sequences not containing enough genes
-        # for seq_id, subdf in feats_df.groupby("sequence_id"):
-        #     if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
-        #         self.logger.warn("Removing sequence {!r} because it contains too few genes", seq_id)
-        #         feats_df = feats_df[feats_df.sequence_id != seq_id]
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
 
         # Build the feature table from the list of annotated genes
         self.logger.debug("Building feature table from gene list")
-        feats_df = genes_to_features(genes)
+        feats_df = pandas.concat([g.to_feature_table() for g in genes])
         feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
 
         # Load trained CRF model
@@ -198,13 +188,12 @@ class Run(Command):  # noqa: D101
             crf = data.model.load()
 
         # Split input dataframe into one group per input sequence
-        feats_df = crf.predict_marginals(
-            data=[group for _, group in feats_df.groupby("sequence_id")]
-        )
+        feats_df = crf.predict_marginals(data=[g for _, g in feats_df.groupby("sequence_id")])
 
         # Assign probabilities to data classes
         for gene in genes:
-            gene.probability = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.seq_id)].p_pred.mean()
+            rows = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.seq_id)]
+            gene.probability = rows.p_pred.mean() if len(rows) else None
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.features.tsv")
@@ -216,17 +205,12 @@ class Run(Command):  # noqa: D101
 
         # Extract clusters from the predicted probability spectrum
         self.logger.debug("Using probability threshold of {}", self.args["--threshold"])
-        refiner = ClusterRefiner(threshold=self.args["--threshold"])
-        clusters = [
-            cluster
-            for seq_id, subdf in feats_df.groupby("sequence_id")
-            for cluster in refiner.iter_clusters(
-                genes=genes,
-                features=subdf,
-                criterion=self.args["--postproc"],
-                prefix=seq_id,
-            )
-        ]
+        refiner = ClusterRefiner(
+             criterion=self.args["--postproc"],
+            threshold=self.args["--threshold"],
+            n_cds=self.args["--min-orfs"]
+        )
+        clusters = list(refiner.iter_clusters(genes))
 
         # Abort here if not clusters were found
         if clusters:
@@ -262,9 +246,8 @@ class Run(Command):  # noqa: D101
         # Write predicted cluster coordinates to file
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
-        with open(cluster_out, "wt") as f:
-            writer = csv.writer(f, dialect="excel-tab")
-            clusters_to_csv(clusters, writer)
+        table = pandas.concat([c.to_cluster_table() for c in clusters])
+        table.to_csv(cluster_out, sep="\t", index=False)
 
         # Write predicted cluster sequences to file
         for cluster in clusters:

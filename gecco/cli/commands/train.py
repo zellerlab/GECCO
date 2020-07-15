@@ -138,7 +138,7 @@ class Train(Command):  # noqa: D101
         data_tbl = data_tbl.assign(rev_i_Evalue=1 - data_tbl["i_Evalue"])
 
         # Sorting data
-        data_tbl.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
+        data_tbl.sort_values(by=[self.args["--split-col"], "start", "end", "domain_start"], inplace=True)
 
         # Grouping column
         self.logger.debug("Splitting data using column {}", self.args["--split-col"])

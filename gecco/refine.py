@@ -1,7 +1,7 @@
 """Algorithm to smooth contiguous BGC predictions into single regions.
 """
 
-import copy
+import itertools
 import functools
 import operator
 import typing
@@ -53,151 +53,88 @@ class ClusterRefiner:
     def __init__(
         self,
         threshold: float = 0.4,
-        sequence_column: str = "sequence_id",
-        protein_column: str = "protein_id",
-        probability_column: str = "p_pred",
-        domain_column: str = "domain",
-        weight_column: str = "rev_i_Evalue",
+        criterion: str = "gecco",
+        n_cds: int = 5,
+        n_biopfams: int = 5,
+        average_threshold: float = 0.6,
     ) -> None:
         """Create a new `ClusterRefiner` instance.
 
         Arguments:
             threshold (`float`): The probability threshold to use to consider
                 a protein to be part of a BGC region.
-            sequence_column (`str`): The name of the column containing the
-                sequence ID for each row.
-            protein_column (`str`): The name of the column containing the
-                protein ID for each row.
-            probability_column (`str`): The name of the columnn containing BGC
-                probability predicted by `~gecco.crf.ClusterCRF`.
-            domain_column (`str`): The name of the column containing the domain
-                name for each row.
-            weight_column (`str`): The name of the column containing the weight
-                for each row.
-
-        """
-        self.threshold = threshold
-        self.sequence_column = sequence_column
-        self.protein_column = protein_column
-        self.probability_column = probability_column
-        self.domain_column = domain_column
-        self.weight_column = weight_column
-
-    def iter_clusters(
-        self,
-        genes: Mapping[str, Gene],
-        features: "pandas.DataFrame",
-        criterion: str = "gecco",
-        prefix: str = "cluster",
-        lower_threshold: Optional[float] = None,
-    ) -> Iterator[Cluster]:
-        """Find all clusters in a table of CRF predictions.
-
-        Arguments:
-            features (`~pandas.DataFrame`): The data frame containing BGC
-                probability predictions, obtained by `~gecco.crf.ClusterCRF`.
             criterion (`str`): The criterion to use when checking for BGC
                 validity. See `gecco.bgc.BGC.is_valid` documentation for
                 allowed values and expected behaviours.
-            prefix (`str`): The name prefix to use to label BGCs. Each BGC is
-                labelled ``{prefix}_{index}``, with ``index`` starting at 1.
-            lower_threshold (`float`, optional): If given, overrides the
-                object probability threshold (``self.threshold``) to extract
-                BGC regions.
+
+        """
+        self.threshold = threshold
+        self.criterion = criterion
+        self.n_cds = n_cds
+        self.n_biopfams = n_biopfams
+        self.average_threshold = average_threshold
+
+    def iter_clusters(self, genes: List[Gene]) -> Iterator[Cluster]:
+        """Find all clusters in a table of CRF predictions.
+
+        Arguments:
+            genes (`list` of `~gecco.model.Gene`): A list of genes with
+                probability annotations estimated by `~gecco.crf.ClusterCRF`.
 
         Yields:
-            `BGC`: Contiguous biosynthetic gene clusters found the input.
-
-        Raises:
-            `ValueError`: When ``criterion`` is not an allowed value.
+            `gecco.model.Cluster`: Valid clusters found in the input with
+            respect to the postprocessing criterion given at initialisation.
 
         """
-        _extract_cluster = functools.partial(self._extract_cluster, genes)
-        _validate_cluster = functools.partial(self._validate_cluster, criterion=criterion)
-        lt = self.threshold if lower_threshold is None else lower_threshold
-        clusters = map(_extract_cluster, self._iter_segments(features, lt))
-        return filter(_validate_cluster, clusters)
+        return filter(self._validate_cluster, self._iter_clusters(genes))
 
-    def _extract_cluster(
-        self,
-        genes: Mapping[str, Gene],
-        segment: "pandas.DataFrame",
-    ) -> Cluster:
-        """Take a segment of contiguous domains and returns a `BGC`.
-        """
-        cluster_genes = []
-        for prot_id, subdf in segment.groupby(self.protein_column, sort=False):
-            gene = copy.deepcopy(genes[prot_id])
-            gene.probability = subdf[self.probability_column].mean()
-            gene.protein.domains = [
-                Domain(t.domain, t.domain_start, t.domain_end, t.i_Evalue)
-                for t in subdf.itertuples()
-            ]
-            cluster_genes.append(gene)
-        return Cluster(
-            id=segment.cluster_id.values[0],
-            genes=cluster_genes,
-        )
-
-    def _validate_cluster(
-        self,
-        cluster: Cluster,
-        criterion: str = "gecco",
-        threshold: float = 0.6,
-        n_cds: int = 5,
-    ) -> bool:
-        if criterion == "gecco":
-            return True
-        elif criterion == "antismash":
+    def _validate_cluster(self, cluster: Cluster) -> bool:
+        if self.criterion == "gecco":
+            cds_crit = len(cluster.genes) >= self.n_cds
+            return cds_crit
+        elif self.criterion == "antismash":
             domains = {d.name for gene in cluster.genes for d in gene.protein.domains}
-            p_crit = numpy.mean([g.probability for g in cluster.genes]) >= threshold
-            bio_crit = len(domains & BIO_PFAMS) >= n_biopfams
-            cds_crit = len(cluster.genes) >= n_cds
-            return p_crit # TODO: & bio_crit & cds_crit
+            p_crit = numpy.mean([g.probability for g in cluster.genes]) >= self.average_threshold
+            bio_crit = len(domains & BIO_PFAMS) >= self.n_biopfams
+            cds_crit = len(cluster.genes) >= self.n_cds
+            return p_crit & bio_crit & cds_crit
         else:
-            raise ValueError(f"unknown BGC filtering criterion: {criterion}")
+            raise ValueError(f"unknown BGC filtering criterion: {self.criterion}")
 
-    def _iter_segments(
+    def _iter_clusters(
         self,
-        features: "pandas.DataFrame",
-        lower_threshold: float,
-    ) -> Iterator["pandas.DataFrame"]:
-        """Iterate over contiguous BGC segments from a CRF prediction table.
-
-        Yields:
-            `~pandas.DataFrame`: A data frame containing one or more
-            consecutive proteins, found to be part of the same gene cluster.
-
+        genes: List[Gene],
+    ) -> Iterator[Cluster]:
+        """Iterate over contiguous BGC segments from a list of genes.
         """
-        in_cluster: int = False
-        cluster_num: int = 1
-        cluster: List[Tuple[...]]
+        thr = self.threshold
+        k1 = operator.attrgetter("seq_id")
+        k2 = operator.attrgetter("start", "end")
 
-        # getter functions to get the probability and the seq_id from the
-        # namedtuple fields, which do not support item getter protocol
-        p_getter = operator.attrgetter(self.probability_column)
-        seq_getter = operator.attrgetter(self.sequence_column)
+        for seq_id, sequence in itertools.groupby(sorted(genes, key=k1), key=k1):
+            cluster_num = 1
+            in_cluster = False
 
-        # process all proteins to find potential BGCs
-        for idx, row in enumerate(features.itertuples()):
-            if p_getter(row) >= lower_threshold:
-                # non-cluster -> cluster
+            for gene in sorted(sequence, key=k2):
                 if not in_cluster:
-                    id_ = f"{seq_getter(row)}_cluster_{cluster_num}"
-                    cluster = [row]
-                    in_cluster = True
-                # cluster -> cluster
+                    # not cluster -> cluster
+                    if gene.probability is not None and gene.probability >= thr:
+                        cluster = Cluster(id=f"{gene.seq_id}_cluster_{cluster_num}")
+                        cluster.genes = [gene]
+                        in_cluster = True
+                    # not cluster -> not cluster
+                    # pass
                 else:
-                    cluster.append(row)
-            elif in_cluster:
-                # cluster -> non-cluster
-                yield pandas.DataFrame(cluster).assign(idx=idx, cluster_id=id_)
-                cluster_num += 1
-                in_cluster = False
-                # non-cluster -> non-cluster
-                # do nothing #
+                    # cluster -> cluster
+                    if gene.probability is None or gene.probability >= thr:
+                        cluster.genes.append(gene)
+                    # cluster -> not cluster
+                    else:
+                        yield cluster
+                        in_cluster = False
+                        cluster_num += 1
 
-        # if the sequence is over while we were still in a cluster, we need
-        # to recover the last cluster
-        if in_cluster:
-            yield pandas.DataFrame(cluster).assign(idx=idx, cluster_id=id_)
+            # if the sequence is over while we were still in a cluster, we need
+            # to recover the last cluster
+            if in_cluster:
+                yield cluster

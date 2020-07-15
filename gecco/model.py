@@ -14,10 +14,6 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 
-if typing.TYPE_CHECKING:
-    import io
-    CsvWriter = type(csv.writer(io.StringIO()))
-
 
 class Strand(enum.IntEnum):
     Coding = 1
@@ -69,6 +65,39 @@ class Gene:
     def id(self):
         return self.protein.id
 
+    def to_feature_table(self) -> pandas.DataFrame:
+        return pandas.DataFrame(
+            data = [
+                (
+                    self.seq_id,
+                    self.id,
+                    self.start,
+                    self.end,
+                    self.strand.sign,
+                    domain.name,
+                    domain.hmm,
+                    domain.i_evalue,
+                    1 - domain.i_evalue,
+                    domain.start,
+                    domain.end,
+                )
+                for domain in self.protein.domains
+            ],
+            columns=[
+                "sequence_id",
+                "protein_id",
+                "start",
+                "end",
+                "strand",
+                "domain",
+                "hmm",
+                "i_Evalue",
+                "rev_i_Evalue",
+                "domain_start",
+                "domain_end",
+            ],
+        )
+
 
 @dataclass
 class Cluster:
@@ -77,6 +106,18 @@ class Cluster:
 
     type: str = "Other"
     type_probability: float = 0.0
+
+    def __init__(
+        self,
+        id: str,
+        genes: Optional[List[Gene]] = None,
+        type: str = "Unknown",
+        type_probability: float = 0.0
+    ):
+        self.id = id
+        self.genes = genes or list()
+        self.type = type
+        self.type_probability = type_probability
 
     @property
     def seq_id(self):
@@ -89,6 +130,16 @@ class Cluster:
     @property
     def end(self):
         return max(gene.end for gene in self.genes)
+
+    @property
+    def average_probability(self):
+        p = [g.probability for g in self.genes if g.probability is not None]
+        return sum(p) / len(p)
+
+    @property
+    def maximum_probability(self):
+        p = [g.probability for g in self.genes if g.probability is not None]
+        return max(p)
 
     # ---
 
@@ -149,67 +200,28 @@ class Cluster:
 
         return bgc
 
-
-def clusters_to_csv(clusters: Iterable["Cluster"], writer: "CsvWriter") -> int:
-    # fmt: off
-    writer.writerow([
-        "sequence_id", "BGC_id", "start", "end", "average_p", "max_p",
-        "BGC_type", "BGC_type_p", "proteins", "domains",
-    ])
-
-    written = 0
-    for cluster in clusters:
-        probs = numpy.array([ gene.probability for gene in cluster.genes ])
-        writer.writerow([
-            cluster.seq_id,
-            cluster.id,
-            cluster.start,
-            cluster.end,
-            probs.mean(),
-            probs.max(),
-            cluster.type,
-            cluster.type_probability,
-            ";".join([gene.id for gene in cluster.genes]),
-            ";".join(sorted({
-                domain.name
-                for gene in cluster.genes
-                for domain in gene.protein.domains
-            })),
-        ])
-        written += 1
-    return written
-
-
-def genes_to_features(genes: Iterable["Gene"]) -> pandas.DataFrame:
-    return pandas.DataFrame(
-        data = [
-            (
-                gene.seq_id,
-                gene.id,
-                gene.start,
-                gene.end,
-                gene.strand.sign,
-                domain.name,
-                domain.hmm,
-                domain.i_evalue,
-                1 - domain.i_evalue,
-                domain.start,
-                domain.end,
-            )
-            for gene in genes
-            for domain in gene.protein.domains
-        ],
-        columns=[
-            "sequence_id",
-            "protein_id",
-            "start",
-            "end",
-            "strand",
-            "domain",
-            "hmm",
-            "i_Evalue",
-            "rev_i_Evalue",
-            "domain_start",
-            "domain_end",
-        ],
-    )
+    def to_cluster_table(self) -> pandas.DataFrame:
+        return pandas.DataFrame(
+            data = [
+                (
+                    self.seq_id,
+                    self.id,
+                    self.start,
+                    self.end,
+                    self.average_probability,
+                    self.maximum_probability,
+                    self.type,
+                    self.type_probability,
+                    ";".join([gene.id for gene in self.genes]),
+                    ";".join(sorted({
+                        domain.name
+                        for gene in self.genes
+                        for domain in gene.protein.domains
+                    })),
+                )
+            ],
+            columns=[
+                "sequence_id", "BGC_id", "start", "end", "average_p", "max_p",
+                "BGC_type", "BGC_type_p", "proteins", "domains"
+            ],
+        )
