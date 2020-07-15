@@ -98,7 +98,7 @@ class HMMER(BinaryRunner):
         """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:
-            hmms (str): The path to the file containing the HMMs.
+            hmm (str): The path to the file containing the HMMs.
             cpus (int, optional): The number of CPUs to allocate for the
                 ``hmmsearch`` command. Give ``None`` to use the default.
 
@@ -108,15 +108,11 @@ class HMMER(BinaryRunner):
         self.cpus = cpus
 
     def run(self, genes: Sequence[Gene]) -> Sequence[Gene]:
-        """Run HMMER on ``proteins`` and return found domains as a dataframe.
+        """Run HMMER on proteins of ``genes`` and update them with domains.
 
         Arguments:
-            proteins (iterable of `~Bio.SeqRecord.SeqRecord`): The proteins to
-                annotate with HMMER.
-            prodigal (bool, optional): Whether or not the protein files were
-                obtained with PRODIGAL, in which case the extraction of some
-                features to the final dataframe will be a lot more accurate.
-                Defaults to ``True``.
+            genes (sequence of `~gecco.model.Gene`): A sequence of genes to
+                annotate with ``self.hmm``.
 
         """
         # collect genes and build an index of genes by protein id
@@ -144,7 +140,6 @@ class HMMER(BinaryRunner):
         rows = map(DomainRow.from_line, lines)
 
         for row in rows:
-            assert row.env_from <= row.env_to
             gene = gene_index[row.target_name]
             name = self.hmm.relabel(row.query_accession or row.query_name)
             domain = Domain(name, row.env_from, row.env_to, self.hmm.id, row.i_evalue)

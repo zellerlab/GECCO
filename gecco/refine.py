@@ -66,6 +66,14 @@ class ClusterRefiner:
             criterion (`str`): The criterion to use when checking for BGC
                 validity. See `gecco.bgc.BGC.is_valid` documentation for
                 allowed values and expected behaviours.
+            n_cds (`int`): The minimum number of CDS a gene cluster must
+                contain to be considered valid.
+            n_biopfams (`int`): The minimum number of biosynthetic Pfam
+                domains a gene cluster must contain to be considered valid
+                (*only when the criterion is* ``antismash``).
+            average_threshold (`int`): The average probability threshold to
+                use to consider a BGC valid (*only when the criterion is*
+                ``antismash``).
 
         """
         self.threshold = threshold
@@ -89,6 +97,8 @@ class ClusterRefiner:
         return filter(self._validate_cluster, self._iter_clusters(genes))
 
     def _validate_cluster(self, cluster: Cluster) -> bool:
+        """Check a cluster validity depending on the postprocessing criterion.
+        """
         if self.criterion == "gecco":
             cds_crit = len(cluster.genes) >= self.n_cds
             return cds_crit
