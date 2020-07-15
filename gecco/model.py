@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import Bio.Alphabet
 import numpy
+import pandas
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
@@ -32,6 +33,7 @@ class Domain:
     name: str
     start: int
     end: int
+    hmm: str
     i_evalue: float = 0.0
 
 
@@ -39,9 +41,15 @@ class Domain:
 class Protein:
     id: str
     seq: Seq
-    domains: Optional[List[Domain]] = None
+    domains: List[Domain]
+
+    def __init__(self, id: str, seq: Seq, domains: Optional[List[Domain]] = None):
+        self.id = id
+        self.seq = seq
+        self.domains = domains or list()
 
     def to_record(self) -> SeqRecord:
+        # FIXME: add domains
         return SeqRecord(self.seq, id=self.id, name=self.id)
 
 
@@ -170,3 +178,38 @@ def clusters_to_csv(clusters: Iterable["Cluster"], writer: "CsvWriter") -> int:
         ])
         written += 1
     return written
+
+
+def genes_to_features(genes: Iterable["Gene"]) -> pandas.DataFrame:
+    return pandas.DataFrame(
+        data = [
+            (
+                gene.seq_id,
+                gene.id,
+                gene.start,
+                gene.end,
+                gene.strand.sign,
+                domain.name,
+                domain.hmm,
+                domain.i_evalue,
+                1 - domain.i_evalue,
+                domain.start,
+                domain.end,
+            )
+            for gene in genes
+            for domain in gene.protein.domains
+        ],
+        columns=[
+            "sequence_id",
+            "protein_id",
+            "start",
+            "end",
+            "strand",
+            "domain",
+            "hmm",
+            "i_Evalue",
+            "rev_i_Evalue",
+            "domain_start",
+            "domain_end",
+        ],
+    )
