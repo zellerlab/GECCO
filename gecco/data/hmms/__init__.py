@@ -22,12 +22,12 @@ class Hmm(typing.NamedTuple):
         basename = f"{self.id}.hmm.gz"
         return pkg_resources.resource_filename(__name__, basename)
 
-    def relabel(self, domains: List[str]) -> List[str]:
+    def relabel(self, domain: str) -> str:
         if self.relabel_with is None:
-            return domains
+            return domain
         before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
         regex = re.compile(before)
-        return [regex.sub(after, domain) for domain in domains]
+        return regex.sub(after, domain)
 
 
 class ForeignHmm(typing.NamedTuple):
@@ -45,8 +45,8 @@ class ForeignHmm(typing.NamedTuple):
     def version(self) -> str:
         return "?"
 
-    def relabel(self, domains: "pandas.Series") -> "pandas.Series":
-        return domains.str.split(".").str[0]
+    def relabel(self, domain: str) -> str:
+        return domains.split(".")[0]
 
 
 def iter() -> Iterator[Hmm]:
