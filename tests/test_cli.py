@@ -8,6 +8,7 @@ import unittest
 from unittest import mock
 
 import pandas
+from Bio.Seq import Seq
 
 import gecco.cli.commands.run
 from gecco.cli import main
@@ -19,6 +20,8 @@ from gecco.cli.commands.help import Help
 from gecco.cli.commands.run import Run
 from gecco.cli.commands.train import Train
 from gecco.cli.commands.tune import Tune
+from gecco.data.knn import TrainingMatrix
+from gecco.model import Domain, Gene, Protein, Strand
 
 
 DATADIR = os.path.realpath(os.path.join(__file__, "..", "data"))
@@ -87,15 +90,39 @@ class TestRun(TestCommand, unittest.TestCase):
 
     def test_fasta_genome(self):
         sequence = os.path.join(DATADIR, "BGC0001866.fna")
-        domains = pandas.read_table(os.path.join(DATADIR, "BGC0001866.features.tsv"))
+        with open(os.path.join(DATADIR, "BGC0001866.features.tsv")) as f:
+            feats_df = pandas.read_table(f)
+
+        genes = []
+        for prot_id, df in feats_df.groupby("protein_id"):
+            seq_id = df.sequence_id.values[0]
+            prot = Protein(prot_id, seq=Seq("M"))
+            gene = Gene(seq_id, min(df.start), max(df.end), Strand.Coding, prot, max(df.p_pred))
+            for t in df.itertuples():
+                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue)
+                gene.protein.domains.append(d)
+            genes.append(gene)
 
         # we mock time consuming operations (type prediction and HMM annotation)
         # with precomputed or fake results
-        _run = mock.Mock(return_value=domains)
+        _find_genes = mock.Mock(return_value=genes)
+        _run = mock.Mock()
         _fit_predict = lambda self,tc,nc,y: [("Polyketide", 1) for _ in nc]
+        _train = mock.Mock(return_value=TrainingMatrix([], [], [], []))
+
+        #_concat = mock.Mock(return_value=feats_df)
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.HMMER, "run", new=_run)
+            )
+            stack.enter_context(
+                mock.patch.object(gecco.cli.commands.run.data.knn, "load_training_matrix", new=_train)
+            )
+            stack.enter_context(
+                mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
+            )
+            stack.enter_context(
+                mock.patch("gecco.crf.ClusterCRF.predict_marginals", new=lambda self, data: pandas.concat(data).assign(p_pred=feats_df.p_pred))
             )
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.ClusterKNN, "fit_predict", new=_fit_predict)

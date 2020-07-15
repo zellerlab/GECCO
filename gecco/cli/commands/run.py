@@ -132,7 +132,7 @@ class Run(Command):  # noqa: D101
 
         self.logger.info("Loading sequences from genome file {!r}", genome)
         format = guess_sequences_format(genome)
-        sequences = SeqIO.index(genome, format)
+        sequences = {x.id: x for x in SeqIO.parse(genome, format)}
 
         self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
