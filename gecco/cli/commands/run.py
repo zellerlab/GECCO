@@ -22,7 +22,7 @@ from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
-from ...model import clusters_to_csv
+from ...model import clusters_to_csv, genes_to_features
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
 
@@ -138,7 +138,7 @@ class Run(Command):  # noqa: D101
 
         self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
-        genes = {g.id : g for g in orf_finder.find_genes(sequences.values())}
+        genes = list(orf_finder.find_genes(sequences.values()))
         self.logger.info("Found {} potential genes", len(genes))
 
         # --- HMMER ----------------------------------------------------------
@@ -149,35 +149,44 @@ class Run(Command):  # noqa: D101
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )
-            features = HMMER(hmm.path, self.args["--jobs"]).run(genes)
+            features = HMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
-            return features.assign(hmm=hmm.id, domain=hmm.relabel(features.domain))
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            features = pool.map(annotate, self.args["--hmm"])
+            pool.map(annotate, self.args["--hmm"])
 
-        feats_df = pandas.concat(features, ignore_index=True)
-        self.logger.debug("Found {} domains across all proteins", len(feats_df))
+        # Count number of annotated domains
+        count = sum(1 for gene in genes for domain in gene.protein.domains)
+        self.logger.debug("Found {} domains across all proteins", count)
 
         # Filter i-evalue
-        self.logger.debug(
-            "Filtering results with e-value under {}", self.args["--e-filter"]
-        )
-        feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
-        self.logger.debug("Using remaining {} domains", len(feats_df))
+        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        for gene in genes:
+            gene.protein.domains = [
+                d
+                for d in gene.protein.domains
+                if d.i_evalue < self.args["--e-filter"]
+            ]
+        count = sum(1 for gene in genes for domain in gene.protein.domains)
+        self.logger.debug("Using remaining {} domains", count)
 
-        # Sort by location
-        self.logger.debug("Sorting annotations by gene coordinates")
-        feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
+        # Sorting genes
+        self.logger.debug("Sort genes by coordinates")
+        genes.sort(key=lambda g: (g.seq_id, g.start, g.end))
 
-        # Remove sequences not containing enough genes
-        for seq_id, subdf in feats_df.groupby("sequence_id"):
-            if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
-                self.logger.warn("Removing sequence {!r} because it contains too few genes", seq_id)
-                feats_df = feats_df[feats_df.sequence_id != seq_id]
+        # # Remove sequences not containing enough genes
+        # for seq_id, subdf in feats_df.groupby("sequence_id"):
+        #     if len(subdf["protein_id"].unique()) < self.args["--min-orfs"]:
+        #         self.logger.warn("Removing sequence {!r} because it contains too few genes", seq_id)
+        #         feats_df = feats_df[feats_df.sequence_id != seq_id]
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
+
+        # Build the feature table from the list of annotated genes
+        self.logger.debug("Building feature table from gene list")
+        feats_df = genes_to_features(genes)
+        feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
 
         # Load trained CRF model
         if self.args["--model"] is not None:
@@ -188,10 +197,14 @@ class Run(Command):  # noqa: D101
             self.logger.debug("Loading model from package resources")
             crf = data.model.load()
 
-        # If extracted from genome, split input dataframe into sequence
+        # Split input dataframe into one group per input sequence
         feats_df = crf.predict_marginals(
             data=[group for _, group in feats_df.groupby("sequence_id")]
         )
+
+        # Assign probabilities to data classes
+        for gene in genes:
+            gene.probability = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.seq_id)].p_pred.mean()
 
         # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.features.tsv")
@@ -252,7 +265,7 @@ class Run(Command):  # noqa: D101
         with open(cluster_out, "wt") as f:
             writer = csv.writer(f, dialect="excel-tab")
             clusters_to_csv(clusters, writer)
-            
+
         # Write predicted cluster sequences to file
         for cluster in clusters:
             gbk_out = os.path.join(out_dir, f"{cluster.id}.gbk")
