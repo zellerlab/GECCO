@@ -22,7 +22,7 @@ def load_training_matrix() -> TrainingMatrix:
         for line in reader:
             labels.append(line[0])
             types.append(line[1])
-            compositions.append([float(x) for x in line[2:]])
+            compositions.append(numpy.array(line[2:]).astype(float))
         return TrainingMatrix(
             compositions=numpy.array(compositions),
             labels=numpy.array(labels),
