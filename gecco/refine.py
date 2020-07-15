@@ -1,6 +1,7 @@
 """Algorithm to smooth contiguous BGC predictions into single regions.
 """
 
+import copy
 import functools
 import operator
 import typing
@@ -9,7 +10,7 @@ from typing import List, Mapping, Optional, Tuple, Iterator
 import pandas
 from Bio.SeqRecord import SeqRecord
 
-from .model import Cluster, ClusterGene, ClusterProtein, Domain, Gene, Strand
+from .model import Cluster, Domain, Gene, Protein, Strand
 
 
 # fmt: off
@@ -126,24 +127,13 @@ class ClusterRefiner:
         """
         cluster_genes = []
         for prot_id, subdf in segment.groupby(self.protein_column, sort=False):
-            domains = [
-                Domain(row.domain, row.domain_start, row.domain_end, row.i_Evalue)
-                for row in subdf.itertuples()
+            gene = copy.deepcopy(genes[prot_id])
+            gene.probability = subdf[self.probability_column].mean()
+            gene.protein.domains = [
+                Domain(t.domain, t.domain_start, t.domain_end, t.i_Evalue)
+                for t in subdf.itertuples()
             ]
-            cluster_protein = ClusterProtein(
-                id=prot_id,
-                seq=genes[prot_id].protein.seq,
-                domains=domains,
-            )
-            cluster_gene = ClusterGene(
-                seq_id=genes[prot_id].seq_id,
-                start=genes[prot_id].start,
-                end=genes[prot_id].end,
-                strand=genes[prot_id].strand,
-                protein=cluster_protein,
-                probability=subdf[self.probability_column].mean()
-            )
-            cluster_genes.append(cluster_gene)
+            cluster_genes.append(gene)
         return Cluster(
             id=segment.cluster_id.values[0],
             genes=cluster_genes,
@@ -166,23 +156,6 @@ class ClusterRefiner:
             return p_crit # TODO: & bio_crit & cds_crit
         else:
             raise ValueError(f"unknown BGC filtering criterion: {criterion}")
-
-        # return BGC(
-        #     name=segment.cluster_id.values[0],
-        #     proteins=[
-        #         Protein(
-        #             seq_id=prot_df[self.sequence_column].values[0],
-        #             start=int(prot_df.start.min()),
-        #             end=int(prot_df.end.max()),
-        #             name=prot_id,
-        #             strand=prot_df.strand.values[0],
-        #             domains=prot_df[self.domain_column].values,
-        #             weights=prot_df[self.weight_column].values,
-        #             probability=prot_df[self.probability_column].mean(),
-        #         )
-        #         for prot_id, prot_df in segment.groupby(self.protein_column, sort=False)
-        #     ],
-        # )
 
     def _iter_segments(
         self,

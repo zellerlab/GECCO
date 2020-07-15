@@ -1,7 +1,8 @@
 import collections
+import csv
 import enum
 import typing
-from typing import List, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence
 from dataclasses import dataclass
 
 import Bio.Alphabet
@@ -12,7 +13,10 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 
-# ----------------------------------------------------------------------------
+if typing.TYPE_CHECKING:
+    import io
+    CsvWriter = type(csv.writer(io.StringIO()))
+
 
 class Strand(enum.IntEnum):
     Coding = 1
@@ -23,13 +27,19 @@ class Strand(enum.IntEnum):
         return "+" if self is Strand.Coding else "-"
 
 
-# ----------------------------------------------------------------------------
+@dataclass
+class Domain:
+    name: str
+    start: int
+    end: int
+    i_evalue: float = 0.0
 
 
 @dataclass
 class Protein:
     id: str
     seq: Seq
+    domains: Optional[List[Domain]] = None
 
     def to_record(self) -> SeqRecord:
         return SeqRecord(self.seq, id=self.id, name=self.id)
@@ -42,6 +52,7 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
+    probability: Optional[float] = None
 
     def __hash__(self):
         return hash(self.id)
@@ -51,42 +62,10 @@ class Gene:
         return self.protein.id
 
 
-# ----------------------------------------------------------------------------
-
-
-@dataclass
-class Domain:
-    name: str
-    start: int
-    end: int
-    i_evalue: float = 0.0
-
-
-@dataclass
-class ClusterProtein(Protein):
-    id: str
-    seq: Seq
-    domains: List[Domain]
-
-
-@dataclass
-class ClusterGene(Gene):
-    seq_id: str
-    start: int
-    end: int
-    strand: Strand
-    protein: ClusterProtein
-    probability: float
-
-    @property
-    def id(self):
-        return self.protein.id
-
-
 @dataclass
 class Cluster:
     id: str
-    genes: List[ClusterGene]
+    genes: List[Gene]
 
     type: str = "Other"
     type_probability: float = 0.0
@@ -161,3 +140,33 @@ class Cluster:
                 bgc.features.append(misc)
 
         return bgc
+
+
+def clusters_to_csv(clusters: Iterable["Cluster"], writer: "CsvWriter") -> int:
+    # fmt: off
+    writer.writerow([
+        "sequence_id", "BGC_id", "start", "end", "average_p", "max_p",
+        "BGC_type", "BGC_type_p", "proteins", "domains",
+    ])
+
+    written = 0
+    for cluster in clusters:
+        probs = numpy.array([ gene.probability for gene in cluster.genes ])
+        writer.writerow([
+            cluster.seq_id,
+            cluster.id,
+            cluster.start,
+            cluster.end,
+            probs.mean(),
+            probs.max(),
+            cluster.type,
+            cluster.type_probability,
+            ";".join([gene.id for gene in cluster.genes]),
+            ";".join(sorted({
+                domain.name
+                for gene in cluster.genes
+                for domain in gene.protein.domains
+            })),
+        ])
+        written += 1
+    return written

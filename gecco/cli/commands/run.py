@@ -22,6 +22,7 @@ from ... import data
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
+from ...model import clusters_to_csv
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
 
@@ -250,37 +251,8 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
         with open(cluster_out, "wt") as f:
             writer = csv.writer(f, dialect="excel-tab")
-            writer.writerow([
-                "sequence_id",
-                "BGC_id",
-                "start",
-                "end",
-                "average_p",
-                "max_p",
-                "BGC_type",
-                "BGC_type_p",
-                "proteins",
-                "domains",
-            ])
-            for cluster in clusters:
-                probs = numpy.array([ gene.probability for gene in cluster.genes ])
-                writer.writerow([
-                    cluster.seq_id,
-                    cluster.id,
-                    cluster.start,
-                    cluster.end,
-                    probs.mean(),
-                    probs.max(),
-                    cluster.type,
-                    cluster.type_probability,
-                    ";".join([gene.id for gene in cluster.genes]),
-                    ";".join(sorted({
-                        domain.name
-                        for gene in cluster.genes
-                        for domain in gene.protein.domains
-                    })),
-                ])
-
+            clusters_to_csv(clusters, writer)
+            
         # Write predicted cluster sequences to file
         for cluster in clusters:
             gbk_out = os.path.join(out_dir, f"{cluster.id}.gbk")
