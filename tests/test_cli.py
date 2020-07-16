@@ -21,7 +21,6 @@ from gecco.cli.commands.help import Help
 from gecco.cli.commands.run import Run
 from gecco.cli.commands.train import Train
 # from gecco.cli.commands.tune import Tune
-from gecco.data.knn import TrainingMatrix
 from gecco.model import Domain, Gene, Protein, Strand
 
 
@@ -108,16 +107,12 @@ class TestRun(TestCommand, unittest.TestCase):
         # with precomputed or fake results
         _find_genes = mock.Mock(return_value=genes)
         _run = mock.Mock()
-        _fit_predict = lambda self,tc,nc,y: [("Polyketide", 1) for _ in nc]
-        _train = mock.Mock(return_value=TrainingMatrix([], [], [], []))
+        _fit_predict = lambda self, x: x
 
         #_concat = mock.Mock(return_value=feats_df)
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.HMMER, "run", new=_run)
-            )
-            stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.data.knn, "load_training_matrix", new=_train)
             )
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
@@ -126,7 +121,7 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch("gecco.crf.ClusterCRF.predict_marginals", new=lambda self, data: pandas.concat(data).assign(p_pred=feats_df.p_pred))
             )
             stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.ClusterKNN, "fit_predict", new=_fit_predict)
+                mock.patch.object(gecco.cli.commands.run.ClusterKNN, "predict_types", new=_fit_predict)
             )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
             main(argv, stream=io.StringIO())
