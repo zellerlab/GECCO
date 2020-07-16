@@ -4,7 +4,7 @@ import pkg_resources
 import typing
 from typing import BinaryIO, IO, Union
 
-from . import hmms, knn
+from . import hmms
 
 
 def realpath(local_path: str) -> str:

@@ -146,9 +146,10 @@ class update_model(setuptools.Command):
 
         # Update the domain composition table
         self.info("Copying the KNN training data to the in-source location")
-        with open(gecco.data.realpath("knn/training_matrix.tsv.gz"), "wb") as dst:
-            with open(self.domain, "rb") as src:
-                shutil.copyfileobj(src, dst)
+        for filename in ["compositions.npz", "domains.tsv", "types.tsv"]:
+            src = os.path.join(self.model, filename)
+            dst = os.path.join("gecco", "knn", filename)
+            shutil.copy(src=src, dst=dst)
 
 
 class build_py(_build_py):
