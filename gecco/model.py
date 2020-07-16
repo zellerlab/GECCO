@@ -325,3 +325,8 @@ class Cluster:
                 "BGC_type", "BGC_type_p", "proteins", "domains"
             ],
         )
+
+    def to_feature_table(self) -> pandas.DataFrame:
+        """Convert this cluster to a feature table listing domain annotations.
+        """
+        return pandas.concat(map(Gene.to_feature_table, self.genes))
