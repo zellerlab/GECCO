@@ -16,7 +16,7 @@ import textwrap
 import typing
 import warnings
 from multiprocessing.pool import Pool
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import numpy
 import pandas
@@ -183,7 +183,7 @@ class ClusterCRF(object):
 
     def fit(
         self,
-        data: Iterable[pandas.DataFrame],
+        data: Sequence[pandas.DataFrame],
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
@@ -210,9 +210,6 @@ class ClusterCRF(object):
                 as there are CPUs.
 
         """
-        # Collect data to avoid iteration issues
-        data = list(data)
-
         # Truncate data if requested
         if trunc is not None:
             data = [
