@@ -121,10 +121,11 @@ class HMMER(BinaryRunner):
         # Run HMMER
         subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
-        # Read the domain table and update protein domains
+        # Read the domain table
         lines = filter(lambda line: not line.startswith("#"), doms_tmp)
         rows = map(DomainRow.from_line, lines)
 
+        # update protein domains
         for row in rows:
             gene = gene_index[row.target_name]
             name = self.hmm.relabel(row.query_accession or row.query_name)
@@ -135,6 +136,8 @@ class HMMER(BinaryRunner):
 
 
 def embedded_hmms() -> Iterator[Hmm]:
+    """Iterate over the embedded HMMs that are shipped with GECCO.
+    """
     for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
