@@ -94,7 +94,9 @@ class Protein:
     seq: Seq
     domains: List[Domain]
 
-    def __init__(self, id: str, seq: Seq, domains: Optional[List[Domain]] = None):  # noqa: D107
+    def __init__(
+        self, id: str, seq: Seq, domains: Optional[List[Domain]] = None
+    ):  # noqa: D107
         self.id = id
         self.seq = seq
         self.domains = domains or list()
@@ -149,7 +151,7 @@ class Gene:
 
         """
         return pandas.DataFrame(
-            data = [
+            data=[
                 (
                     self.source.id,
                     self.id,
@@ -206,7 +208,7 @@ class Cluster:
         id: str,
         genes: Optional[List[Gene]] = None,
         type: str = "Unknown",
-        type_probability: float = 0.0
+        type_probability: float = 0.0,
     ):  # noqa: D107
         self.id = id
         self.genes = genes or list()
@@ -247,7 +249,9 @@ class Cluster:
 
     # ---
 
-    def domain_composition(self, all_possible: Optional[Sequence[str]] = None) -> numpy.ndarray:
+    def domain_composition(
+        self, all_possible: Optional[Sequence[str]] = None
+    ) -> numpy.ndarray:
         """Compute weighted domain composition with respect to ``all_possible``.
 
         Arguments:
@@ -269,7 +273,7 @@ class Cluster:
         composition = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
             composition[i] = numpy.sum(weights[names == dom])
-        return composition / (composition.sum() or 1) # type: ignore
+        return composition / (composition.sum() or 1)  # type: ignore
 
     # ---
 
@@ -282,7 +286,7 @@ class Cluster:
         *misc_feature*.
 
         """
-        bgc = self.source[self.start:self.end]
+        bgc = self.source[self.start : self.end]
         bgc.id = bgc.name = self.id
         bgc.seq.alphabet = Bio.Alphabet.generic_dna
 
@@ -301,7 +305,9 @@ class Cluster:
             # write protein as a /cds GenBank record
             cds = SeqFeature(location=loc, type="cds")
             cds.qualifiers["label"] = gene.id
-            cds.qualifiers["inference"] = ["EXISTENCE:ab initio prediction:PRODIGAL:2.6"]
+            cds.qualifiers["inference"] = [
+                "EXISTENCE:ab initio prediction:PRODIGAL:2.6"
+            ]
             cds.qualifiers["translation"] = str(gene.protein.seq)
             bgc.features.append(cds)
 
@@ -325,7 +331,7 @@ class Cluster:
 
         """
         return pandas.DataFrame(
-            data = [
+            data=[
                 (
                     self.source.id,
                     self.id,
@@ -336,16 +342,28 @@ class Cluster:
                     self.type,
                     self.type_probability,
                     ";".join([gene.id for gene in self.genes]),
-                    ";".join(sorted({
-                        domain.name
-                        for gene in self.genes
-                        for domain in gene.protein.domains
-                    })),
+                    ";".join(
+                        sorted(
+                            {
+                                domain.name
+                                for gene in self.genes
+                                for domain in gene.protein.domains
+                            }
+                        )
+                    ),
                 )
             ],
             columns=[
-                "sequence_id", "BGC_id", "start", "end", "average_p", "max_p",
-                "BGC_type", "BGC_type_p", "proteins", "domains"
+                "sequence_id",
+                "BGC_id",
+                "start",
+                "end",
+                "average_p",
+                "max_p",
+                "BGC_type",
+                "BGC_type_p",
+                "proteins",
+                "domains",
             ],
         )
 

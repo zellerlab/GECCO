@@ -64,11 +64,10 @@ class PyrodigalFinder(ORFFinder):
             prot_seq = Seq(orf.translate(), Bio.Alphabet.generic_protein)
             protein = Protein(id=f"{dna.id}_{j+1}", seq=prot_seq)
             # wrap the gene into a Gene
-            gene = Gene(
+            yield Gene(
                 source=dna,
                 start=min(orf.begin, orf.end),
                 end=max(orf.begin, orf.end),
                 strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
-                protein=protein
+                protein=protein,
             )
-            yield gene

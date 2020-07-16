@@ -144,10 +144,14 @@ class Train(Command):  # noqa: D101
 
         # Sorting data
         self.logger.debug("Sorting data by gene and domain coordinates")
-        feats_df.sort_values(by=[self.args["--split-col"], "start", "end", "domain_start"], inplace=True)
+        feats_df.sort_values(
+            by=[self.args["--split-col"], "start", "end", "domain_start"], inplace=True
+        )
 
         # Grouping column
-        self.logger.debug("Splitting feature table using column {!r}", self.args["--split-col"])
+        self.logger.debug(
+            "Splitting feature table using column {!r}", self.args["--split-col"]
+        )
         training_data = [s for _, s in feats_df.groupby(self.args["--split-col"])]
         if not self.args["--no-shuffle"]:
             self.logger.debug("Shuffling splits randomly")
@@ -166,7 +170,11 @@ class Train(Command):  # noqa: D101
             c2=self.args["--c2"],
         )
         self.logger.info("Fitting the CRF model to the training data")
-        crf.fit(data=training_data, trunc=self.args["--truncate"], select=self.args["--select"])
+        crf.fit(
+            data=training_data,
+            trunc=self.args["--truncate"],
+            select=self.args["--select"],
+        )
 
         os.makedirs(self.args["--output-dir"], exist_ok=True)
         model_out = os.path.join(self.args["--output-dir"], "model.pkl")
@@ -182,15 +190,21 @@ class Train(Command):  # noqa: D101
 
         self.logger.debug("Finding the array of possible domains")
         if crf.significant_features:
-            all_possible = sorted({d for domains in crf.significant_features.values() for d in domains})
+            all_possible = sorted(
+                {d for domains in crf.significant_features.values() for d in domains}
+            )
         else:
-            all_possible = sorted({t.domain for d in training_data for t in d[d["BGC"] == 1].itertuples()})
-        types = [ d[self.args["--type-col"]].values[0] for d in training_data ]
-        ids = [ d[self.args["--id-col"]].values[0] for d in training_data ]
+            all_possible = sorted(
+                {t.domain for d in training_data for t in d[d["BGC"] == 1].itertuples()}
+            )
+        types = [d[self.args["--type-col"]].values[0] for d in training_data]
+        ids = [d[self.args["--id-col"]].values[0] for d in training_data]
 
         self.logger.debug("Saving training matrix labels for BGC type classifier")
         doms_out = os.path.join(self.args["--output-dir"], "domains.tsv")
-        pandas.Series(all_possible).to_csv(doms_out, sep="\t", index=False, header=False)
+        pandas.Series(all_possible).to_csv(
+            doms_out, sep="\t", index=False, header=False
+        )
         types_out = os.path.join(self.args["--output-dir"], "types.tsv")
         df = pandas.DataFrame(dict(ids=ids, types=types))
         df.to_csv(types_out, sep="\t", index=False, header=False)
@@ -217,7 +231,7 @@ class Train(Command):  # noqa: D101
         if pbar is not None:
             pbar.close()
 
-        comp_out = os.path.join(self.args['--output-dir'], "compositions.npz")
+        comp_out = os.path.join(self.args["--output-dir"], "compositions.npz")
         self.logger.debug("Saving new domain composition matrix to {!r}", comp_out)
         scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(new_comp))
         return 0

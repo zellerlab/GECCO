@@ -119,7 +119,9 @@ class Run(Command):  # noqa: D101
         sequences = SeqIO.parse(genome, guess_sequences_format(genome))
 
         orf_finder = PyrodigalFinder(metagenome=True)
-        genes = list(itertools.chain.from_iterable(map(orf_finder.find_genes, sequences)))
+        genes = list(
+            itertools.chain.from_iterable(map(orf_finder.find_genes, sequences))
+        )
         self.logger.info("Found {} potential genes", len(genes))
 
         # --- HMMER ----------------------------------------------------------
@@ -127,7 +129,9 @@ class Run(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         def annotate(hmm: Hmm) -> "pandas.DataFrame":
-            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
+            self.logger.debug(
+                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
+            )
             features = HMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
 
@@ -139,12 +143,12 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Found {} domains across all proteins", count)
 
         # Filter i-evalue
-        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
+        self.logger.debug(
+            "Filtering results with e-value under {}", self.args["--e-filter"]
+        )
         for gene in genes:
             gene.protein.domains = [
-                d
-                for d in gene.protein.domains
-                if d.i_evalue < self.args["--e-filter"]
+                d for d in gene.protein.domains if d.i_evalue < self.args["--e-filter"]
             ]
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.logger.debug("Using remaining {} domains", count)
@@ -161,18 +165,25 @@ class Run(Command):  # noqa: D101
         # Build the feature table from the list of annotated genes
         self.logger.debug("Building feature table from gene list")
         feats_df = pandas.concat([g.to_feature_table() for g in genes])
-        feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
+        feats_df.sort_values(
+            by=["sequence_id", "start", "end", "domain_start"], inplace=True
+        )
 
         # Load trained CRF model
         self.logger.debug("Loading trained CRF model")
         crf = ClusterCRF.trained(self.args["--model"])
 
         # Split input dataframe into one group per input sequence
-        feats_df = crf.predict_marginals(data=[g for _, g in feats_df.groupby("sequence_id")])
+        feats_df = crf.predict_marginals(
+            data=[g for _, g in feats_df.groupby("sequence_id")]
+        )
 
         # Assign probabilities to data classes
         for gene in genes:
-            rows = feats_df[(feats_df.protein_id == gene.id) & (feats_df.sequence_id == gene.source.id)]
+            rows = feats_df[
+                (feats_df.protein_id == gene.id)
+                & (feats_df.sequence_id == gene.source.id)
+            ]
             gene.probability = rows.p_pred.mean() if len(rows) else None
 
         # Write predictions to file

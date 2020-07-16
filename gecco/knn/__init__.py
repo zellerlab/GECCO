@@ -44,7 +44,7 @@ class ClusterKNN(object):
     def trained(
         cls,
         model_path: Optional[str] = None,
-        metric: Union[str, "_Metric"] = "jensenshannon"
+        metric: Union[str, "_Metric"] = "jensenshannon",
     ) -> "ClusterKNN":
         """Create a new `ClusterKNN` instance pre-trained with embedded data.
 
@@ -92,9 +92,7 @@ class ClusterKNN(object):
             raise ValueError(f"unknown metric name: {name!r}")
 
     def __init__(
-        self,
-        metric: Union[str, "_Metric"] = "jensenshannon",
-        **kwargs: object
+        self, metric: Union[str, "_Metric"] = "jensenshannon", **kwargs: object
     ) -> None:
         """Instantiate a new classifier.
 
@@ -116,7 +114,9 @@ class ClusterKNN(object):
             self.metric = self._get_metric(metric)
         else:
             self.metric = metric
-        self.model = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
+        self.model = sklearn.neighbors.KNeighborsClassifier(
+            metric=self.metric, **kwargs
+        )
 
     def predict_types(self, clusters: "_S") -> "_S":
         """Predict types for each of the given clusters.

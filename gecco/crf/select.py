@@ -139,10 +139,10 @@ def fisher_significance(
     significance = {}
     for feature in set(features[0]).union(features[1]):
         pvalue = fisher.pvalue(
-            len(features[1][feature]),  # proteins with feature, in BGC
-            len(proteins[1]) - len(features[1][feature]), # proteins without feature, in BGC
-            len(features[0][feature]), # proteins with feature, not in BGC
-            len(proteins[0]) - len(features[0][feature]),
+            len(features[1][feature]),  # with feature, in BGC
+            len(proteins[1]) - len(features[1][feature]),  # without feature, in BGC
+            len(features[0][feature]),  # with feature, not in BGC
+            len(proteins[0]) - len(features[0][feature]),  # without feature, not in BGC
         )
         significance[feature] = pvalue.two_tail
 

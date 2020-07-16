@@ -16,7 +16,17 @@ import textwrap
 import typing
 import warnings
 from multiprocessing.pool import Pool
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy
 import pandas
@@ -163,7 +173,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.significant_features: Dict[str, FrozenSet[str]]  = {}
+        self.significant_features: Dict[str, FrozenSet[str]] = {}
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
@@ -183,7 +193,7 @@ class ClusterCRF(object):
 
     def fit(
         self,
-        data: Sequence[pandas.DataFrame],
+        data: List[pandas.DataFrame],
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
@@ -223,11 +233,13 @@ class ClusterCRF(object):
             if select <= 0 or select > 1:
                 raise ValueError(f"invalid value for select: {select}")
             for feat in self.feature_columns:
-                sig = fisher_significance(data, feat, self.label_column, self.group_column)
-                sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
+                sig = fisher_significance(
+                    data, feat, self.label_column, self.group_column
+                )
+                sorted_sig = sorted(sig, key=sig.get)[: int(select * len(sig))]
                 self.significant_features[feat] = frozenset(sorted_sig)
             for column, features in self.significant_features.items():
-                data = [ df[ df[column].isin(features) ] for df in data ]
+                data = [df[df[column].isin(features)] for df in data]
 
         # Do the actual training
         X, Y = self._extract_features(data, jobs=jobs)
@@ -510,7 +522,7 @@ class ClusterCRF(object):
 
     # --- Utils --------------------------------------------------------------
 
-    def _merge(self, df: pandas.DataFrame, **cols: List[Any]) -> pandas.DataFrame:
+    def _merge(self, df: pandas.DataFrame, **cols: List[object]) -> pandas.DataFrame:
         unidf = pandas.DataFrame(cols)
         unidf[self.group_column] = df[self.group_column].unique()
         return df.merge(unidf)

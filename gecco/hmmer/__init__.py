@@ -102,7 +102,7 @@ class HMMER(BinaryRunner):
 
         """
         # collect genes and build an index of genes by protein id
-        gene_index = { gene.id: gene for gene in genes }
+        gene_index = {gene.id: gene for gene in genes}
 
         # create a temporary file to write the input and output to
         seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")

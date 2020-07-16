@@ -133,8 +133,13 @@ class Embed(Command):  # noqa: D101
             insert_position = (before[-1].end.max() + after[0].start.min()) // 2
             bgc_length = bgc.end.max() - bgc.start.min()
             # update offsets
-            bgc = bgc.assign(start=bgc.start + insert_position, end=bgc.end+insert_position)
-            after = [x.assign(start=x.start + bgc_length, end=x.end + bgc_length) for x in after]
+            bgc = bgc.assign(
+                start=bgc.start + insert_position, end=bgc.end + insert_position
+            )
+            after = [
+                x.assign(start=x.start + bgc_length, end=x.end + bgc_length)
+                for x in after
+            ]
             # concat the embedding together and filter by e_value
             embed = pandas.concat(before + [bgc] + after, sort=False)
             embed = embed.reset_index(drop=True)
@@ -160,7 +165,9 @@ class Embed(Command):  # noqa: D101
             pbar.close()
 
         # Write the resulting table
-        embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
+        embeddings.sort_values(
+            by=["sequence_id", "start", "domain_start"], inplace=True
+        )
         self.logger.info("Writing embedding table")
         out_file = self.args["--output"]
         self.logger.debug("Writing embedding table to {!r}", out_file)
