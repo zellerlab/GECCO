@@ -14,13 +14,13 @@ from Bio.Seq import Seq
 import gecco.cli.commands.run
 from gecco.cli import main
 from gecco.cli.commands._main import Main
-from gecco.cli.commands.annotate import Annotate
+# from gecco.cli.commands.annotate import Annotate
 from gecco.cli.commands.cv import Cv
 from gecco.cli.commands.embed import Embed
 from gecco.cli.commands.help import Help
 from gecco.cli.commands.run import Run
 from gecco.cli.commands.train import Train
-from gecco.cli.commands.tune import Tune
+# from gecco.cli.commands.tune import Tune
 from gecco.data.knn import TrainingMatrix
 from gecco.model import Domain, Gene, Protein, Strand
 
@@ -64,8 +64,8 @@ class TestCommand(object):
             )
 
 
-class TestAnnotate(TestCommand, unittest.TestCase):
-    command_type = Annotate
+# class TestAnnotate(TestCommand, unittest.TestCase):
+#     command_type = Annotate
 
 
 class TestCv(TestCommand, unittest.TestCase):
@@ -144,5 +144,5 @@ class TestTrain(TestCommand, unittest.TestCase):
     command_type = Train
 
 
-class TestTune(TestCommand, unittest.TestCase):
-    command_type = Tune
+# class TestTune(TestCommand, unittest.TestCase):
+#     command_type = Tune
