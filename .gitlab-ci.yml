@@ -52,3 +52,11 @@ lint:pydocstyle:
     - pip install -U pydocstyle
   script:
     - pydocstyle gecco
+
+lint:mypy:
+  image: python:3.8
+  stage: lint
+  before_script:
+    - pip install -U mypy
+  script:
+    - mypy gecco
