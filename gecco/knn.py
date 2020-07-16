@@ -70,9 +70,9 @@ class ClusterKNN(object):
 
     def fit_predict(
         self,
-        train_matrix: numpy.ndarray,
-        new_matrix: numpy.ndarray,
-        y: numpy.ndarray
+        train_matrix: "numpy.ndarray",
+        new_matrix: "numpy.ndarray",
+        y: "numpy.ndarray"
     ) -> List[Tuple[str, float]]:
         """Fit the model and immediately produce a prediction.
         """

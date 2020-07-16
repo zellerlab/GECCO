@@ -110,7 +110,7 @@ class Annotate(Command):  # noqa: D101
             sequences = SeqIO.parse(genome, format)
             self.logger.info("Predicting ORFs with PRODIGAL")
             orf_finder = PyrodigalFinder(metagenome=True)
-            proteins = orf_finder.find_proteins(sequences)
+            genes = orf_finder.find_genes(sequences)
 
             # we need to keep all the ORFs in a file because we will need
             # to iterate over them once per HMM, but we don't want to keep
