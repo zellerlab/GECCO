@@ -3,6 +3,7 @@
 
 import csv
 import enum
+import re
 import typing
 from typing import Iterable, List, Optional, Sequence
 from dataclasses import dataclass
@@ -15,6 +16,22 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
+
+
+class Hmm(typing.NamedTuple):
+
+    id: str
+    version: str
+    url: str
+    path: str
+    relabel_with: Optional[str] = None
+
+    def relabel(self, domain: str) -> str:
+        if self.relabel_with is None:
+            return domain
+        before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
+        regex = re.compile(before)
+        return regex.sub(after, domain)
 
 
 class Strand(enum.IntEnum):
@@ -31,8 +48,7 @@ class Strand(enum.IntEnum):
         return "+" if self is Strand.Coding else "-"
 
 
-@dataclass
-class Domain:
+class Domain(typing.NamedTuple):
     """A conserved region within a protein.
 
     Attributes:

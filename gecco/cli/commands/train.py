@@ -18,7 +18,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from ._base import Command
-from ... import data
 from ...model import Domain, Gene, Protein, Strand
 from ...crf import ClusterCRF
 from ...refine import ClusterRefiner

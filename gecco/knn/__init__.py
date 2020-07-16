@@ -39,13 +39,21 @@ class ClusterKNN(object):
     """
 
     @classmethod
-    def trained(cls, model_path: Optional[str] = None) -> "ClusterKNN":
+    def trained(
+        cls,
+        model_path: Optional[str] = None,
+        metric: Union[str, "_Metric"] = "jensenshannon"
+    ) -> "ClusterKNN":
         """Create a new `ClusterKNN` instance pre-trained with embedded data.
 
         Arguments:
             model_path (`str`, optional): The path to the model directory
                 obtained with the ``gecco train`` command. If `None` given,
                 use the embedded training data.
+            metric (`str` or `function`): The distance metric to use with the
+                classifier. Either given a metric name (such as
+                ``jensenshannon``, the default) or a callable that takes
+                two vectors.
 
         Returns:
             `~gecco.knn.ClusterKNN`: A KNN model that can be used to perform
@@ -65,7 +73,7 @@ class ClusterKNN(object):
         domains = pandas.read_csv(doms_path, header=None, sep="\t")[0].array
         types = pandas.read_csv(typs_path, header=None, sep="\t")[1].array
 
-        knn = cls()
+        knn = cls(metric=metric)
         knn.model.fit(compositions, y=types)
         knn.model.attributes_ = domains
         return knn

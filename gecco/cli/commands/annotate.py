@@ -16,8 +16,6 @@ from Bio import SeqIO
 
 from ._base import Command
 from .._utils import guess_sequences_format
-from ... import data
-from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner

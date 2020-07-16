@@ -5,6 +5,7 @@ import glob
 import itertools
 import logging
 import multiprocessing
+import operator
 import os
 import pickle
 import tempfile
@@ -18,13 +19,12 @@ from Bio import SeqIO
 
 from ._base import Command
 from .._utils import guess_sequences_format
-from ... import data
 from ...crf import ClusterCRF
-from ...data.hmms import Hmm, ForeignHmm
-from ...hmmer import HMMER
+from ...hmmer import HMMER, embedded_hmms
 from ...knn import ClusterKNN
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
+from ...model import Hmm
 
 
 class Run(Command):  # noqa: D101
@@ -73,8 +73,6 @@ class Run(Command):  # noqa: D101
     Parameters - Debug:
         --model <model.crf>           the path to an alternative CRF model
                                       to use (obtained with `gecco train`).
-        --hmm <lib.hmm.gz>            the path to one or more HMM libraries to
-                                      use instead of the builtin ones.
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -110,16 +108,6 @@ class Run(Command):  # noqa: D101
             self.logger.error("could not locate input file: {!r}", input)
             return 1
 
-        # Check the hmms exist or use internal ones
-        if self.args["--hmm"]:
-            for hmm in self.args["--hmm"]:
-                if not os.path.exists(hmm):
-                    self.logger.error("could not locate hmm file: {!r}", hmm)
-                    return 1
-            self.args["--hmm"] = list(map(ForeignHmm, self.args["--hmm"]))
-        else:
-            self.args["--hmm"] = list(data.hmms.iter())
-
         return None
 
     def __call__(self) -> int:  # noqa: D102
@@ -151,7 +139,7 @@ class Run(Command):  # noqa: D101
             self.logger.debug("Finished running HMM {}", hmm.id)
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            pool.map(annotate, self.args["--hmm"])
+            pool.map(annotate, embedded_hmms())
 
         # Count number of annotated domains
         count = sum(1 for gene in genes for domain in gene.protein.domains)
@@ -171,6 +159,8 @@ class Run(Command):  # noqa: D101
         # Sort genes
         self.logger.debug("Sort genes by coordinates")
         genes.sort(key=lambda g: (g.source.id, g.start, g.end))
+        for gene in genes:
+            gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
 
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
@@ -203,9 +193,7 @@ class Run(Command):  # noqa: D101
         # Extract clusters from the predicted probability spectrum
         self.logger.debug("Using probability threshold of {}", self.args["--threshold"])
         refiner = ClusterRefiner(
-             criterion=self.args["--postproc"],
-            threshold=self.args["--threshold"],
-            n_cds=self.args["--min-orfs"]
+            self.args["--threshold"], self.args["--postproc"], self.args["--min-orfs"]
         )
         clusters = list(refiner.iter_clusters(genes))
 
@@ -218,7 +206,7 @@ class Run(Command):  # noqa: D101
 
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
-        knn = ClusterKNN.trained() # FIXME: use given distance
+        knn = ClusterKNN.trained(self.args["--distance"])
         clusters = knn.predict_types(clusters)
 
         # --- RESULTS --------------------------------------------------------
