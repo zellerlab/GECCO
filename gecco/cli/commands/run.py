@@ -2,6 +2,7 @@
 """
 
 import glob
+import itertools
 import logging
 import multiprocessing
 import os
@@ -18,6 +19,7 @@ from Bio import SeqIO
 from ._base import Command
 from .._utils import guess_sequences_format
 from ... import data
+from ...crf import ClusterCRF
 from ...data.hmms import Hmm, ForeignHmm
 from ...hmmer import HMMER
 from ...knn import ClusterKNN
@@ -136,7 +138,7 @@ class Run(Command):  # noqa: D101
 
         self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
-        genes = list(orf_finder.find_genes(sequences))
+        genes = list(itertools.chain.from_iterable(map(orf_finder.find_genes, sequences)))
         self.logger.info("Found {} potential genes", len(genes))
 
         # --- HMMER ----------------------------------------------------------
@@ -214,27 +216,10 @@ class Run(Command):  # noqa: D101
             self.logger.warning("No gene clusters were found")
             return 0
 
-        # # --- KNN ------------------------------------------------------------
+        # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
-
-        # Read embedded training matrix
-        self.logger.debug("Reading embedded training matrix")
-        training = data.knn.load_training_matrix()
-
-        # Calculate new domain composition
-        self.logger.debug("Calulating domain composition for each cluster")
-        domains: Sequence[str] = training.domains # type: ignore
-        new_comp = numpy.array([c.domain_composition(domains) for c in clusters])
-
-        # Inititate kNN and predict types
-        distance = self.args["--distance"]
-        self.logger.debug("Running kNN classifier with {!r} metric", distance)
-        knn = ClusterKNN(metric=distance, n_neighbors=self.args["--neighbors"])
-        knn_pred = knn.fit_predict(training.compositions, new_comp, y=training.types)
-
-        # Record predictions to the data classes
-        for cluster, ty in zip(clusters, knn_pred):
-            cluster.type, cluster.type_probability = ty
+        knn = ClusterKNN.trained() # FIXME: use given distance
+        clusters = knn.predict_types(clusters)
 
         # --- RESULTS --------------------------------------------------------
         self.logger.info("Writing final result files to folder {!r}", out_dir)

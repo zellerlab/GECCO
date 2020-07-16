@@ -4,11 +4,15 @@
 import csv
 import functools
 import typing
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy
+import pandas
 import pkg_resources
 import sklearn.neighbors
 import scipy.spatial.distance
+
+from ..model import Cluster
 
 if typing.TYPE_CHECKING:
     import numpy
@@ -29,7 +33,7 @@ class ClusterKNN(object):
             `~scipy.spatial.distance.jensenshannon`, but another function such
             as `~scipy.spatial.distance.mahalanobis` can be passed as argument
             to the constructor if needed.
-        knn (`sklearn.neighbors.KNeighborsClassifier`): The internal kNN
+        model (`sklearn.neighbors.KNeighborsClassifier`): The internal kNN
             classifier used for the prediction.
 
     """
@@ -57,21 +61,13 @@ class ClusterKNN(object):
             typs_path = pkg_resources.resource_filename(__name__, "types.tsv")
             comp_path = pkg_resources.resource_filename(__name__, "compositions.npz")
 
-        with open(doms_path) as f:
-            domains = f.read().splitlines()
-
-        with open(typs_path) as f:
-            reader = csv.reader(f, dialect="excel-tab")
-            labels, types = [], []
-            for row in reader:
-                labels.append(row[0])
-                types.append(row[1])
-
-        compositions = scipy.sparse.load_npz(comp_path)
-
+        compositions = scipy.sparse.load_npz(comp_path).toarray()
+        domains = pandas.read_csv(doms_path, header=None, sep="\t")[0].array
+        types = pandas.read_csv(typs_path, header=None, sep="\t")[1].array
 
         knn = cls()
         knn.model.fit(compositions, y=types)
+        knn.model.attributes_ = domains
         return knn
 
     @classmethod
@@ -103,7 +99,7 @@ class ClusterKNN(object):
             internal `~sklearn.neighbors.KNeighborsClassifier` constructor.
 
         Raises:
-            ValueError: when an unknown distance metric is given.
+            `ValueError`: When an unknown distance metric is given.
 
         """
         if isinstance(metric, str):
@@ -112,15 +108,13 @@ class ClusterKNN(object):
             self.metric = metric
         self.model = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
-    def fit_predict(
-        self,
-        train_matrix: "numpy.ndarray",
-        new_matrix: "numpy.ndarray",
-        y: "numpy.ndarray"
-    ) -> List[Tuple[str, float]]:
-        """Fit the model and immediately produce a prediction.
+    def predict_types(self, clusters: Sequence[Cluster]) -> Sequence[Cluster]:
+        """Predict types for each of the given clusters.
         """
-        self.model.fit(train_matrix, y=y)
-        pred = self.model.predict(new_matrix)
-        proba = [max(p) for p in self.model.predict_proba(new_matrix)]
-        return list(zip(pred, proba))
+        comps = [c.domain_composition(self.model.attributes_) for c in clusters]
+        probas = self.model.predict_proba(comps)
+        for cluster, proba in zip(clusters, probas):
+            imax = numpy.argmax(proba)
+            cluster.type = self.model.classes_[imax]
+            cluster.type_probability = proba[imax]
+        return clusters
