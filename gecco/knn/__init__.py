@@ -1,4 +1,4 @@
-"""Supervised classifier to predict the biosynthetic class of a putative BGC.
+"""Supervised classifier to predict the biosynthetic class of a cluster.
 """
 
 import csv
@@ -118,7 +118,7 @@ class ClusterKNN(object):
             self.metric = metric
         self.model = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
-    def predict_types(self, clusters: _S) -> _S:
+    def predict_types(self, clusters: "_S") -> "_S":
         """Predict types for each of the given clusters.
         """
         comps = [c.domain_composition(self.model.attributes_) for c in clusters]

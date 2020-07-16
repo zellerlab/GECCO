@@ -60,3 +60,12 @@ lint:mypy:
     - pip install -U mypy
   script:
     - mypy gecco
+
+lint:pylint:
+  image: python:3.8
+  stage: lint
+  allow_failure: true
+  before_script:
+    - pip install -U pylint
+  script:
+    - pylint gecco
