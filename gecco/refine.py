@@ -1,6 +1,7 @@
 """Algorithm to smooth contiguous BGC predictions into single regions.
 """
 
+import collections.abc
 import itertools
 import functools
 import operator
@@ -41,6 +42,22 @@ BIO_PFAMS = frozenset({
     "PF02348", "PF00891", "PF01596", "PF04820", "PF02522", "PF08484",
     "PF08421",
 })
+
+
+
+class GeneGrouper:
+    """A callable to group genes under or over a BGC probability threshold.
+    """
+
+    def __init__(self, threshold: float):  # noqa: D102, D107
+        self.in_cluster = False
+        self.threshold = threshold
+
+    def __call__(self, gene: Gene) -> bool:  # noqa: D102
+        if gene.probability is not None:
+            self.in_cluster = gene.probability > self.threshold
+        return self.in_cluster
+
 
 
 class ClusterRefiner:
@@ -118,34 +135,16 @@ class ClusterRefiner:
     ) -> Iterator[Cluster]:
         """Iterate over contiguous BGC segments from a list of genes.
         """
-        thr = self.threshold
-        k1 = operator.attrgetter("source.id")
-        k2 = operator.attrgetter("start", "end")
+        grouper = GeneGrouper(self.threshold)
+        key = operator.attrgetter("source.id")
 
-        for seq_id, sequence in itertools.groupby(sorted(genes, key=k1), key=k1):
-            cluster_num = 1
-            in_cluster = False
-
-            for gene in sorted(sequence, key=k2):
-                if not in_cluster:
-                    # not cluster -> cluster
-                    if gene.probability is not None and gene.probability >= thr:
-                        cluster = Cluster(id=f"{gene.source.id}_cluster_{cluster_num}")
-                        cluster.genes = [gene]
-                        in_cluster = True
-                    # not cluster -> not cluster
-                    # pass
-                else:
-                    # cluster -> cluster
-                    if gene.probability is None or gene.probability >= thr:
-                        cluster.genes.append(gene)
-                    # cluster -> not cluster
-                    else:
-                        yield cluster
-                        in_cluster = False
-                        cluster_num += 1
-
-            # if the sequence is over while we were still in a cluster, we need
-            # to recover the last cluster
-            if in_cluster:
-                yield cluster
+        # iterate over the genes grouped by sequence ids
+        for seq_id, sequence in itertools.groupby(sorted(genes, key=key), key=key):
+            # sort genes within the same sequence by coordinates
+            seqsort = sorted(sequence, key=operator.attrgetter("start", "end"))
+            # group contiguous genes if they are over or under the threshold
+            groups = itertools.groupby(seqsort, key=grouper)
+            # filter out regions that are not identified to be clusters
+            bgcs = (genes for in_bgc, genes in groups if in_bgc)
+            for i, bgc in enumerate(bgcs):
+                yield Cluster(id=f"{seq_id}_cluster_{i+1}", genes=list(bgc))
