@@ -157,6 +157,8 @@ class Embed(Command):  # noqa: D101
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             it = zip(itertools.islice(no_bgc_list, self.args["--skip"], None), bgc_list)
             embeddings = pandas.concat(pool.starmap(embed, it))
+        if pbar is not None:
+            pbar.close()
 
         # Write the resulting table
         embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)

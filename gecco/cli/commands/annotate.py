@@ -151,9 +151,7 @@ class Annotate(Command):  # noqa: D101
         self.logger.debug("Found {} domains across all proteins", len(feats_df))
 
         # Filter i-evalue
-        self.logger.debug(
-            "Filtering results with e-value under {}", self.args["--e-filter"]
-        )
+        self.logger.debug("Filtering results with e-value under {}", self.args["--e-filter"])
         feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
         self.logger.debug("Using remaining {} domains", len(feats_df))
 
