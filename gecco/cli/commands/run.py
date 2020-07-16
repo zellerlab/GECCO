@@ -116,10 +116,8 @@ class Run(Command):  # noqa: D101
         base, _ = os.path.splitext(os.path.basename(genome))
 
         self.logger.info("Loading sequences from genome file {!r}", genome)
-        format = guess_sequences_format(genome)
-        sequences = list(SeqIO.parse(genome, format))
+        sequences = SeqIO.parse(genome, guess_sequences_format(genome))
 
-        self.logger.info("Findings genes in {} records", len(sequences))
         orf_finder = PyrodigalFinder(metagenome=True)
         genes = list(itertools.chain.from_iterable(map(orf_finder.find_genes, sequences)))
         self.logger.info("Found {} potential genes", len(genes))
@@ -202,7 +200,7 @@ class Run(Command):  # noqa: D101
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
         knn = ClusterKNN.trained(metric=self.args["--distance"])
-        clusters = knn.predict_types(clusters) 
+        clusters = knn.predict_types(clusters)
 
         # --- RESULTS --------------------------------------------------------
         self.logger.info("Writing final result files to folder {!r}", out_dir)

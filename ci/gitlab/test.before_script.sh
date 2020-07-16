@@ -40,5 +40,6 @@ for ini_file in gecco/hmmer/*.ini; do
     log Using cached $hmm v$version
   fi
 
+  mkdir -p $(dirname "build/lib/${hmm_file}")
   cp "$cache_file" "build/lib/${hmm_file}"
 done

@@ -141,7 +141,7 @@ class update_model(setuptools.Command):
 
         # Write the hash to the signature file next to the model
         self.info("Writing the MD5 signature file")
-        with open(os.path.join("gecco", "crf", "model.pkl.md5")), "w") as sig:
+        with open(os.path.join("gecco", "crf", "model.pkl.md5"), "w") as sig:
             sig.write(hasher.hexdigest())
 
         # Update the domain composition table
