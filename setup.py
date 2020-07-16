@@ -111,7 +111,6 @@ class update_model(setuptools.Command):
     description = 'update the CRF model embedded in the source'
     user_options = [
       ('model=', 'm', 'the path to the new CRF model to use'),
-      ('domain=', 'd', 'the path to the new domain composition table'),
     ]
 
     def initialize_options(self):
@@ -121,12 +120,8 @@ class update_model(setuptools.Command):
     def finalize_options(self):
         if self.model is None:
             raise ValueError("--model argument must be given")
-        elif not os.path.exists(self.model):
+        elif not os.path.isdir(self.model):
             raise FileNotFoundError(self.model)
-        if self.domain is None:
-            raise ValueError("--domain argument must be given")
-        elif not os.path.exists(self.domain):
-            raise FileNotFoundError(self.domain)
 
     def info(self, msg):
         self.announce(msg, level=2)
@@ -136,9 +131,9 @@ class update_model(setuptools.Command):
 
         # Copy the file to the new in-source location and compute its hash.
         hasher = hashlib.md5()
-        self.info("Copying the model to the in-source location")
-        with open(self.model, "rb") as src:
-            with open(gecco.data.realpath("model/crf.model"), "wb") as dst:
+        self.info("Copying the trained CRF model to the in-source location")
+        with open(os.path.join(self.model, "model.pkl"), "rb") as src:
+            with open(os.path.join("gecco", "crf", "model.pkl"), "wb") as dst:
                 read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
                 for chunk in iter(read, b''):
                     hasher.update(chunk)
@@ -146,11 +141,11 @@ class update_model(setuptools.Command):
 
         # Write the hash to the signature file next to the model
         self.info("Writing the MD5 signature file")
-        with open(gecco.data.realpath("model/crf.model.md5"), "w") as sig:
+        with open(os.path.join("gecco", "crf", "model.pkl.md5")), "w") as sig:
             sig.write(hasher.hexdigest())
 
         # Update the domain composition table
-        self.info("Copying the domain composition table to the in-source location")
+        self.info("Copying the KNN training data to the in-source location")
         with open(gecco.data.realpath("knn/training_matrix.tsv.gz"), "wb") as dst:
             with open(self.domain, "rb") as src:
                 shutil.copyfileobj(src, dst)

@@ -179,13 +179,8 @@ class Run(Command):  # noqa: D101
         feats_df.sort_values(by=["sequence_id", "start", "end", "domain_start"], inplace=True)
 
         # Load trained CRF model
-        if self.args["--model"] is not None:
-            self.logger.debug("Loading model from {!r}", self.args["--model"])
-            with open(self.args["--model"], "rb") as bin:
-                crf = pickle.load(bin)
-        else:
-            self.logger.debug("Loading model from package resources")
-            crf = data.model.load()
+        self.logger.debug("Loading trained CRF model")
+        crf = ClusterCRF.trained(self.args["--model"])
 
         # Split input dataframe into one group per input sequence
         feats_df = crf.predict_marginals(data=[g for _, g in feats_df.groupby("sequence_id")])

@@ -3,11 +3,14 @@
 
 import csv
 import functools
+import hashlib
 import itertools
+import io
 import math
 import numbers
 import operator
 import os
+import pickle
 import random
 import textwrap
 import typing
@@ -18,6 +21,7 @@ from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tup
 import numpy
 import pandas
 import tqdm
+import pkg_resources
 import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
@@ -60,7 +64,45 @@ class ClusterCRF(object):
         invoked within a daemon process. If this happen, try giving a different
         class to the ``pool_factory`` argument of the constructor, like
         `~multiprocessing.pool.ThreadPool`.
+
     """
+
+    @classmethod
+    def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":
+        """Create a new pre-trained `ClusterCRF` instance from a model file.
+
+        Arguments:
+            model_path (`str`, optional): The path to the model directory
+                obtained with the ``gecco train`` command. If `None` given,
+                use the embedded model.
+
+        Returns:
+            `~gecco.crf.ClusterCRF`: A CRF model that can be used to perform
+            predictions without training first.
+
+        Raises:
+            `ValueError`: If the model data does not match its hash.
+
+        """
+        if model_path is not None:
+            pkl_path = os.path.join(model_path, "model.pkl")
+            md5_path = os.path.join(model_path, "model.pkl.md5")
+        else:
+            pkl_path = pkg_resources.resource_filename(__name__, "model.pkl")
+            md5_path = pkg_resources.resource_filename(__name__, "model.pkl.md5")
+        with open(md5_path) as sig:
+            signature = sig.read().strip()
+
+        hasher = hashlib.md5()
+        with open(pkl_path, "rb") as bin:
+            read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
+            for chunk in iter(read, b""):
+                hasher.update(typing.cast(bytes, chunk))
+        if hasher.hexdigest().upper() != signature.upper():
+            raise ValueError("MD5 hash of model data does not match signature")
+
+        with open(pkl_path, "rb") as bin:
+            return pickle.load(bin)  # type: ignore
 
     def __init__(
         self,
@@ -141,7 +183,7 @@ class ClusterCRF(object):
 
     def fit(
         self,
-        data: Iterable["pandas.DataFrame"],
+        data: Iterable[pandas.DataFrame],
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
@@ -195,8 +237,8 @@ class ClusterCRF(object):
         self.model.fit(X, Y)
 
     def predict_marginals(
-        self, data: Iterable["pandas.DataFrame"], *, jobs: Optional[int] = None,
-    ) -> "pandas.DataFrame":
+        self, data: Iterable[pandas.DataFrame], *, jobs: Optional[int] = None,
+    ) -> pandas.DataFrame:
         """Predicts marginals for the input data.
 
         Arguments:
@@ -252,14 +294,14 @@ class ClusterCRF(object):
 
     def cv(
         self,
-        data: List["pandas.DataFrame"],
+        data: List[pandas.DataFrame],
         strat_col: Optional[str] = None,
         k: int = 10,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List["pandas.DataFrame"]:
+    ) -> List[pandas.DataFrame]:
         """Runs k-fold cross-validation, possibly with a stratification column.
 
         Arguments:
@@ -316,13 +358,13 @@ class ClusterCRF(object):
 
     def loto_cv(
         self,
-        data: List["pandas.DataFrame"],
+        data: List[pandas.DataFrame],
         strat_col: str,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List["pandas.DataFrame"]:
+    ) -> List[pandas.DataFrame]:
         """Run LOTO cross-validation using a stratification column.
 
         Arguments:
@@ -369,15 +411,15 @@ class ClusterCRF(object):
 
     def _single_fold_cv(
         self,
-        data: List["pandas.DataFrame"],
-        train_idx: "numpy.ndarray",
-        test_idx: "numpy.ndarray",
+        data: List[pandas.DataFrame],
+        train_idx: numpy.ndarray,
+        test_idx: numpy.ndarray,
         round_id: Optional[str] = None,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> "pandas.DataFrame":
+    ) -> pandas.DataFrame:
         """Performs a single CV round with the given indices.
         """
         # Extract the fold from the complete data using the provided indices
@@ -404,7 +446,7 @@ class ClusterCRF(object):
     def _currify_extract_function(
         self, X_only: bool = False
     ) -> Callable[
-        ["pandas.DataFrame"], Tuple[List[Dict[str, float]], Optional[List[str]]]
+        [pandas.DataFrame], Tuple[List[Dict[str, float]], Optional[List[str]]]
     ]:
         """Currify a feature extraction function from `gecco.preprocessing`.
 
@@ -435,7 +477,7 @@ class ClusterCRF(object):
 
     def _extract_features(
         self,
-        data: Iterable["pandas.DataFrame"],
+        data: Iterable[pandas.DataFrame],
         X_only: bool = False,
         *,
         jobs: Optional[int] = None,
