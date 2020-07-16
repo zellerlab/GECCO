@@ -27,8 +27,8 @@ class ORFFinder(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def find_genes(self, sequences: Iterable["SeqRecord"],) -> Iterable[Gene]:  # type: ignore
-        """Find all genes from a list of DNA sequences.
+    def find_genes(self, dna: SeqRecord) -> Iterable[Gene]:  # type: ignore
+        """Find all genes from a DNA sequence.
         """
         return NotImplemented  # type: ignore
 
@@ -56,24 +56,19 @@ class PyrodigalFinder(ORFFinder):
         self.metagenome = metagenome
         self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
 
-    def find_genes(
-        self, sequences: Iterable["SeqRecord"],
-    ) -> Iterator[Gene]:  # noqa: D102
-        for i, dna_sequence in enumerate(sequences):
-            # find all ORFs in the given DNA sequence
-            orfs = self.pyrodigal.find_genes(str(dna_sequence.seq))
-            for j, orf in enumerate(orfs):
-                # wrap the protein into a Protein object
-                protein = Protein(
-                    id=f"{dna_sequence.id}_{j+1}",
-                    seq=Seq(orf.translate(), Bio.Alphabet.generic_protein),
-                )
-                # wrap the gene into a Gene
-                gene = Gene(
-                    source=dna_sequence,
-                    start=min(orf.begin, orf.end),
-                    end=max(orf.begin, orf.end),
-                    strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
-                    protein=protein
-                )
-                yield gene
+    def find_genes(self, dna: SeqRecord) -> Iterator[Gene]:  # noqa: D102
+        # find all ORFs in the given DNA sequence
+        orfs = self.pyrodigal.find_genes(str(dna.seq))
+        for j, orf in enumerate(orfs):
+            # wrap the protein into a Protein object
+            prot_seq = Seq(orf.translate(), Bio.Alphabet.generic_protein)
+            protein = Protein(id=f"{dna.id}_{j+1}", seq=prot_seq)
+            # wrap the gene into a Gene
+            gene = Gene(
+                source=dna,
+                start=min(orf.begin, orf.end),
+                end=max(orf.begin, orf.end),
+                strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
+                protein=protein
+            )
+            yield gene
