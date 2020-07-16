@@ -143,7 +143,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: Union[Hmm, ForeignHmm]) -> "pandas.DataFrame":
+        def annotate(hmm: Hmm) -> "pandas.DataFrame":
             self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             features = HMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
@@ -228,7 +228,8 @@ class Run(Command):  # noqa: D101
 
         # Calculate new domain composition
         self.logger.debug("Calulating domain composition for each cluster")
-        new_comp = numpy.array([c.domain_composition(training.domains) for c in clusters])
+        domains: Sequence[str] = training.domains # type: ignore
+        new_comp = numpy.array([c.domain_composition(domains) for c in clusters])
 
         # Inititate kNN and predict types
         distance = self.args["--distance"]

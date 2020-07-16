@@ -3,7 +3,7 @@
 
 import functools
 import typing
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import sklearn.neighbors
 import scipy.spatial.distance
@@ -68,7 +68,12 @@ class ClusterKNN(object):
             self.metric = metric
         self.knn = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
-    def fit_predict(self, train_matrix, new_matrix, y):
+    def fit_predict(
+        self,
+        train_matrix: numpy.ndarray,
+        new_matrix: numpy.ndarray,
+        y: numpy.ndarray
+    ) -> List[Tuple[str, float]]:
         """Fit the model and immediately produce a prediction.
         """
         self.knn.fit(train_matrix, y=y)

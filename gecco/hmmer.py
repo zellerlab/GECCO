@@ -94,7 +94,7 @@ class HMMER(BinaryRunner):
 
     BINARY = "hmmsearch"
 
-    def __init__(self, hmm: str, cpus: Optional[int] = None) -> None:
+    def __init__(self, hmm: "Hmm", cpus: Optional[int] = None) -> None:
         """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:

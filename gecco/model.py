@@ -109,7 +109,7 @@ class Gene:
     probability: Optional[float] = None
 
     @property
-    def id(self):
+    def id(self) -> str:
         """`str`: The identifier of the gene (same as the protein identifier).
         """
         return self.protein.id
@@ -191,32 +191,32 @@ class Cluster:
         self.type_probability = type_probability
 
     @property
-    def source(self):
+    def source(self) -> SeqRecord:  # type: ignore
         """`~Bio.SeqRecord.SeqRecord`: The sequence this cluster was found in.
         """
         return self.genes[0].source
 
     @property
-    def start(self):
+    def start(self) -> int:
         """`int`: The start of this cluster in the source sequence.
         """
         return min(gene.start for gene in self.genes)
 
     @property
-    def end(self):
+    def end(self) -> int:
         """`int`: The end of this cluster in the source sequence.
         """
         return max(gene.end for gene in self.genes)
 
     @property
-    def average_probability(self):
+    def average_probability(self) -> float:
         """`float`: The average of proteins probability of being biosynthetic.
         """
         p = [g.probability for g in self.genes if g.probability is not None]
         return sum(p) / len(p)
 
     @property
-    def maximum_probability(self):
+    def maximum_probability(self) -> float:
         """`float`: The highest of proteins probability of being biosynthetic.
         """
         p = [g.probability for g in self.genes if g.probability is not None]
@@ -246,7 +246,7 @@ class Cluster:
         composition = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
             composition[i] = numpy.sum(weights[names == dom])
-        return composition / (composition.sum() or 1)
+        return composition / (composition.sum() or 1) # type: ignore
 
     # ---
 

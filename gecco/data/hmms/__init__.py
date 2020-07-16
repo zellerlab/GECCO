@@ -46,7 +46,7 @@ class ForeignHmm(typing.NamedTuple):
         return "?"
 
     def relabel(self, domain: str) -> str:
-        return domains.split(".")[0]
+        return domains.split(".")[0]  # type: ignore
 
 
 def iter() -> Iterator[Hmm]:

@@ -202,7 +202,7 @@ class Train(Command):  # noqa: D101
         else:
             pbar = None
 
-        def domain_composition(table):
+        def domain_composition(table: pandas.DataFrame) -> numpy.ndarray:
             is_bgc = table[self.args["--y-col"]].array == 1
             names = table[self.args["--feature-cols"][0]].array[is_bgc]
             weights = table[self.args["--weight-cols"][0]].array[is_bgc]
@@ -211,7 +211,7 @@ class Train(Command):  # noqa: D101
                 composition[i] = numpy.sum(weights[names == domain])
             if pbar is not None:
                 pbar.update(1)
-            return composition / (composition.sum() or 1)
+            return composition / (composition.sum() or 1)  # type: ignore
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             new_comp = numpy.array(pool.map(domain_composition, training_data))
@@ -221,3 +221,4 @@ class Train(Command):  # noqa: D101
         comp_out = os.path.join(self.args['--output-dir'], "compositions.npz")
         self.logger.debug("Saving new domain composition matrix to {!r}", comp_out)
         scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(new_comp))
+        return 0

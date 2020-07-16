@@ -20,7 +20,8 @@ def load_training_matrix() -> TrainingMatrix:
     with pkg_resources.resource_stream(__name__, "domains.tsv") as f:
         domains = f.read().decode("ascii").splitlines()
     with pkg_resources.resource_stream(__name__, "types.tsv") as f:
-        reader = csv.reader(io.TextIOWrapper(f), dialect="excel-tab")
+        stream = io.TextIOWrapper(typing.cast(typing.BinaryIO, f)) 
+        reader = csv.reader(stream, dialect="excel-tab")
         labels, types = [], []
         for row in reader:
             labels.append(row[0])

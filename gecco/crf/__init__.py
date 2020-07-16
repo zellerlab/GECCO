@@ -13,7 +13,7 @@ import textwrap
 import typing
 import warnings
 from multiprocessing.pool import Pool
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy
 import pandas
@@ -121,7 +121,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.significant_features = {}
+        self.significant_features: Dict[str, FrozenSet[str]]  = {}
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
@@ -243,7 +243,7 @@ class ClusterCRF(object):
         # To deal with this, we merge by protein_id
         # --> HOWEVER: this requires the protein IDs to be unique among all samples
         if self.feature_type == "group":
-            results = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]
+            results = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]  # type: ignore
             return pandas.concat(results)
         else:
             return pandas.concat(data).assign(p_pred=numpy.concatenate(cluster_probs))
@@ -419,7 +419,7 @@ class ClusterCRF(object):
                 preprocessing.extract_group_features, group_column=self.group_column,
             )
         elif self.feature_type == "single":
-            extract = preprocessing.extract_single_features
+            extract = functools.partial(preprocessing.extract_single_features)
         elif self.feature_type == "overlap":
             extract = functools.partial(
                 preprocessing.extract_overlapping_features, overlap=self.overlap,
@@ -471,7 +471,7 @@ class ClusterCRF(object):
 
     # --- Utils --------------------------------------------------------------
 
-    def _merge(self, df, **cols):
+    def _merge(self, df: pandas.DataFrame, **cols: List[Any]) -> pandas.DataFrame:
         unidf = pandas.DataFrame(cols)
         unidf[self.group_column] = df[self.group_column].unique()
         return df.merge(unidf)
