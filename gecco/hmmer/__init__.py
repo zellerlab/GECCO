@@ -1,24 +1,26 @@
 """Compatibility wrapper for HMMER binaries and output.
 """
 import collections
+import configparser
 import contextlib
 import csv
 import errno
+import glob
 import os
 import subprocess
 import tempfile
 import typing
-from typing import Dict, Optional, Iterable, List, Mapping, Type, Sequence
+from typing import Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
 import pandas
+import pkg_resources
 from Bio import SeqIO
 
-from ._base import BinaryRunner
-from .model import Gene, Domain
+from .._base import BinaryRunner
+from ..model import Gene, Domain, Hmm
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
-    from .data.hmms import Hmm
 
     _T = typing.TypeVar("_T", bound="DomainRow")
 
@@ -146,3 +148,10 @@ class HMMER(BinaryRunner):
             gene.protein.domains.append(domain)
 
         return genes
+
+
+def embedded_hmms() -> Iterator[Hmm]:
+    for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
+        cfg = configparser.ConfigParser()
+        cfg.read(ini)
+        yield Hmm(path=ini.replace(".ini", ".hmm.gz"), **dict(cfg.items("hmm")))
