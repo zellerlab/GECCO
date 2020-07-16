@@ -63,31 +63,15 @@ class DomainRow(typing.NamedTuple):
         """Extract a `DomainRow` from a single domain table line.
         """
         line = list(filter(None, row.split(" ")))
-        return cls(
-            target_name=line[0],
-            target_accession=None if line[1] == "-" else line[1],
-            target_length=len(line[2]),
-            query_name=line[3],
-            query_accession=None if line[4] == "-" else line[4],
-            query_length=len(line[5]),
-            evalue=float(line[6]),
-            score=float(line[7]),
-            bias=float(line[8]),
-            domain_number=int(line[9]),
-            domain_total=int(line[10]),
-            c_evalue=float(line[11]),
-            i_evalue=float(line[12]),
-            domain_score=float(line[13]),
-            domain_bias=float(line[14]),
-            hmm_from=int(line[15]),
-            hmm_to=int(line[16]),
-            ali_from=int(line[17]),
-            ali_to=int(line[18]),
-            env_from=int(line[19]),
-            env_to=int(line[20]),
-            post=float(line[21]),
-            description=" ".join(line[22:]) if line[22:] else None,
-        )
+        values = {}
+        for i, (field, ty) in enumerate(cls.__annotations__.items()):
+            if isinstance(ty, type):
+                values[field] = ty(line[i])
+            elif field == "target_accession" or field == "query_accession":
+                values[field] = None if line[i] == "-" else line[i]
+            elif field == "description":
+                values[field] = " ".join(line[i:]) if line[i:] else None
+        return cls(**values)
 
 
 class HMMER(BinaryRunner):
