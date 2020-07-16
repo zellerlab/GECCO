@@ -18,7 +18,7 @@ pip install -U coverage
 mkdir -p ci/cache
 mkdir -p build/lib/gecco/data/hmms
 
-for ini_file in gecco/data/hmms/*.ini; do
+for ini_file in gecco/hmmer/*.ini; do
   url=$(grep "url" $ini_file | cut -d'=' -f2 | sed 's/ //g')
   hmm=$(grep "id" $ini_file | cut -d'=' -f2 | sed 's/ //g')
   version=$(grep "version" $ini_file | cut -d'=' -f2 | sed 's/ //g')

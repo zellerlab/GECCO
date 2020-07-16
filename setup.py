@@ -161,27 +161,9 @@ class build_py(_build_py):
             sys.stdout.flush()
             sys.stdout.write('\n\033[F')
 
-    user_options = _build_py.user_options + [
-        ("hmms=", "H", "directory containing HMM metadata")
-    ]
-
-    def initialize_options(self):
-        _build_py.initialize_options(self)
-        section = type(self).__name__
-        self._cfg = configparser.ConfigParser()
-        self._cfg.read_dict({section: {
-            'hmms': os.path.join("gecco", "data", "hmms"),
-        }})
-        self._cfg.read(self.distribution.find_config_files())
-        self.hmms = self._cfg.get(section, 'hmms')
-
-    def finalize_options(self):
-        _build_py.finalize_options(self)
-        self.ensure_dirname('hmms')
-
     def run(self):
         _build_py.run(self)
-        for in_ in glob.glob(os.path.join(self.hmms, "*.ini")):
+        for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
             out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
