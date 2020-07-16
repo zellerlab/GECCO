@@ -3,8 +3,9 @@
 
 import csv
 import functools
+import os
 import typing
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy
 import pandas
@@ -17,6 +18,7 @@ from ..model import Cluster
 if typing.TYPE_CHECKING:
     import numpy
 
+    _S = typing.TypeVar("_S", bound=Sequence[Cluster])
     _Metric = typing.Callable[["numpy.ndarray", "numpy.ndarray"], "numpy.ndarray"]
 
 
@@ -116,12 +118,12 @@ class ClusterKNN(object):
             self.metric = metric
         self.model = sklearn.neighbors.KNeighborsClassifier(metric=self.metric, **kwargs)
 
-    def predict_types(self, clusters: Sequence[Cluster]) -> Sequence[Cluster]:
+    def predict_types(self, clusters: _S) -> _S:
         """Predict types for each of the given clusters.
         """
         comps = [c.domain_composition(self.model.attributes_) for c in clusters]
         probas = self.model.predict_proba(comps)
-        for cluster, proba in zip(clusters, probas):
+        for cluster, proba in zip(typing.cast(Iterable[Cluster], clusters), probas):
             imax = numpy.argmax(proba)
             cluster.type = self.model.classes_[imax]
             cluster.type_probability = proba[imax]

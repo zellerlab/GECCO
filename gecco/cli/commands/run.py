@@ -40,8 +40,6 @@ class Run(Command):  # noqa: D101
     Arguments:
         -g <file>, --genome <file>    a FASTA or GenBank file containing a
                                       genome as input.
-        -p <file>, --proteins <file>  a FASTA file containing proteins as
-                                      input.
 
     Parameters:
         -o <out>, --output-dir <out>  the directory in which to write the
@@ -55,13 +53,13 @@ class Run(Command):  # noqa: D101
                                       to be included. [default: 1e-5]
 
     Parameters - Cluster Detection:
-        --min-orfs <N>                how many ORFs are required for a
-                                      sequence to be considered. [default: 5]
+        -c, --cds <N>                 the minimum number of coding sequences a
+                                      valid cluster must contain. [default: 3]
         -m <m>, --threshold <m>       the probability threshold for cluster
                                       detection. Default depends on the
                                       post-processing method (0.4 for gecco,
                                       0.6 for antismash).
-        --postproc <method>           the method to use for cluster extraction
+        --postproc <method>           the method to use for cluster validation
                                       (antismash or gecco). [default: gecco]
 
     Parameters - BGC Type Prediction:
@@ -82,7 +80,7 @@ class Run(Command):  # noqa: D101
 
         # Check value of numeric arguments
         self.args["--neighbors"] = int(self.args["--neighbors"])
-        self.args["--min-orfs"] = int(self.args["--min-orfs"])
+        self.args["--cds"] = int(self.args["--cds"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
             self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
@@ -98,14 +96,11 @@ class Run(Command):  # noqa: D101
             self.args["--threshold"] = float(self.args["--threshold"])
 
         # Check the `--cpu`flag
-        self.args["--jobs"] = jobs = int(self.args["--jobs"])
-        if jobs == 0:
-            self.args["--jobs"] = multiprocessing.cpu_count()
+        self.args["--jobs"] = int(self.args["--jobs"]) or multiprocessing.cpu_count()
 
         # Check the input exists
-        input_ = self.args["--genome"] or self.args["--proteins"]
-        if not os.path.exists(input_):
-            self.logger.error("could not locate input file: {!r}", input)
+        if not os.path.exists(self.args["--genome"]):
+            self.logger.error("could not locate input file {!r}", input)
             return 1
 
         return None
@@ -193,7 +188,7 @@ class Run(Command):  # noqa: D101
         # Extract clusters from the predicted probability spectrum
         self.logger.debug("Using probability threshold of {}", self.args["--threshold"])
         refiner = ClusterRefiner(
-            self.args["--threshold"], self.args["--postproc"], self.args["--min-orfs"]
+            self.args["--threshold"], self.args["--postproc"], self.args["--cds"]
         )
         clusters = list(refiner.iter_clusters(genes))
 
@@ -207,7 +202,7 @@ class Run(Command):  # noqa: D101
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
         knn = ClusterKNN.trained(metric=self.args["--distance"])
-        clusters = knn.predict_types(clusters)
+        clusters = knn.predict_types(clusters) 
 
         # --- RESULTS --------------------------------------------------------
         self.logger.info("Writing final result files to folder {!r}", out_dir)

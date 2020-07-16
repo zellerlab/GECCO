@@ -19,6 +19,8 @@ from . import __version__
 
 
 class Hmm(typing.NamedTuple):
+    """A Hidden Markov Model library to use with `~gecco.hmmer.HMMER`.
+    """
 
     id: str
     version: str
@@ -27,6 +29,11 @@ class Hmm(typing.NamedTuple):
     relabel_with: Optional[str] = None
 
     def relabel(self, domain: str) -> str:
+        """Rename a domain obtained by this HMM to the right accession.
+
+        This method can be used with HMM libraries that have separate HMMs
+        for the same domain, such as Pfam.
+        """
         if self.relabel_with is None:
             return domain
         before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
