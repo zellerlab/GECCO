@@ -1,7 +1,6 @@
 """Data layer classes storing information needed for BGC detection.
 """
 
-import collections
 import csv
 import enum
 import typing
@@ -242,14 +241,11 @@ class Cluster:
         domains = [d for gene in self.genes for d in gene.protein.domains]
         names = numpy.array([domain.name for domain in domains])
         weights = numpy.array([1 - domain.i_evalue for domain in domains])
-        counts = collections.Counter(names)
         if all_possible is None:
             all_possible = numpy.unique(names)
         composition = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
-            n = counts[dom]
-            w = weights[names == dom].mean() if n > 0 else 0
-            composition[i] = n * w
+            composition[i] = numpy.sum(weights[names == dom])
         return composition / (composition.sum() or 1)
 
     # ---
