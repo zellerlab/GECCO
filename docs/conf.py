@@ -32,14 +32,18 @@ def setup(app):
     app.add_css_file("css/main.css")
     app.add_js_file("js/apitoc.js")
     app.add_js_file("js/example-admonition.js")
+    # Copy `CHANGELOG.md` from project directory
+    changelog_src = os.path.join(project_dir, "CHANGELOG.md")
+    changelog_dst = os.path.join(docssrc_dir, "changes.md")
+    shutil.copy(changelog_src, changelog_dst)
 
 # -- Project information -----------------------------------------------------
 
 import gecco
 
 project = 'GECCO'
-copyright = '2020, Jonas Simon Fleck, Martin Larralde'
-author = 'Jonas Simon Fleck, Martin Larralde'
+copyright = '2020, {}'.format(gecco.__author__)
+author = gecco.__author__
 
 # The parsed semantic version
 semver = semantic_version.Version.coerce(gecco.__version__)
