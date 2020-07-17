@@ -1,9 +1,16 @@
-Data Model (`gecco.model`)
-==========================
+Data Model
+==========
 
 .. currentmodule:: gecco.model
-
 .. automodule:: gecco.model
-   :members:
-   :show-inheritance:
-   :inherited-members:
+
+
+.. autoclass:: Hmm
+
+.. autoclass:: Domain
+
+.. autoclass:: Protein
+
+.. autoclass:: Gene
+
+.. autoclass:: Cluster

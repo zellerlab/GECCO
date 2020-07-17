@@ -112,7 +112,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 #
 html_theme_options = {
     # Bootswatch (http://bootswatch.com/) theme.
-    "bootswatch_theme": "flatly",
+    "bootswatch_theme": "sandstone",
     # Choose Bootstrap version.
     "bootstrap_version": "3",
     # Tab name for entire site. (Default: "Site")
@@ -185,7 +185,7 @@ napoleon_use_rtype = False
 
 autoclass_content = "class"
 autodoc_member_order = 'bysource'
-autosummary_generate = ['api']
+autosummary_generate = []
 
 # -- Options for intersphinx extension ---------------------------------------
 
