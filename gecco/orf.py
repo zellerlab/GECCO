@@ -34,13 +34,17 @@ class ORFFinder(metaclass=abc.ABCMeta):
 
 
 class PyrodigalFinder(ORFFinder):
-    """An `ORFFinder` that uses the Pyrodigal bindings to PRODIGAL.
+    """An `ORFFinder` that uses the Pyrodigal bindings to Prodigal.
 
-    PRODIGAL is a fast and reliable protein-coding gene prediction for
-    prokaryotic genomes, with support for draft genomes and metagenomes.
+    Prodigal is a fast and reliable protein-coding gene prediction
+    for prokaryotic genomes, with support for draft genomes and metagenomes.
 
     See Also:
-        .. [PMC2848648] https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648/
+        `Doug Hyatt, Gwo-Liang Chen, Philip F. LoCascio, Miriam L. Land,
+        Frank W. Larimer and Loren J. Hauser.
+        "Prodigal: Prokaryotic Gene Recognition and Translation Initiation
+        Site Identification", BMC Bioinformatics 11 (8 March 2010), p119
+        <https://doi.org/10.1186/1471-2105-11-119>`_
 
     """
 
