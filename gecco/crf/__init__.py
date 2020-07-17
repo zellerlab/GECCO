@@ -3,20 +3,35 @@
 
 import csv
 import functools
+import hashlib
 import itertools
-import operator
+import io
 import math
 import numbers
+import operator
+import os
+import pickle
 import random
 import textwrap
 import typing
 import warnings
 from multiprocessing.pool import Pool
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy
 import pandas
 import tqdm
+import pkg_resources
 import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
@@ -59,7 +74,45 @@ class ClusterCRF(object):
         invoked within a daemon process. If this happen, try giving a different
         class to the ``pool_factory`` argument of the constructor, like
         `~multiprocessing.pool.ThreadPool`.
+
     """
+
+    @classmethod
+    def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":
+        """Create a new pre-trained `ClusterCRF` instance from a model file.
+
+        Arguments:
+            model_path (`str`, optional): The path to the model directory
+                obtained with the ``gecco train`` command. If `None` given,
+                use the embedded model.
+
+        Returns:
+            `~gecco.crf.ClusterCRF`: A CRF model that can be used to perform
+            predictions without training first.
+
+        Raises:
+            `ValueError`: If the model data does not match its hash.
+
+        """
+        if model_path is not None:
+            pkl_path = os.path.join(model_path, "model.pkl")
+            md5_path = os.path.join(model_path, "model.pkl.md5")
+        else:
+            pkl_path = pkg_resources.resource_filename(__name__, "model.pkl")
+            md5_path = pkg_resources.resource_filename(__name__, "model.pkl.md5")
+        with open(md5_path) as sig:
+            signature = sig.read().strip()
+
+        hasher = hashlib.md5()
+        with open(pkl_path, "rb") as bin:
+            read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
+            for chunk in iter(read, b""):
+                hasher.update(typing.cast(bytes, chunk))
+        if hasher.hexdigest().upper() != signature.upper():
+            raise ValueError("MD5 hash of model data does not match signature")
+
+        with open(pkl_path, "rb") as bin:
+            return pickle.load(bin)  # type: ignore
 
     def __init__(
         self,
@@ -120,7 +173,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.significant_features = {}
+        self.significant_features: Dict[str, FrozenSet[str]] = {}
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
@@ -140,7 +193,7 @@ class ClusterCRF(object):
 
     def fit(
         self,
-        data: Iterable["pandas.DataFrame"],
+        data: List[pandas.DataFrame],
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
@@ -167,9 +220,6 @@ class ClusterCRF(object):
                 as there are CPUs.
 
         """
-        # Collect data to avoid iteration issues
-        data = list(data)
-
         # Truncate data if requested
         if trunc is not None:
             data = [
@@ -183,19 +233,21 @@ class ClusterCRF(object):
             if select <= 0 or select > 1:
                 raise ValueError(f"invalid value for select: {select}")
             for feat in self.feature_columns:
-                sig = fisher_significance(data, feat, self.label_column, self.group_column)
-                sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
+                sig = fisher_significance(
+                    data, feat, self.label_column, self.group_column
+                )
+                sorted_sig = sorted(sig, key=sig.get)[: int(select * len(sig))]
                 self.significant_features[feat] = frozenset(sorted_sig)
             for column, features in self.significant_features.items():
-                data = [ df[ df[column].isin(features) ] for df in data ]
+                data = [df[df[column].isin(features)] for df in data]
 
         # Do the actual training
         X, Y = self._extract_features(data, jobs=jobs)
         self.model.fit(X, Y)
 
     def predict_marginals(
-        self, data: Iterable["pandas.DataFrame"], *, jobs: Optional[int] = None,
-    ) -> "pandas.DataFrame":
+        self, data: Iterable[pandas.DataFrame], *, jobs: Optional[int] = None,
+    ) -> pandas.DataFrame:
         """Predicts marginals for the input data.
 
         Arguments:
@@ -242,7 +294,7 @@ class ClusterCRF(object):
         # To deal with this, we merge by protein_id
         # --> HOWEVER: this requires the protein IDs to be unique among all samples
         if self.feature_type == "group":
-            results = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]
+            results = [self._merge(df, p_pred=p) for df, p in zip(data, cluster_probs)]  # type: ignore
             return pandas.concat(results)
         else:
             return pandas.concat(data).assign(p_pred=numpy.concatenate(cluster_probs))
@@ -251,14 +303,14 @@ class ClusterCRF(object):
 
     def cv(
         self,
-        data: List["pandas.DataFrame"],
+        data: List[pandas.DataFrame],
         strat_col: Optional[str] = None,
         k: int = 10,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List["pandas.DataFrame"]:
+    ) -> List[pandas.DataFrame]:
         """Runs k-fold cross-validation, possibly with a stratification column.
 
         Arguments:
@@ -315,13 +367,13 @@ class ClusterCRF(object):
 
     def loto_cv(
         self,
-        data: List["pandas.DataFrame"],
+        data: List[pandas.DataFrame],
         strat_col: str,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> List["pandas.DataFrame"]:
+    ) -> List[pandas.DataFrame]:
         """Run LOTO cross-validation using a stratification column.
 
         Arguments:
@@ -368,15 +420,15 @@ class ClusterCRF(object):
 
     def _single_fold_cv(
         self,
-        data: List["pandas.DataFrame"],
-        train_idx: "numpy.ndarray",
-        test_idx: "numpy.ndarray",
+        data: List[pandas.DataFrame],
+        train_idx: numpy.ndarray,
+        test_idx: numpy.ndarray,
         round_id: Optional[str] = None,
         trunc: Optional[int] = None,
         select: Optional[float] = None,
         *,
         jobs: Optional[int] = None,
-    ) -> "pandas.DataFrame":
+    ) -> pandas.DataFrame:
         """Performs a single CV round with the given indices.
         """
         # Extract the fold from the complete data using the provided indices
@@ -403,7 +455,7 @@ class ClusterCRF(object):
     def _currify_extract_function(
         self, X_only: bool = False
     ) -> Callable[
-        ["pandas.DataFrame"], Tuple[List[Dict[str, float]], Optional[List[str]]]
+        [pandas.DataFrame], Tuple[List[Dict[str, float]], Optional[List[str]]]
     ]:
         """Currify a feature extraction function from `gecco.preprocessing`.
 
@@ -418,7 +470,7 @@ class ClusterCRF(object):
                 preprocessing.extract_group_features, group_column=self.group_column,
             )
         elif self.feature_type == "single":
-            extract = preprocessing.extract_single_features
+            extract = functools.partial(preprocessing.extract_single_features)
         elif self.feature_type == "overlap":
             extract = functools.partial(
                 preprocessing.extract_overlapping_features, overlap=self.overlap,
@@ -434,7 +486,7 @@ class ClusterCRF(object):
 
     def _extract_features(
         self,
-        data: Iterable["pandas.DataFrame"],
+        data: Iterable[pandas.DataFrame],
         X_only: bool = False,
         *,
         jobs: Optional[int] = None,
@@ -470,18 +522,18 @@ class ClusterCRF(object):
 
     # --- Utils --------------------------------------------------------------
 
-    def _merge(self, df, **cols):
+    def _merge(self, df: pandas.DataFrame, **cols: List[object]) -> pandas.DataFrame:
         unidf = pandas.DataFrame(cols)
         unidf[self.group_column] = df[self.group_column].unique()
         return df.merge(unidf)
 
-    def save_weights(self, basename: str) -> None:
-        with open(f"{basename}.trans.tsv", "w") as f:
+    def save_weights(self, directory: str) -> None:
+        with open(os.path.join(directory, "model.trans.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["from", "to", "weight"])
             for labels, weight in self.model.transition_features_.items():
                 writer.writerow([*labels, weight])
-        with open(f"{basename}.state.tsv", "w") as f:
+        with open(os.path.join(directory, "model.state.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
             writer.writerow(["attr", "label", "weight"])
             for attrs, weight in self.model.state_features_.items():

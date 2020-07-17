@@ -1,6 +1,7 @@
 """Implementation of the main ``gecco`` command.
 """
 
+import sys
 import textwrap
 import typing
 from typing import Mapping, Optional, Type

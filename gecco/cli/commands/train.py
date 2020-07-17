@@ -2,8 +2,9 @@
 """
 
 import csv
+import itertools
 import logging
-import multiprocessing
+import multiprocessing.pool
 import os
 import pickle
 import random
@@ -11,9 +12,13 @@ import typing
 
 import numpy
 import pandas
+import scipy.sparse
+import tqdm
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 from ._base import Command
-from ... import data
+from ...model import Domain, Gene, Protein, Strand
 from ...crf import ClusterCRF
 from ...refine import ClusterRefiner
 from ...hmmer import HMMER
@@ -35,8 +40,8 @@ class Train(Command):  # noqa: D101
                                         labeled as BGCs and non-BGCs.
 
     Parameters:
-        -o <out>, --output <out>        the basename to use for the output
-                                        model. [default: CRF]
+        -o <out>, --output-dir <out>    the directory to use for the model
+                                        files. [default: CRF]
         -j <jobs>, --jobs <jobs>        the number of CPUs to use for
                                         multithreading. Use 0 to use all of the
                                         available CPUs. [default: 0]
@@ -127,22 +132,30 @@ class Train(Command):  # noqa: D101
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
-        data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
+        feats_df = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
         self.logger.debug(
             "Filtering results with e-value under {}", self.args["--e-filter"]
         )
-        data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
+        feats_df = feats_df[feats_df["i_Evalue"] < self.args["--e-filter"]]
 
         # Computing reverse i_Evalue
-        self.logger.debug("Computing reverse i_Evalue")
-        data_tbl = data_tbl.assign(rev_i_Evalue=1 - data_tbl["i_Evalue"])
+        self.logger.debug("Computing reverse indepenent e-value")
+        feats_df = feats_df.assign(rev_i_Evalue=1 - feats_df["i_Evalue"])
+
+        # Sorting data
+        self.logger.debug("Sorting data by gene and domain coordinates")
+        feats_df.sort_values(
+            by=[self.args["--split-col"], "start", "end", "domain_start"], inplace=True
+        )
 
         # Grouping column
-        self.logger.debug("Splitting data using column {}", self.args["--split-col"])
-        data_tbl = [s for _, s in data_tbl.groupby(self.args["--split-col"])]
+        self.logger.debug(
+            "Splitting feature table using column {!r}", self.args["--split-col"]
+        )
+        training_data = [s for _, s in feats_df.groupby(self.args["--split-col"])]
         if not self.args["--no-shuffle"]:
-            self.logger.debug("Shuffling data")
-            random.shuffle(data_tbl)
+            self.logger.debug("Shuffling splits randomly")
+            random.shuffle(training_data)
 
         # --- MODEL FITTING --------------------------------------------------
         crf = ClusterCRF(
@@ -156,49 +169,69 @@ class Train(Command):  # noqa: D101
             c1=self.args["--c1"],
             c2=self.args["--c2"],
         )
-        self.logger.info("Fitting the model")
-        crf.fit(data=data_tbl, trunc=self.args["--truncate"], select=self.args["--select"])
+        self.logger.info("Fitting the CRF model to the training data")
+        crf.fit(
+            data=training_data,
+            trunc=self.args["--truncate"],
+            select=self.args["--select"],
+        )
 
-        model_out = f"{self.args['--output']}.crf.model"
+        os.makedirs(self.args["--output-dir"], exist_ok=True)
+        model_out = os.path.join(self.args["--output-dir"], "model.pkl")
         self.logger.info("Writing the model to {!r}", model_out)
         with open(model_out, "wb") as f:
-            pickle.dump(crf, f, protocol=3)
+            pickle.dump(crf, f, protocol=4)
 
-        self.logger.info(
-            "Writing weights to {0}.trans.tsv and {0}.state.tsv", self.args["--output"]
-        )
-        crf.save_weights(self.args["--output"])
+        self.logger.info("Writing transitions and state weights")
+        crf.save_weights(self.args["--output-dir"])
 
-        # --- DOMAIN COMPOSITION ----------------------------------------------
-        self.logger.info("Extracting clusters")
-        refiner = ClusterRefiner(
-            threshold=0.5,
-            sequence_column=self.args["--split-col"],
-            protein_column=self.args["--group-col"],
-            probability_column="p_pred",
-            domain_column=self.args["--feature-cols"][0],
-            weight_column=self.args["--weight-cols"][0],
-        )
+        # # --- DOMAIN COMPOSITION ----------------------------------------------
+        self.logger.info("Extracting domain composition for type classifier")
 
-        self.logger.debug("Finding the complete list of possible domains")
+        self.logger.debug("Finding the array of possible domains")
         if crf.significant_features:
-            all_possible = sorted({d for domains in crf.significant_features.values() for d in domains})
+            all_possible = sorted(
+                {d for domains in crf.significant_features.values() for d in domains}
+            )
         else:
-            all_possible = sorted({d for subdf in data_tbl for key in self.args["--feature-cols"] for d in  subdf[key].unique()})
+            all_possible = sorted(
+                {t.domain for d in training_data for t in d[d["BGC"] == 1].itertuples()}
+            )
+        types = [d[self.args["--type-col"]].values[0] for d in training_data]
+        ids = [d[self.args["--id-col"]].values[0] for d in training_data]
 
-        comp_out =  f"{self.args['--output']}.domain_composition.tsv"
-        self.logger.info("Writing domain composition table to {!r}", comp_out)
-        with open(comp_out, "w") as f:
-            writer = csv.writer(f, dialect="excel-tab")
-            writer.writerow(["BGC_id", "BGC_type"] + all_possible)
-            for subdf in data_tbl:
-                bgc = subdf[subdf[self.args["--y-col"]] == 1].assign(p_pred=1)
-                cluster = next(refiner.iter_clusters(bgc))
-                writer.writerow(
-                    [
-                        bgc[self.args["--id-col"]].values[0],
-                        bgc[self.args["--type-col"]].values[0],
-                    ] + list(cluster.domain_composition(all_possible)),
-                )
+        self.logger.debug("Saving training matrix labels for BGC type classifier")
+        doms_out = os.path.join(self.args["--output-dir"], "domains.tsv")
+        pandas.Series(all_possible).to_csv(
+            doms_out, sep="\t", index=False, header=False
+        )
+        types_out = os.path.join(self.args["--output-dir"], "types.tsv")
+        df = pandas.DataFrame(dict(ids=ids, types=types))
+        df.to_csv(types_out, sep="\t", index=False, header=False)
 
+        self.logger.debug("Building new domain composition matrix")
+        if self.stream.isatty() and self.logger.level != 0:
+            pbar = tqdm.tqdm(total=len(training_data), leave=False)
+        else:
+            pbar = None
+
+        def domain_composition(table: pandas.DataFrame) -> numpy.ndarray:
+            is_bgc = table[self.args["--y-col"]].array == 1
+            names = table[self.args["--feature-cols"][0]].array[is_bgc]
+            weights = table[self.args["--weight-cols"][0]].array[is_bgc]
+            composition = numpy.zeros(len(all_possible))
+            for i, domain in enumerate(all_possible):
+                composition[i] = numpy.sum(weights[names == domain])
+            if pbar is not None:
+                pbar.update(1)
+            return composition / (composition.sum() or 1)  # type: ignore
+
+        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+            new_comp = numpy.array(pool.map(domain_composition, training_data))
+        if pbar is not None:
+            pbar.close()
+
+        comp_out = os.path.join(self.args["--output-dir"], "compositions.npz")
+        self.logger.debug("Saving new domain composition matrix to {!r}", comp_out)
+        scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(new_comp))
         return 0

@@ -52,3 +52,30 @@ lint:pydocstyle:
     - pip install -U pydocstyle
   script:
     - pydocstyle gecco
+
+lint:mypy:
+  image: python:3.8
+  stage: lint
+  allow_failure: true
+  before_script:
+    - pip install -U mypy
+  script:
+    - mypy gecco
+
+lint:pylint:
+  image: python:3.8
+  stage: lint
+  allow_failure: true
+  before_script:
+    - pip install -U pylint
+  script:
+    - pylint gecco
+
+lint:radon:
+  image: python:3.8
+  stage: lint
+  allow_failure: true
+  before_script:
+    - pip install -U radon
+  script:
+    - radon cc -a gecco

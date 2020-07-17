@@ -3,7 +3,7 @@
 
 import collections
 import typing
-from typing import Dict, Iterable, Mapping, Optional
+from typing import Dict, Iterable, Mapping, Optional, Set, Tuple
 
 import fisher
 import pandas
@@ -41,7 +41,7 @@ def significance_correction(
 
 
 def fisher_significance(
-    data: Iterable["~pandas.DataFrame"],
+    data: Iterable[pandas.DataFrame],
     feature_column: str = "domain",
     label_column: str = "BGC",
     protein_column: str = "protein_id",
@@ -120,8 +120,8 @@ def fisher_significance(
 
     """
     # set of all proteins, +proteins grouped by features
-    proteins = set(), set()
-    features = collections.defaultdict(set), collections.defaultdict(set)
+    proteins = set(), set()  # type: ignore
+    features = collections.defaultdict(set), collections.defaultdict(set)  # type: ignore
 
     # collect proteins / features for all data tables
     for df in data:
@@ -139,10 +139,10 @@ def fisher_significance(
     significance = {}
     for feature in set(features[0]).union(features[1]):
         pvalue = fisher.pvalue(
-            len(features[1][feature]),  # proteins with feature, in BGC
-            len(proteins[1]) - len(features[1][feature]), # proteins without feature, in BGC
-            len(features[0][feature]), # proteins with feature, not in BGC
-            len(proteins[0]) - len(features[0][feature]),
+            len(features[1][feature]),  # with feature, in BGC
+            len(proteins[1]) - len(features[1][feature]),  # without feature, in BGC
+            len(features[0][feature]),  # with feature, not in BGC
+            len(proteins[0]) - len(features[0][feature]),  # without feature, not in BGC
         )
         significance[feature] = pvalue.two_tail
 

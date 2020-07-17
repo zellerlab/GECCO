@@ -81,8 +81,8 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None.")
         # We collect the groups to avoid side-effects during iteration
-        groups: List[Set[object]] = list(map(set, groups))
-        unique_groups = {label for labels in groups for label in labels}
+        group_sets: List[Set[object]] = list(map(set, groups))  # type: ignore
+        unique_groups = {label for labels in group_sets for label in labels}
         if len(unique_groups) <= 1:
             raise ValueError(
                 "The groups parameter contains fewer than 2 unique groups "

@@ -1,4 +1,7 @@
-__author__ = "Jonas Simon Fleck"
+"""Biosynthetic Gene Cluster prediction with Conditional Random Fields.
+"""
+
+__author__ = "Martin Larralde"
 __license__ = "GPLv3"
 __version__ = (
     __import__("pkg_resources")

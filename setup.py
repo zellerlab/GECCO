@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import configparser
-import distutils.cmd
-import distutils.log
 import glob
 import gzip
 import hashlib
@@ -106,14 +104,13 @@ class sdist(_sdist):
         _sdist.run(self)
 
 
-class update_model(distutils.cmd.Command):
+class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.
     """
 
     description = 'update the CRF model embedded in the source'
     user_options = [
       ('model=', 'm', 'the path to the new CRF model to use'),
-      ('domain=', 'd', 'the path to the new domain composition table'),
     ]
 
     def initialize_options(self):
@@ -123,24 +120,20 @@ class update_model(distutils.cmd.Command):
     def finalize_options(self):
         if self.model is None:
             raise ValueError("--model argument must be given")
-        elif not os.path.exists(self.model):
+        elif not os.path.isdir(self.model):
             raise FileNotFoundError(self.model)
-        if self.domain is None:
-            raise ValueError("--domain argument must be given")
-        elif not os.path.exists(self.domain):
-            raise FileNotFoundError(self.domain)
 
     def info(self, msg):
-        self.announce(msg, level=distutils.log.INFO)
+        self.announce(msg, level=2)
 
     def run(self):
         import gecco.data
 
         # Copy the file to the new in-source location and compute its hash.
         hasher = hashlib.md5()
-        self.info("Copying the model to the in-source location")
-        with open(self.model, "rb") as src:
-            with open(gecco.data.realpath("model/crf.model"), "wb") as dst:
+        self.info("Copying the trained CRF model to the in-source location")
+        with open(os.path.join(self.model, "model.pkl"), "rb") as src:
+            with open(os.path.join("gecco", "crf", "model.pkl"), "wb") as dst:
                 read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
                 for chunk in iter(read, b''):
                     hasher.update(chunk)
@@ -148,14 +141,15 @@ class update_model(distutils.cmd.Command):
 
         # Write the hash to the signature file next to the model
         self.info("Writing the MD5 signature file")
-        with open(gecco.data.realpath("model/crf.model.md5"), "w") as sig:
+        with open(os.path.join("gecco", "crf", "model.pkl.md5"), "w") as sig:
             sig.write(hasher.hexdigest())
 
         # Update the domain composition table
-        self.info("Copying the domain composition table to the in-source location")
-        with open(gecco.data.realpath("knn/domain_composition.tsv"), "wb") as dst:
-            with open(self.domain, "rb") as src:
-                shutil.copyfileobj(src, dst)
+        self.info("Copying the KNN training data to the in-source location")
+        for filename in ["compositions.npz", "domains.tsv", "types.tsv"]:
+            src = os.path.join(self.model, filename)
+            dst = os.path.join("gecco", "knn", filename)
+            shutil.copy(src=src, dst=dst)
 
 
 class build_py(_build_py):
@@ -167,27 +161,9 @@ class build_py(_build_py):
             sys.stdout.flush()
             sys.stdout.write('\n\033[F')
 
-    user_options = _build_py.user_options + [
-        ("hmms=", "H", "directory containing HMM metadata")
-    ]
-
-    def initialize_options(self):
-        _build_py.initialize_options(self)
-        section = type(self).__name__
-        self._cfg = configparser.ConfigParser()
-        self._cfg.read_dict({section: {
-            'hmms': os.path.join("gecco", "data", "hmms"),
-        }})
-        self._cfg.read(self.distribution.find_config_files())
-        self.hmms = self._cfg.get(section, 'hmms')
-
-    def finalize_options(self):
-        _build_py.finalize_options(self)
-        self.ensure_dirname('hmms')
-
     def run(self):
         _build_py.run(self)
-        for in_ in glob.glob(os.path.join(self.hmms, "*.ini")):
+        for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
             out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
@@ -201,7 +177,7 @@ class build_py(_build_py):
     def download(self, output, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
-        self.announce("fetching {}".format(url), level=distutils.log.INFO)
+        self.announce("fetching {}".format(url), level=2)
         with ResponseProgressBar(urllib.request.urlopen(url), desc=os.path.basename(output)) as src:
             with open(output, "wb") as dst:
                 shutil.copyfileobj(src, dst)
