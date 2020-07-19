@@ -38,15 +38,15 @@ GECCO is developped by the Zeller Team at the European Molecular Biology Laborat
 in Heidelberg. The following individuals contributed to the development of
 GECCO:
 
-* Laura M. Carroll
-* Martin Larralde
-* Jonas S. Fleck
+- `Laura M. Carroll <https://github.com/lmc297>`_
+- `Martin Larralde <https://github.com/althonos>`_
+- `Jonas S. Fleck <https://github.com/astair>`_
 
 
 
 Indices and tables
 ------------------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+- :ref:`genindex`
+- :ref:`modindex`
+- :ref:`search`

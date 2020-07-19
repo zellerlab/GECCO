@@ -55,7 +55,8 @@ class Strand(enum.IntEnum):
         return "+" if self is Strand.Coding else "-"
 
 
-class Domain(typing.NamedTuple):
+@dataclass
+class Domain:
     """A conserved region within a protein.
 
     Attributes:
@@ -68,6 +69,8 @@ class Domain(typing.NamedTuple):
             (e.g. ``Pfam``, ``Panther``).
         i_evalue (`float`): The independent e-value reported by ``hmmsearch``
             that measures how reliable the domain annotation is.
+        probability (`float`, optional): The probability that this domain
+            is part of a BGC, or `None` if no prediction has been made yet.
 
     """
 
@@ -76,6 +79,7 @@ class Domain(typing.NamedTuple):
     end: int
     hmm: str
     i_evalue: float = 0.0
+    probability: Optional[float] = None
 
 
 @dataclass
@@ -131,13 +135,19 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
-    probability: Optional[float] = None
 
     @property
     def id(self) -> str:
         """`str`: The identifier of the gene (same as the protein identifier).
         """
         return self.protein.id
+
+    @property
+    def probability(self) -> Optional[float]:
+        domains = self.protein.domains
+        if not any(d.probability is not None for d in domains):
+            return None
+        return sum(domain.probability for domain in domains) / len(domains)
 
     def to_feature_table(self) -> pandas.DataFrame:
         """Convert this gene to a feature table listing domain annotations.
