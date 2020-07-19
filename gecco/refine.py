@@ -47,6 +47,8 @@ BIO_PFAMS = frozenset({
 
 class GeneGrouper:
     """A callable to group genes under or over a BGC probability threshold.
+
+    Use with a list of genes in combination with `itertools.groupby`.
     """
 
     def __init__(self, threshold: float):  # noqa: D102, D107

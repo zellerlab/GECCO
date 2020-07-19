@@ -147,7 +147,7 @@ class Gene:
         domains = self.protein.domains
         if not any(d.probability is not None for d in domains):
             return None
-        return sum(domain.probability for domain in domains) / len(domains)
+        return sum(domain.probability for domain in domains) / len(domains)  # type: ignore
 
     def to_feature_table(self) -> pandas.DataFrame:
         """Convert this gene to a feature table listing domain annotations.

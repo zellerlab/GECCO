@@ -147,9 +147,9 @@ class Run(Command):  # noqa: D101
             "Filtering results with e-value under {}", self.args["--e-filter"]
         )
         for gene in genes:
-            gene.protein.domains = [
-                d for d in gene.protein.domains if d.i_evalue < self.args["--e-filter"]
-            ]
+            key = lambda d: d.i_evalue < self.args["--e-filter"]
+            gene.protein.domains = list(filter(key, gene.protein.domains))
+
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.logger.debug("Using remaining {} domains", count)
 
@@ -162,31 +162,15 @@ class Run(Command):  # noqa: D101
         # --- CRF ------------------------------------------------------------
         self.logger.info("Predicting cluster probabilities with the CRF model")
 
-        # Build the feature table from the list of annotated genes
-        self.logger.debug("Building feature table from gene list")
-        feats_df = pandas.concat([g.to_feature_table() for g in genes])
-        feats_df.sort_values(
-            by=["sequence_id", "start", "end", "domain_start"], inplace=True
-        )
-
-        # Load trained CRF model
         self.logger.debug("Loading trained CRF model")
         crf = ClusterCRF.trained(self.args["--model"])
 
-        # Split input dataframe into one group per input sequence
-        feats_df = crf.predict_marginals(
-            data=[g for _, g in feats_df.groupby("sequence_id")]
-        )
+        self.logger.debug("Predicting BGC probabilies")
+        genes = crf.predict_probabilities(genes)
 
-        # Assign probabilities to data classes
-        for gene in genes:
-            rows = feats_df[
-                (feats_df.protein_id == gene.id)
-                & (feats_df.sequence_id == gene.source.id)
-            ]
-            gene.probability = rows.p_pred.mean() if len(rows) else None
+        self.logger.debug("Extracting feature table")
+        feats_df = pandas.concat([g.to_feature_table() for g in genes])
 
-        # Write predictions to file
         pred_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", pred_out)
         feats_df.to_csv(pred_out, sep="\t", index=False)

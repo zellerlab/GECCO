@@ -97,9 +97,9 @@ class TestRun(TestCommand, unittest.TestCase):
         genes = []
         for prot_id, df in feats_df.groupby("protein_id"):
             prot = Protein(prot_id, seq=Seq("M"))
-            gene = Gene(source, min(df.start), max(df.end), Strand.Coding, prot, max(df.p_pred))
+            gene = Gene(source, min(df.start), max(df.end), Strand.Coding, prot)
             for t in df.itertuples():
-                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue)
+                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue, t.p_pred)
                 gene.protein.domains.append(d)
             genes.append(gene)
 

@@ -36,6 +36,7 @@ import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
 
+from ..model import Gene
 from . import preprocessing
 from .cv import LeaveOneGroupOut
 from .select import fisher_significance
@@ -244,6 +245,28 @@ class ClusterCRF(object):
         # Do the actual training
         X, Y = self._extract_features(data, jobs=jobs)
         self.model.fit(X, Y)
+
+    # --- Prediction ---------------------------------------------------------
+
+    def predict_probabilities(
+        self,
+        genes: List[Gene],
+        *,
+        jobs: Optional[int] = None,
+    ) -> List[Gene]:
+        # Group genes by sequence id
+        seqs = itertools.groupby(genes, key=operator.attrgetter("source.id"))
+        # Build one feature table for sequence group
+        data = [pandas.concat([g.to_feature_table() for g in s]) for _, s in seqs]
+        # Predict marginals using the feature table
+        probs = self.predict_marginals(data)
+        # Assign results to the input gene sequence: each domain has a row in
+        # the probability table so we can just zip together
+        domains = itertools.chain.from_iterable(g.protein.domains for g in genes)
+        for domain, row in zip(domains, probs.itertuples()):
+            domain.probability = row.p_pred
+        # Return the genes with annotated domains
+        return genes
 
     def predict_marginals(
         self, data: Iterable[pandas.DataFrame], *, jobs: Optional[int] = None,
