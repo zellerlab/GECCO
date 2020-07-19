@@ -22,6 +22,7 @@ from gecco.cli.commands.run import Run
 from gecco.cli.commands.train import Train
 # from gecco.cli.commands.tune import Tune
 from gecco.model import Domain, Gene, Protein, Strand
+from gecco.knn import ClusterKNN
 
 
 DATADIR = os.path.realpath(os.path.join(__file__, "..", "data"))
@@ -108,6 +109,7 @@ class TestRun(TestCommand, unittest.TestCase):
         _find_genes = mock.Mock(return_value=genes)
         _run = mock.Mock()
         _fit_predict = lambda self, x: x
+        _predict_probabilities = mock.Mock(return_value=genes)
 
         #_concat = mock.Mock(return_value=feats_df)
         with contextlib.ExitStack() as stack:
@@ -118,10 +120,13 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
             )
             stack.enter_context(
-                mock.patch("gecco.crf.ClusterCRF.predict_marginals", new=lambda self, data: pandas.concat(data).assign(p_pred=feats_df.p_pred))
+                mock.patch("gecco.crf.ClusterCRF.predict_probabilities", new=_predict_probabilities)
             )
             stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.ClusterKNN, "predict_types", new=_fit_predict)
+                mock.patch("gecco.cli.commands.run.ClusterKNN.trained", new=ClusterKNN)
+            )
+            stack.enter_context(
+                mock.patch("gecco.cli.commands.run.ClusterKNN.predict_types", new=_fit_predict)
             )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
             main(argv, stream=io.StringIO())
