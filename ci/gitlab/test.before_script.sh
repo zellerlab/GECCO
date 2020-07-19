@@ -6,9 +6,11 @@ set -e
 
 # --- Install software dependencies ------------------------------------------
 
-log Installing executable dependencies with aptitude
-apt update
-apt install -y hmmer
+if [ ! -x "$(command -v hmmsearch)" ]; then
+    log Installing executable dependencies with aptitude
+    apt update
+    apt install -y hmmer
+fi
 
 log Installing Python dependencies with pip
 pip install -U coverage
@@ -17,6 +19,12 @@ pip install -U coverage
 
 mkdir -p ci/cache
 mkdir -p build/lib/gecco/data/hmms
+
+if [ "$CI" == "true" ]; then
+    QUIET="-q"
+else
+    QUIET=""
+fi
 
 for ini_file in gecco/hmmer/*.ini; do
   url=$(grep "url" $ini_file | cut -d'=' -f2 | sed 's/ //g')
@@ -29,12 +37,12 @@ for ini_file in gecco/hmmer/*.ini; do
   if ! [ -e "$cache_file" ]; then
     if [ "$hmm" = "Panther" ]; then
       log Extracting $hmm v$version
-      wget "$url" -q -O- \
+      wget "$url" $QUIET -O- \
         | tar xz --wildcards --no-wildcards-match-slash --no-anchored PTHR\*/hmmer.hmm -O \
         | gzip > "$cache_file"
     else
       log Downloading $hmm v$version
-      wget "$url" -q -O "$cache_file"
+      wget "$url" $QUIET -O "$cache_file"
     fi
   else
     log Using cached $hmm v$version
