@@ -123,7 +123,7 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch("gecco.crf.ClusterCRF.predict_probabilities", new=_predict_probabilities)
             )
             stack.enter_context(
-                mock.patch("gecco.cli.commands.run.ClusterKNN.trained", new=ClusterKNN)
+                mock.patch("gecco.cli.commands.run.ClusterKNN.trained", new=lambda model_path, metric: ClusterKNN(metric=metric))
             )
             stack.enter_context(
                 mock.patch("gecco.cli.commands.run.ClusterKNN.predict_types", new=_fit_predict)
