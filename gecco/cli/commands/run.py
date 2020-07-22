@@ -194,7 +194,7 @@ class Run(Command):  # noqa: D101
 
         # --- KNN ------------------------------------------------------------
         self.logger.info("Predicting BGC types")
-        knn = ClusterKNN.trained(metric=self.args["--distance"])
+        knn = ClusterKNN.trained(self.args["--model"], metric=self.args["--distance"])
         clusters = knn.predict_types(clusters)
 
         # --- RESULTS --------------------------------------------------------
