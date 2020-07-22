@@ -244,11 +244,11 @@ class Cluster:
         return max(gene.end for gene in self.genes)
 
     @property
-    def average_probability(self) -> float:
+    def average_probability(self) -> Optional[float]:
         """`float`: The average of proteins probability of being biosynthetic.
         """
         p = [g.probability for g in self.genes if g.probability is not None]
-        return sum(p) / len(p)
+        return sum(p) / len(p) if p else None
 
     @property
     def maximum_probability(self) -> float:
