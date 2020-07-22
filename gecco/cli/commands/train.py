@@ -2,6 +2,7 @@
 """
 
 import csv
+import hashlib
 import itertools
 import logging
 import multiprocessing.pool
@@ -181,6 +182,13 @@ class Train(Command):  # noqa: D101
         self.logger.info("Writing the model to {!r}", model_out)
         with open(model_out, "wb") as f:
             pickle.dump(crf, f, protocol=4)
+
+        self.logger.debug("Computing and saving model checksum")
+        hasher = hashlib.md5()
+        with open(model_out, "rb") as f:
+            hasher.update(f.read())  # FIXME: iterate on file blocks
+        with open(f"{model_out}.md5", "w") as f:
+            f.write(hasher.hexdigest())
 
         self.logger.info("Writing transitions and state weights")
         crf.save_weights(self.args["--output-dir"])
