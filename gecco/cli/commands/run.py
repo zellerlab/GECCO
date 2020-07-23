@@ -118,6 +118,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Loading sequences from genome file {!r}", genome)
         sequences = SeqIO.parse(genome, guess_sequences_format(genome))
 
+        self.logger.debug("Extracting genes from input sequences")
         orf_finder = PyrodigalFinder(metagenome=True)
         genes = list(
             itertools.chain.from_iterable(map(orf_finder.find_genes, sequences))
@@ -165,7 +166,7 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Loading trained CRF model")
         crf = ClusterCRF.trained(self.args["--model"])
 
-        self.logger.debug("Predicting BGC probabilies")
+        self.logger.debug("Predicting BGC probabilities")
         genes = crf.predict_probabilities(genes)
 
         self.logger.debug("Extracting feature table")
