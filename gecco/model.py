@@ -179,6 +179,7 @@ class Gene:
                     1 - domain.i_evalue,
                     domain.start,
                     domain.end,
+                    domain.probability,
                 )
                 for domain in self.protein.domains
             ],
@@ -194,6 +195,7 @@ class Gene:
                 "rev_i_Evalue",
                 "domain_start",
                 "domain_end",
+                "bgc_probability"
             ],
         )
 
