@@ -127,7 +127,7 @@ class ClusterRefiner:
             return cds_crit
         elif self.criterion == "antismash":
             domains = {d.name for gene in cluster.genes for d in gene.protein.domains}
-            p_crit = numpy.mean([g.probability for g in cluster.genes]) >= self.average_threshold
+            p_crit = numpy.mean([g.average_probability for g in cluster.genes]) >= self.average_threshold
             bio_crit = len(domains & BIO_PFAMS) >= self.n_biopfams
             cds_crit = len(cluster.genes) >= self.n_cds
             return p_crit and bio_crit and cds_crit
