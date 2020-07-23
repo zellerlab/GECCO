@@ -148,7 +148,7 @@ class Gene:
         return sum(p) / len(p) if p else None
 
     @property
-    def maximum_probability(self) -> float:
+    def maximum_probability(self) -> Optional[float]:
         """`float`: The highest of domain probabilities of being biosynthetic.
         """
         p = [d.probability for d in self.protein.domains if d.probability is not None]
