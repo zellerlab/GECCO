@@ -289,11 +289,6 @@ class ClusterCRF(object):
         # Convert data to `CRFSuite` format
         X, _ = self._extract_features(data, X_only=True, jobs=jobs)
 
-        # Remove non-significant features from the extracted bunch
-        if self.significant_features:
-            sf = set(itertools.chain(*self.significant_features.values()))
-            X = [[{k: row[k] for k in row.keys() & sf} for row in x] for x in X]
-
         # Extract cluster (1) probabilities from predicted marginals
         marginal_probs = self.model.predict_marginals(X)
         cluster_probs = [
