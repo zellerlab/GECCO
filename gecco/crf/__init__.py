@@ -257,7 +257,7 @@ class ClusterCRF(object):
         # Group genes by sequence id
         seqs = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         # Build one feature table for sequence group
-        data = [pandas.concat([g.to_feature_table() for g in s]) for _, s in seqs]
+        data = [pandas.concat([g.to_feature_table() for g in s], sort=False) for _, s in seqs]
         # Predict marginals using the feature table
         probs = self.predict_marginals(data, jobs=jobs)
         # Assign results to the input gene sequence: each domain has a row in

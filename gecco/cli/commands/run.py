@@ -169,7 +169,7 @@ class Run(Command):  # noqa: D101
         genes = crf.predict_probabilities(genes)
 
         self.logger.debug("Extracting feature table")
-        feats_df = pandas.concat([g.to_feature_table() for g in genes])
+        feats_df = pandas.concat([g.to_feature_table() for g in genes], sort=False)
 
         pred_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", pred_out)
