@@ -125,8 +125,6 @@ class Gene:
             the source sequence.
         protein (`~gecco.model.Protein`): The protein translated from this
             gene.
-        probability (`float`, optional): The probability with which this
-            protein is part of a biosynthetic gene cluster.
 
     """
 
@@ -143,11 +141,18 @@ class Gene:
         return self.protein.id
 
     @property
-    def probability(self) -> Optional[float]:
-        domains = self.protein.domains
-        if not any(d.probability is not None for d in domains):
-            return None
-        return sum(domain.probability for domain in domains) / len(domains)  # type: ignore
+    def average_probability(self) -> Optional[float]:
+        """`float`: The average of domain probabilities of being biosynthetic.
+        """
+        p = [d.probability for d in self.protein.domains if d.probability is not None]
+        return sum(p) / len(p) if p else None
+
+    @property
+    def maximum_probability(self) -> float:
+        """`float`: The highest of domain probabilities of being biosynthetic.
+        """
+        p = [d.probability for d in self.protein.domains if d.probability is not None]
+        return max(p) if p else None
 
     def to_feature_table(self) -> pandas.DataFrame:
         """Convert this gene to a feature table listing domain annotations.

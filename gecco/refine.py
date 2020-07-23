@@ -56,8 +56,8 @@ class GeneGrouper:
         self.threshold = threshold
 
     def __call__(self, gene: Gene) -> bool:  # noqa: D102
-        if gene.probability is not None:
-            self.in_cluster = gene.probability > self.threshold
+        if gene.average_probability is not None:
+            self.in_cluster = gene.average_probability > self.threshold
         return self.in_cluster
 
 
