@@ -127,8 +127,6 @@ class update_model(setuptools.Command):
         self.announce(msg, level=2)
 
     def run(self):
-        import gecco.data
-
         # Copy the file to the new in-source location and compute its hash.
         hasher = hashlib.md5()
         self.info("Copying the trained CRF model to the in-source location")
