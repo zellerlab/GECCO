@@ -252,15 +252,15 @@ class Cluster:
     def average_probability(self) -> Optional[float]:
         """`float`: The average of proteins probability of being biosynthetic.
         """
-        p = [g.probability for g in self.genes if g.probability is not None]
+        p = [g.average_probability for g in self.genes if g.average_probability is not None]
         return sum(p) / len(p) if p else None
 
     @property
-    def maximum_probability(self) -> float:
+    def maximum_probability(self) -> Optional[float]:
         """`float`: The highest of proteins probability of being biosynthetic.
         """
-        p = [g.probability for g in self.genes if g.probability is not None]
-        return max(p)
+        p = [g.maximum_probability for g in self.genes if g.maximum_probability is not None]
+        return max(p) if p else None
 
     # ---
 
