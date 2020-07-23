@@ -137,9 +137,9 @@ class ClusterRefiner:
     def _trim_cluster(self, cluster: Cluster) -> Cluster:
         """Remove unannotated proteins from the cluster edges.
         """
-        while not cluster.genes[0].protein.domains:
+        while cluster.genes and not cluster.genes[0].protein.domains:
             cluster.genes.pop(0)
-        while not cluster.genes[-1].protein.domains:
+        while cluster.genes and not cluster.genes[-1].protein.domains:
             cluster.genes.pop()
         return cluster
 
