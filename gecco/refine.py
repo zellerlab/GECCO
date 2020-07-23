@@ -115,7 +115,8 @@ class ClusterRefiner:
             respect to the postprocessing criterion given at initialisation.
 
         """
-        return filter(self._validate_cluster, self._iter_clusters(genes))
+        unfiltered_clusters = map(self._trim_cluster, self._iter_clusters(genes))
+        return filter(self._validate_cluster, unfiltered_clusters)
 
     def _validate_cluster(self, cluster: Cluster) -> bool:
         """Check a cluster validity depending on the postprocessing criterion.
@@ -132,6 +133,15 @@ class ClusterRefiner:
             return p_crit and bio_crit and cds_crit
         else:
             raise ValueError(f"unknown BGC filtering criterion: {self.criterion}")
+
+    def _trim_cluster(self, cluster: Cluster) -> Cluster:
+        """Remove unannotated proteins from the cluster edges.
+        """
+        while not cluster.genes[0].protein.domains:
+            cluster.genes.pop(0)
+        while not cluster.genes[-1].protein.domains:
+            cluster.genes.pop()
+        return cluster
 
     def _iter_clusters(
         self,
