@@ -175,8 +175,15 @@ class build_py(_build_py):
     def download(self, output, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
-        self.announce("fetching {}".format(url), level=2)
-        with ResponseProgressBar(urllib.request.urlopen(url), desc=os.path.basename(output)) as src:
+        # attempt to use the GitHub releases URL, otherwise fallback to official URL
+        try:
+            self.announce("fetching {}".format(url), level=2)
+            response = urllib.request.urlopen(url)
+        except urllib.error.HTTPError:
+            self.announce("using fallback {}".format(options["url"]), level=2)
+            response = urllib.request.urlopen(options["url"])
+        # download the HMM
+        with ResponseProgressBar(response, desc=os.path.basename(output)) as src:
             with open(output, "wb") as dst:
                 shutil.copyfileobj(src, dst)
 
