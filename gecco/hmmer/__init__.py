@@ -17,7 +17,7 @@ import pkg_resources
 from Bio import SeqIO
 
 from .._base import BinaryRunner
-from ..model import Gene, Domain, Hmm
+from ..model import Gene, Domain
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
@@ -74,13 +74,36 @@ class DomainRow(typing.NamedTuple):
         return cls(**values)
 
 
+class HMM(typing.NamedTuple):
+    """A Hidden Markov Model library to use with `~gecco.hmmer.HMMER`.
+    """
+
+    id: str
+    version: str
+    url: str
+    path: str
+    relabel_with: Optional[str] = None
+
+    def relabel(self, domain: str) -> str:
+        """Rename a domain obtained by this HMM to the right accession.
+
+        This method can be used with HMM libraries that have separate HMMs
+        for the same domain, such as Pfam.
+        """
+        if self.relabel_with is None:
+            return domain
+        before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
+        regex = re.compile(before)
+        return regex.sub(after, domain)
+
+
 class HMMER(BinaryRunner):
     """A wrapper for HMMER that scans a HMM library against protein sequences.
     """
 
     BINARY = "hmmsearch"
 
-    def __init__(self, hmm: "Hmm", cpus: Optional[int] = None) -> None:
+    def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
         """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:
@@ -136,10 +159,10 @@ class HMMER(BinaryRunner):
         return genes
 
 
-def embedded_hmms() -> Iterator[Hmm]:
+def embedded_hmms() -> Iterator[HMM]:
     """Iterate over the embedded HMMs that are shipped with GECCO.
     """
     for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
-        yield Hmm(path=ini.replace(".ini", ".hmm.gz"), **dict(cfg.items("hmm")))
+        yield HMM(path=ini.replace(".ini", ".hmm.gz"), **dict(cfg.items("hmm")))

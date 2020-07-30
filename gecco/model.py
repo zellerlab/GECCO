@@ -18,29 +18,6 @@ from Bio.SeqRecord import SeqRecord
 from . import __version__
 
 
-class Hmm(typing.NamedTuple):
-    """A Hidden Markov Model library to use with `~gecco.hmmer.HMMER`.
-    """
-
-    id: str
-    version: str
-    url: str
-    path: str
-    relabel_with: Optional[str] = None
-
-    def relabel(self, domain: str) -> str:
-        """Rename a domain obtained by this HMM to the right accession.
-
-        This method can be used with HMM libraries that have separate HMMs
-        for the same domain, such as Pfam.
-        """
-        if self.relabel_with is None:
-            return domain
-        before, after = re.match("^s/(.*)/(.*)/$", self.relabel_with).groups()  # type: ignore
-        regex = re.compile(before)
-        return regex.sub(after, domain)
-
-
 class Strand(enum.IntEnum):
     """A flag to declare on which DNA strand a gene is located.
     """
@@ -97,12 +74,13 @@ class Domain:
         self.probability = probability
         self.qualifiers = qualifiers or dict()
 
-    def to_seq_feature(self):
+    def to_seq_feature(self) -> SeqFeature:
         start, end = self.start * 3, self.end * 3
         loc = FeatureLocation(start, end)
 
         qualifiers = self.qualifiers.copy()
-        qualifiers.setdefault("label", self.name)
+        qualifiers.setdefault("standard_name", self.name)
+        qualifiers.setdefault("note", []).append("e-value:{}".format(self.i_evalue))
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 

@@ -20,11 +20,10 @@ from Bio import SeqIO
 from ._base import Command
 from .._utils import guess_sequences_format
 from ...crf import ClusterCRF
-from ...hmmer import HMMER, embedded_hmms
+from ...hmmer import HMMER, HMM, embedded_hmms
 from ...knn import ClusterKNN
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
-from ...model import Hmm
 
 
 class Run(Command):  # noqa: D101
@@ -129,7 +128,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: Hmm) -> "pandas.DataFrame":
+        def annotate(hmm: HMM) -> "pandas.DataFrame":
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )
