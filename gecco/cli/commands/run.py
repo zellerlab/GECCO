@@ -211,7 +211,7 @@ class Run(Command):  # noqa: D101
         for cluster in clusters:
             gbk_out = os.path.join(out_dir, f"{cluster.id}.gbk")
             self.logger.debug("Writing cluster {} to {!r}", cluster.id, gbk_out)
-            SeqIO.write(cluster.to_record(), gbk_out, "genbank")
+            SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
         # Exit gracefully
         self.logger.info("Successfully found {} clusters!", len(clusters))

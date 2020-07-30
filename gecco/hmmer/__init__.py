@@ -130,6 +130,7 @@ class HMMER(BinaryRunner):
             gene = gene_index[row.target_name]
             name = self.hmm.relabel(row.query_accession or row.query_name)
             domain = Domain(name, row.env_from, row.env_to, self.hmm.id, row.i_evalue)
+            domain.qualifiers["inference"] = ["protein motif"]
             gene.protein.domains.append(domain)
 
         return genes

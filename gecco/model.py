@@ -5,7 +5,7 @@ import csv
 import enum
 import re
 import typing
-from typing import Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence
 from dataclasses import dataclass
 
 import Bio.Alphabet
@@ -71,6 +71,9 @@ class Domain:
             that measures how reliable the domain annotation is.
         probability (`float`, optional): The probability that this domain
             is part of a BGC, or `None` if no prediction has been made yet.
+        qualifiers (`dict`, optional): A dictionary of feature qualifiers that
+            is added to the `~Bio.SeqFeature.SeqFeature` built from this
+            `Domain`.
 
     """
 
@@ -78,8 +81,29 @@ class Domain:
     start: int
     end: int
     hmm: str
-    i_evalue: float = 0.0
-    probability: Optional[float] = None
+    i_evalue: float
+    probability: Optional[float]
+    qualifiers: Dict[str, object]
+
+    def __init__(
+        self, name: str, start: int, end: int, hmm: str, i_evalue: float = 0.0,
+        probability: Optional[float] = None, qualifiers: Optional[Dict[str, object]] = None
+    ):  # noqa: D107
+        self.name = name
+        self.start = start
+        self.end = end
+        self.hmm = hmm
+        self.i_evalue = i_evalue
+        self.probability = probability
+        self.qualifiers = qualifiers or dict()
+
+    def to_seq_feature(self):
+        start, end = self.start * 3, self.end * 3
+        loc = FeatureLocation(start, end)
+
+        qualifiers = self.qualifiers.copy()
+        qualifiers.setdefault("label", self.name)
+        return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 
 @dataclass
@@ -111,7 +135,6 @@ class Protein:
         # FIXME: add domains
         return SeqRecord(self.seq, id=self.id, name=self.id)
 
-
 @dataclass
 class Gene:
     """A nucleotide sequence coding a protein.
@@ -125,6 +148,9 @@ class Gene:
             the source sequence.
         protein (`~gecco.model.Protein`): The protein translated from this
             gene.
+        qualifiers (`dict`, optional): A dictionary of feature qualifiers that
+            is added to the `~Bio.SeqFeature.SeqFeature` built from this
+            `Gene`.
 
     """
 
@@ -133,6 +159,15 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
+    qualifiers: Dict[str, object]
+
+    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Dict[str, object]] = None):
+        self.source = source
+        self.start = start
+        self.end = end
+        self.strand = strand
+        self.protein = protein
+        self.qualifiers = qualifiers or dict()
 
     @property
     def id(self) -> str:
@@ -153,6 +188,8 @@ class Gene:
         """
         p = [d.probability for d in self.protein.domains if d.probability is not None]
         return max(p) if p else None
+
+    # ---
 
     def to_feature_table(self) -> pandas.DataFrame:
         """Convert this gene to a feature table listing domain annotations.
@@ -198,6 +235,14 @@ class Gene:
                 "bgc_probability"
             ],
         )
+
+    def to_seq_feature(self) -> SeqFeature:
+        start, end = 0, self.end - self.start + 1
+        loc = FeatureLocation(start=start, end=end, strand=int(self.strand))
+        qualifiers = self.qualifiers.copy()
+        qualifiers.setdefault("locus_tag", self.protein.id)
+        qualifiers.setdefault("translation", str(self.protein.seq))
+        return SeqFeature(location=loc, type="cds", qualifiers=qualifiers)
 
 
 @dataclass
@@ -294,7 +339,7 @@ class Cluster:
 
     # ---
 
-    def to_record(self) -> SeqRecord:
+    def to_seq_record(self) -> SeqRecord:
         """Convert the cluster to a single record.
 
         Annotations of the source sequence are kept intact if they don't
@@ -315,28 +360,17 @@ class Cluster:
 
         # add proteins as CDS features
         for gene in self.genes:
-            # translate gene location
-            start = gene.start - self.start - 1
-            end = gene.end - self.start
-            loc = FeatureLocation(start=start, end=end, strand=int(gene.strand))
-            # write protein as a /cds GenBank record
-            cds = SeqFeature(location=loc, type="cds")
-            cds.qualifiers["label"] = gene.id
-            cds.qualifiers["inference"] = [
-                "EXISTENCE:ab initio prediction:PRODIGAL:2.6"
-            ]
-            cds.qualifiers["translation"] = str(gene.protein.seq)
+            # write gene as a /cds GenBank record
+            cds = gene.to_seq_feature()
+            cds.location += gene.start - self.start - 1
             bgc.features.append(cds)
-
-            # write domains as /misc_feature annotations
+            # # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
-                dom_start = start + domain.start * 3
-                dom_end = start + domain.end * 3
-                loc = FeatureLocation(dom_start, dom_end, strand=int(gene.strand))
-                misc = SeqFeature(location=loc, type="misc_feature")
-                misc.qualifiers["label"] = domain.name
+                misc = domain.to_seq_feature()
+                misc.location += cds.location.start
                 bgc.features.append(misc)
 
+        # return the complete BGC
         return bgc
 
     def to_cluster_table(self) -> pandas.DataFrame:

@@ -74,4 +74,8 @@ class PyrodigalFinder(ORFFinder):
                 end=max(orf.begin, orf.end),
                 strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
                 protein=protein,
+                qualifiers={
+                    "inference": ["ab initio prediction:Prodigal:2.6"],
+                    "transl_table": orf.translation_table,
+                }
             )
