@@ -74,10 +74,16 @@ class Domain:
         self.probability = probability
         self.qualifiers = qualifiers or dict()
 
-    def to_seq_feature(self) -> SeqFeature:
-        start, end = self.start * 3, self.end * 3
-        loc = FeatureLocation(start, end)
+    def to_seq_feature(self, protein_coordinates=False) -> SeqFeature:
+        """Convert the domain to a single feature.
 
+        Arguments:
+            protein_coordinates (`bool`): Set to `True` for the feature
+                coordinates to be given in amino-acids, or to `False` in
+                nucleotides.
+        """
+        stride = 1 if protein_coordinates else 3
+        loc = FeatureLocation(0, (self.end - self.start)*stride)
         qualifiers = self.qualifiers.copy()
         qualifiers.setdefault("standard_name", self.name)
         qualifiers.setdefault("note", []).append("e-value:{}".format(self.i_evalue))
@@ -107,7 +113,7 @@ class Protein:
         self.seq = seq
         self.domains = domains or list()
 
-    def to_record(self) -> SeqRecord:
+    def to_seq_record(self) -> SeqRecord:
         """Convert the protein to a single record.
         """
         # FIXME: add domains
@@ -139,7 +145,7 @@ class Gene:
     protein: Protein
     qualifiers: Dict[str, object]
 
-    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Dict[str, object]] = None):
+    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Dict[str, object]] = None): # noqa: D107
         self.source = source
         self.start = start
         self.end = end
@@ -215,8 +221,12 @@ class Gene:
         )
 
     def to_seq_feature(self) -> SeqFeature:
-        start, end = 0, self.end - self.start + 1
-        loc = FeatureLocation(start=start, end=end, strand=int(self.strand))
+        """Convert the gene to a single feature.
+        """
+        # NB(@althonos): we use inclusive 1-based ranges in the data model
+        # but Biopython expects 0-based ranges with exclusive ends
+        end = self.end - self.start + 1
+        loc = FeatureLocation(start=0, end=end, strand=int(self.strand))
         qualifiers = self.qualifiers.copy()
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
@@ -326,7 +336,9 @@ class Cluster:
         *misc_feature*.
 
         """
-        bgc = self.source[self.start : self.end]
+        # NB(@althonos): we use inclusive 1-based ranges in the data model
+        # but slicing expects 0-based ranges with exclusive ends
+        bgc = self.source[self.start - 1 : self.end]
         bgc.id = bgc.name = self.id
         bgc.seq.alphabet = Bio.Alphabet.generic_dna
 
@@ -340,11 +352,11 @@ class Cluster:
         for gene in self.genes:
             # write gene as a /cds GenBank record
             cds = gene.to_seq_feature()
-            cds.location += gene.start - self.start - 1
+            cds.location += gene.start - self.start
             bgc.features.append(cds)
             # # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
-                misc = domain.to_seq_feature()
+                misc = domain.to_seq_feature(protein_coordinates=False)
                 misc.location += cds.location.start
                 bgc.features.append(misc)
 
