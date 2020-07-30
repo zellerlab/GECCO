@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import configparser
+import csv
 import glob
 import gzip
 import hashlib
@@ -14,6 +15,7 @@ import sys
 import tarfile
 import urllib.request
 from functools import partial
+from xml.etree import ElementTree as etree
 
 import setuptools
 from setuptools.command.build_py import build_py as _build_py
@@ -161,18 +163,45 @@ class build_py(_build_py):
 
     def run(self):
         _build_py.run(self)
+        self.download_hmms()
+        self.build_interpro_list()
+
+    def build_interpro_list(self):
+        self.announce("getting interpro entry list", level=2)
+        url = "http://ftp.ebi.ac.uk/pub/databases/interpro/interpro.xml.gz"
+        response = urllib.request.urlopen(url)
+        path = os.path.join(self.build_lib, "gecco", "hmmer", "interpro.tsv.gz")
+        with ResponseProgressBar(response, desc=os.path.basename(path)) as res:
+            src = gzip.GzipFile(fileobj=res)
+            with gzip.open(path, "wt") as dest:
+                writer = csv.writer(dest, dialect="excel-tab")
+                writer.writerow(["accession", "db", "interpro", "short", "name"])
+                for _, elem in etree.iterparse(src, events=['end']):
+                    if elem.tag != 'interpro':
+                        continue
+                    for xref in elem.find('member_list').iterfind('db_xref'):
+                        writer.writerow([
+                            xref.attrib['dbkey'],
+                            xref.attrib['db'],
+                            elem.attrib['id'],
+                            elem.attrib['short_name'],
+                            elem.find('name').text.strip(),
+                        ])
+                    elem.clear()
+
+    def download_hmms(self):
         for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
             out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
             try:
-                self.make_file([in_], out, self.download, [out, dict(cfg.items('hmm'))])
+                self.make_file([in_], out, self.download_hmm, [out, dict(cfg.items('hmm'))])
             except:
                 if os.path.exists(out):
                     os.remove(out)
                 raise
 
-    def download(self, output, options):
+    def download_hmm(self, output, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
         # attempt to use the GitHub releases URL, otherwise fallback to official URL
