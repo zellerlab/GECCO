@@ -7,6 +7,7 @@ import csv
 import errno
 import glob
 import os
+import re
 import subprocess
 import tempfile
 import typing
@@ -132,7 +133,7 @@ class HMMER(BinaryRunner):
         doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
 
         # write protein sequences
-        protein_records = (g.protein.to_record() for g in genes)
+        protein_records = (g.protein.to_seq_record() for g in genes)
         SeqIO.write(protein_records, seqs_tmp.name, "fasta")
 
         # Prepare the command line arguments
