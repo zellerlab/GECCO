@@ -7,10 +7,12 @@ import glob
 import gzip
 import hashlib
 import io
+import json
 import math
 import os
 import re
 import shutil
+import ssl
 import sys
 import tarfile
 import urllib.request
@@ -167,27 +169,28 @@ class build_py(_build_py):
         self.build_interpro_list()
 
     def build_interpro_list(self):
-        self.announce("getting interpro entry list", level=2)
-        url = "http://ftp.ebi.ac.uk/pub/databases/interpro/interpro.xml.gz"
-        response = urllib.request.urlopen(url)
-        path = os.path.join(self.build_lib, "gecco", "hmmer", "interpro.tsv.gz")
-        with ResponseProgressBar(response, desc=os.path.basename(path)) as res:
-            src = gzip.GzipFile(fileobj=res)
-            with gzip.open(path, "wt") as dest:
-                writer = csv.writer(dest, dialect="excel-tab")
-                writer.writerow(["accession", "db", "interpro", "short", "name"])
-                for _, elem in etree.iterparse(src, events=['end']):
-                    if elem.tag != 'interpro':
-                        continue
-                    for xref in elem.find('member_list').iterfind('db_xref'):
-                        writer.writerow([
-                            xref.attrib['dbkey'],
-                            xref.attrib['db'],
-                            elem.attrib['id'],
-                            elem.attrib['short_name'],
-                            elem.find('name').text.strip(),
-                        ])
-                    elem.clear()
+        self.announce("getting Pfam entries from InterPro", level=2)
+        entries = self.download_interpro_entries("pfam")
+        self.announce("getting Tigrfam entries from InterPro", level=2)
+        entries.extend(self.download_interpro_entries("tigrfams"))
+
+        path = os.path.join(self.build_lib, "gecco", "interpro", "interpro.json.gz")
+        with gzip.open(path, "wt") as dest:
+            json.dump(entries, dest)
+
+    def download_interpro_entries(self, db):
+        next = "https://www.ebi.ac.uk:443/interpro/api/entry/all/{}/?page_size=200".format(db)
+        entries = []
+        context = ssl._create_unverified_context()
+        pbar = tqdm()
+        while next:
+            with urllib.request.urlopen(next, context=context) as res:
+                payload = json.load(res)
+                pbar.total = payload["count"]
+                next = payload["next"]
+                entries.extend(payload["results"])
+                pbar.update(len(payload["results"]))
+        return entries
 
     def download_hmms(self):
         for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
