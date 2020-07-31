@@ -81,12 +81,12 @@ class Domain:
             protein_coordinates (`bool`): Set to `True` for the feature
                 coordinates to be given in amino-acids, or to `False` in
                 nucleotides.
+                
         """
         stride = 1 if protein_coordinates else 3
         loc = FeatureLocation(0, (self.end - self.start)*stride)
         qualifiers = self.qualifiers.copy()
         qualifiers.setdefault("standard_name", self.name)
-        qualifiers.setdefault("note", []).append("e-value:{}".format(self.i_evalue))
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 
@@ -118,6 +118,7 @@ class Protein:
         """
         # FIXME: add domains
         return SeqRecord(self.seq, id=self.id, name=self.id)
+
 
 @dataclass
 class Gene:

@@ -19,6 +19,7 @@ from Bio import SeqIO
 
 from .._base import BinaryRunner
 from ..model import Gene, Domain
+from ..interpro import InterPro
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
@@ -145,18 +146,31 @@ class HMMER(BinaryRunner):
         # Run HMMER
         subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
 
+        # Load InterPro metadata for the annotation
+        interpro = InterPro.load()
+
         # Read the domain table
         lines = filter(lambda line: not line.startswith("#"), doms_tmp)
         rows = map(DomainRow.from_line, lines)
 
         # update protein domains
         for row in rows:
-            gene = gene_index[row.target_name]
-            name = self.hmm.relabel(row.query_accession or row.query_name)
-            domain = Domain(name, row.env_from, row.env_to, self.hmm.id, row.i_evalue)
+            # extract domain from the domain table row
+            accession = self.hmm.relabel(row.query_accession or row.query_name)
+            domain = Domain(accession, row.env_from, row.env_to, self.hmm.id, row.i_evalue)
+            # add additional qualifiers with available metadata
             domain.qualifiers["inference"] = ["protein motif"]
-            gene.protein.domains.append(domain)
+            domain.qualifiers["note"] = ["e-value: {}".format(row.i_evalue)]
+            domain.qualifiers["db_xref"] = ["{}:{}".format(self.hmm.id.upper(), accession)]
+            # add additional qualifiers using the InterPro entry list
+            entry = interpro.by_accession[accession]
+            domain.qualifiers["function"] = [interpro.by_accession[accession].name]
+            if entry.integrated is not None:
+                domain.qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
+            # add the domain to the protein domains of the right gene
+            gene_index[row.target_name].protein.domains.append(domain)
 
+        # return the updated list of genes that was given in argument
         return genes
 
 
