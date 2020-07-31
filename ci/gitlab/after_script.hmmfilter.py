@@ -24,7 +24,7 @@ rx = re.compile("|".join(crf.model.attributes_).encode("utf-8"))
 # Filter the hmms
 for hmm in embedded_hmms():
     out = os.path.join("ci", "artifacts", "{}.hmm.gz".format(hmm.id))
-    size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(mm.id.upper()))
+    size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(hmm.id.upper()))
     pbar = tqdm.tqdm(desc=hmm.id, total=size, unit="B", unit_scale=True, unit_divisor=1024)
 
     with contextlib.ExitStack() as ctx:
