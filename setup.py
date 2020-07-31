@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import configparser
 import csv
@@ -22,11 +21,7 @@ from xml.etree import ElementTree as etree
 import setuptools
 from setuptools.command.build_py import build_py as _build_py
 from setuptools.command.sdist import sdist as _sdist
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = None
+from tqdm import tqdm
 
 
 class ResponseProgressBar(object):
@@ -34,24 +29,17 @@ class ResponseProgressBar(object):
     def __init__(self, inner, tqdm=tqdm, **kwargs):
         self.inner = inner
         self.total = total = int(inner.headers['Content-Length'])
-
-        if tqdm is not None:
-            self.pbar = tqdm(
-                total=total,
-                leave=True,
-                unit='iB',
-                unit_scale=True,
-                unit_divisor=1024,
-                file=sys.stdout,
-                **kwargs
-            )
-            self.update = self.pbar.update
-            self.refresh = self.pbar.refresh
-        else:
-            self.pbar = None
-            self.current = 0
-            self.next_p = 5
-            self.desc = kwargs.get("desc")
+        self.pbar = tqdm(
+            total=total,
+            leave=False,
+            unit='iB',
+            unit_scale=True,
+            unit_divisor=1024,
+            file=sys.stdout,
+            **kwargs
+        )
+        self.update = self.pbar.update
+        self.refresh = self.pbar.refresh
 
     def __enter__(self):
         return self
@@ -61,34 +49,12 @@ class ResponseProgressBar(object):
             self.inner.__exit__(exc_type, exc_value, traceback)
         if self.pbar is not None:
             self.pbar.__exit__(exc_type, exc_value, traceback)
-        else:
-            print()
         return False
 
     def read(self, n=None):
         chunk = self.inner.read(n)
         self.update(len(chunk))
         return chunk
-
-    def update(self, n):
-        self.current = c = self.current + n
-        p = int(float(c) * 100.0 / self.total)
-        if p >= self.next_p:
-            self.next_p = p + 5
-            print(
-                "{} : {:>{}}B / {}B [{: 3}%]".format(
-                    self.desc,
-                    c,
-                    int(math.ceil(math.log10(self.total))),
-                    self.total,
-                    p
-                ),
-                end="\r"
-            )
-            sys.stdout.flush()
-
-    def refresh(self):
-        pass
 
 
 class sdist(_sdist):
@@ -155,13 +121,8 @@ class update_model(setuptools.Command):
 
 
 class build_py(_build_py):
-
-    @staticmethod
-    def _flush_progress_bar(pbar):
-        if not sys.stdout.isatty():
-            pbar.refresh()
-            sys.stdout.flush()
-            sys.stdout.write('\n\033[F')
+    """A hacked `build_py` command to download data before wheel creation.
+    """
 
     def run(self):
         _build_py.run(self)
@@ -169,12 +130,13 @@ class build_py(_build_py):
         self.build_interpro_list()
 
     def build_interpro_list(self):
+        path = os.path.join(self.build_lib, "gecco", "interpro", "interpro.json.gz")
+        if os.path.exists(path):
+            return
         self.announce("getting Pfam entries from InterPro", level=2)
         entries = self.download_interpro_entries("pfam")
         self.announce("getting Tigrfam entries from InterPro", level=2)
         entries.extend(self.download_interpro_entries("tigrfams"))
-
-        path = os.path.join(self.build_lib, "gecco", "interpro", "interpro.json.gz")
         with gzip.open(path, "wt") as dest:
             json.dump(entries, dest)
 
@@ -182,14 +144,14 @@ class build_py(_build_py):
         next = "https://www.ebi.ac.uk:443/interpro/api/entry/all/{}/?page_size=200".format(db)
         entries = []
         context = ssl._create_unverified_context()
-        pbar = tqdm()
-        while next:
-            with urllib.request.urlopen(next, context=context) as res:
-                payload = json.load(res)
-                pbar.total = payload["count"]
-                next = payload["next"]
-                entries.extend(payload["results"])
-                pbar.update(len(payload["results"]))
+        with tqdm(desc=db, leave=False) as pbar:
+            while next:
+                with urllib.request.urlopen(next, context=context) as res:
+                    payload = json.load(res)
+                    pbar.total = payload["count"]
+                    next = payload["next"]
+                    entries.extend(payload["results"])
+                    pbar.update(len(payload["results"]))
         return entries
 
     def download_hmms(self):
