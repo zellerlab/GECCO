@@ -13,7 +13,7 @@ if [ ! -x "$(command -v hmmsearch)" ]; then
 fi
 
 log Installing Python dependencies with pip
-pip install -U coverage
+pip install -U coverage tqdm
 
 # --- Install data dependencies ----------------------------------------------
 
