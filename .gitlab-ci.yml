@@ -17,9 +17,7 @@ variables:
   before_script:
     - ./ci/gitlab/test.before_script.sh
   script:
-    - python setup.py bdist_wheel
-    - pip install -U dist/*.whl
-    - python -m coverage run -p -m unittest discover -vv
+    - ./ci/gitlab/test.script.sh
   after_script:
     - python -m coverage combine
     - python -m coverage report
