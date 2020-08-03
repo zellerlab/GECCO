@@ -81,7 +81,7 @@ class Domain:
             protein_coordinates (`bool`): Set to `True` for the feature
                 coordinates to be given in amino-acids, or to `False` in
                 nucleotides.
-                
+
         """
         stride = 1 if protein_coordinates else 3
         loc = FeatureLocation(0, (self.end - self.start)*stride)
@@ -242,29 +242,31 @@ class Cluster:
         id (`str`): The identifier of the gene cluster.
         genes (`list` of `~gecco.model.Gene`): A list of the genes belonging
             to this gene cluster.
-        type (`str`): The putative type of product synthesized by this gene
-            cluster, according to similarity with existing clusters.
-        type_probability (`float`): The probability with which the BGC type
-            was identified.
+        types (`list` of `str`): The list of the putative types of product
+            synthesized by this gene cluster, according to similarity in
+            domain composition with curated clusters.
+        types_probabilities (`list` of `float`): The probability with which
+            each BGC type was identified (same dimension as the ``types``
+            attribute).
 
     """
 
     id: str
     genes: List[Gene]
-    type: str = "Other"
-    type_probability: float = 0.0
+    types: List[str]
+    types_probabilities: List[float]
 
     def __init__(
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
-        type: str = "Unknown",
-        type_probability: float = 0.0,
+        types: Optional[List[str]] = None,
+        types_probabilities: Optional[List[float]] = None,
     ):  # noqa: D107
         self.id = id
         self.genes = genes or list()
-        self.type = type
-        self.type_probability = type_probability
+        self.types = types or list()
+        self.types_probabilities = types_probabilities
 
     @property
     def source(self) -> SeqRecord:  # type: ignore
@@ -381,8 +383,8 @@ class Cluster:
                     self.end,
                     self.average_probability,
                     self.maximum_probability,
-                    self.type,
-                    self.type_probability,
+                    ";".join(self.types),
+                    ";".join(map(str, self.types_probabilities)),
                     ";".join([gene.id for gene in self.genes]),
                     ";".join(
                         sorted(
@@ -402,8 +404,8 @@ class Cluster:
                 "end",
                 "average_p",
                 "max_p",
-                "BGC_type",
-                "BGC_type_p",
+                "BGC_types",
+                "BGC_types_p",
                 "proteins",
                 "domains",
             ],
