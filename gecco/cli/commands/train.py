@@ -226,10 +226,12 @@ class Train(Command):  # noqa: D101
         def domain_composition(table: pandas.DataFrame) -> numpy.ndarray:
             is_bgc = table[self.args["--y-col"]].array == 1
             names = table[self.args["--feature-cols"][0]].array[is_bgc]
+            unique_names = set(names)
             weights = table[self.args["--weight-cols"][0]].array[is_bgc]
             composition = numpy.zeros(len(all_possible))
             for i, domain in enumerate(all_possible):
-                composition[i] = numpy.sum(weights[names == domain])
+                if domain in unique_names:
+                    composition[i] = numpy.sum(weights[names == domain])
             if pbar is not None:
                 pbar.update(1)
             return composition / (composition.sum() or 1)  # type: ignore
