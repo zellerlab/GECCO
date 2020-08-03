@@ -8,7 +8,6 @@ import typing
 from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy
-import pandas
 import pkg_resources
 import scipy.sparse
 import sklearn.ensemble
@@ -18,7 +17,6 @@ import sklearn.preprocessing
 if typing.TYPE_CHECKING:
     from ..model import Cluster
 
-    _S = typing.TypeVar("_S", bound=Sequence[Cluster])
 
 
 class TypeClassifier(object):
@@ -50,8 +48,10 @@ class TypeClassifier(object):
             comp_path = pkg_resources.resource_filename(__name__, "compositions.npz")
 
         compositions = scipy.sparse.load_npz(comp_path)
-        domains = pandas.read_csv(doms_path, header=None, sep="\t")[0].array
-        types = pandas.read_csv(typs_path, header=None, sep="\t")[1].array
+        with open(doms_path, "r") as src:
+            domains = [ line.strip() for line in src ]
+        with open(typs_path, "r") as src:
+            types = [ line.split("\t")[1].strip() for line in src ]
 
         classifier = cls(random_state=0)
         types_bin = classifier.binarizer.fit_transform([t.split(";") for t in types])
@@ -72,6 +72,7 @@ class TypeClassifier(object):
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
         self.binarizer = sklearn.preprocessing.MultiLabelBinarizer()
 
+    _S = typing.TypeVar("_S", bound=Sequence["Cluster"])
 
     def predict_types(self, clusters: "_S") -> "_S":
         """Predict types for each of the given clusters.
