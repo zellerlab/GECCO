@@ -29,7 +29,7 @@ class InterPro:
         self.by_accession = { entry.accession:entry for entry in entries }
 
     @classmethod
-    def load(cls):
+    def load(cls) -> "InterPro":
         with pkg_resources.resource_stream(__name__, "interpro.json.gz") as f:
             data = json.load(gzip.open(f, mode="rt"))
             entries = [ InterProEntry(**entry["metadata"]) for entry in data ]

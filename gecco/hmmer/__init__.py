@@ -166,7 +166,7 @@ class HMMER(BinaryRunner):
             entry = interpro.by_accession[accession]
             domain.qualifiers["function"] = [interpro.by_accession[accession].name]
             if entry.integrated is not None:
-                domain.qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
+                domain.qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))  # type: ignore
             # add the domain to the protein domains of the right gene
             gene_index[row.target_name].protein.domains.append(domain)
 

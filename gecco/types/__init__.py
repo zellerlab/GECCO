@@ -84,7 +84,8 @@ class TypeClassifier(object):
         preds = self.binarizer.inverse_transform(probas > 0.5)
 
         # annotate the input clusters
-        for cluster, proba, pred in zip(iter(clusters), probas, preds):
+        results = zip(typing.cast(Iterable["Cluster"], clusters), probas, preds)
+        for cluster, proba, pred in results:
             cluster.types = list(pred)
             cluster.types_probabilities = list(proba[proba > 0.5])
 

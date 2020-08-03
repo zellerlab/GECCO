@@ -74,7 +74,7 @@ class Domain:
         self.probability = probability
         self.qualifiers = qualifiers or dict()
 
-    def to_seq_feature(self, protein_coordinates=False) -> SeqFeature:
+    def to_seq_feature(self, protein_coordinates: bool = False) -> SeqFeature:
         """Convert the domain to a single feature.
 
         Arguments:
@@ -266,7 +266,12 @@ class Cluster:
         self.id = id
         self.genes = genes or list()
         self.types = types or list()
-        self.types_probabilities = types_probabilities
+        self.types_probabilities = types_probabilities or list()
+
+        if len(self.types) != len(self.types_probabilities):
+            err = "type and type probability lists must have the same dimensions"
+            raise ValueError(err)
+
 
     @property
     def source(self) -> SeqRecord:  # type: ignore
