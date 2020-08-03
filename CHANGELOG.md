@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.3.0...master
+
+## [v0.3.0] - 2020-08-03
+[v0.2.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.2...v0.3.0
+### Changed
+- Replaced Nearest-Neighbours classifier with Random Forest to perform type
+  prediction for candidate BGCs.
+- `gecco.knn` module was renamed to implementation-agnostic name `gecco.types`.
+### Fixed
+- Extraction of domain composition taking a long time in `gecco train` command.
+### Removed
+- `--metric` argument to the `gecco run` CLI command.
 
 ## [v0.2.2] - 2020-07-31
 [v0.2.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.1...v0.2.2
