@@ -21,7 +21,7 @@ from ._base import Command
 from .._utils import guess_sequences_format
 from ...crf import ClusterCRF
 from ...hmmer import HMMER, HMM, embedded_hmms
-from ...knn import ClusterKNN
+from ...types import TypeClassifier
 from ...orf import PyrodigalFinder
 from ...refine import ClusterRefiner
 
@@ -61,12 +61,6 @@ class Run(Command):  # noqa: D101
         --postproc <method>           the method to use for cluster validation
                                       (antismash or gecco). [default: gecco]
 
-    Parameters - BGC Type Prediction:
-        -d <d>, --distance <d>        the distance metric to use for kNN type
-                                      prediction. [default: jensenshannon]
-        -k <n>, --neighbors <n>       the number of neighbors to use for
-                                      kNN type prediction [default: 5]
-
     Parameters - Debug:
         --model <model.crf>           the path to an alternative CRF model
                                       to use (obtained with `gecco train`).
@@ -78,7 +72,6 @@ class Run(Command):  # noqa: D101
             return retcode
 
         # Check value of numeric arguments
-        self.args["--neighbors"] = int(self.args["--neighbors"])
         self.args["--cds"] = int(self.args["--cds"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
@@ -192,10 +185,10 @@ class Run(Command):  # noqa: D101
             self.logger.warning("No gene clusters were found")
             return 0
 
-        # --- KNN ------------------------------------------------------------
+        # --- TYPE CLASSIFICATION ---------------------------------------------
         self.logger.info("Predicting BGC types")
-        knn = ClusterKNN.trained(self.args["--model"], metric=self.args["--distance"])
-        clusters = knn.predict_types(clusters)
+        classifier = TypeClassifier.trained(self.args["--model"])
+        clusters = classifier.predict_types(clusters)
 
         # --- RESULTS --------------------------------------------------------
         self.logger.info("Writing final result files to folder {!r}", out_dir)
