@@ -22,7 +22,7 @@ from gecco.cli.commands.run import Run
 from gecco.cli.commands.train import Train
 # from gecco.cli.commands.tune import Tune
 from gecco.model import Domain, Gene, Protein, Strand
-from gecco.knn import ClusterKNN
+from gecco.types import TypeClassifier
 
 
 DATADIR = os.path.realpath(os.path.join(__file__, "..", "data"))
@@ -123,10 +123,10 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch("gecco.crf.ClusterCRF.predict_probabilities", new=_predict_probabilities)
             )
             stack.enter_context(
-                mock.patch("gecco.cli.commands.run.ClusterKNN.trained", new=lambda model_path, metric: ClusterKNN(metric=metric))
+                mock.patch("gecco.cli.commands.run.TypeClassifier.trained", new=lambda model: TypeClassifier())
             )
             stack.enter_context(
-                mock.patch("gecco.cli.commands.run.ClusterKNN.predict_types", new=_fit_predict)
+                mock.patch("gecco.cli.commands.run.TypeClassifier.predict_types", new=_fit_predict)
             )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
             main(argv, stream=io.StringIO())
