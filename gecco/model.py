@@ -3,11 +3,13 @@
 
 import csv
 import enum
+import itertools
+import operator
 import re
 import typing
 from collections.abc import Sized
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
 
 import Bio.Alphabet
 import numpy
@@ -263,11 +265,13 @@ class Cluster:
         domains = [d for gene in self.genes for d in gene.protein.domains]
         names = numpy.array([domain.name for domain in domains])
         weights = numpy.array([1 - domain.i_evalue for domain in domains])
+        unique_names = set(names)
         if all_possible is None:
             all_possible = numpy.unique(names)
         composition = numpy.zeros(len(all_possible))
         for i, dom in enumerate(all_possible):
-            composition[i] = numpy.sum(weights[names == dom])
+            if dom in unique_names:
+                composition[i] = numpy.sum(weights[names == dom])
         return composition / (composition.sum() or 1)  # type: ignore
 
     # ---
@@ -326,6 +330,19 @@ class FeatureTable(Dumpable, Sized):
     domain_end: List[int] = field(default_factory = list)
     bgc_probability: List[float] = field(default_factory = list)
 
+    class Row(NamedTuple):
+        sequence_id: str
+        protein_id: str
+        start: int
+        end: int
+        strand: str
+        domain: str
+        hmm: str
+        i_evalue: float
+        domain_start: int
+        domain_end: int
+        bgc_probability: float
+
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
         """Create a new feature table from an iterable of genes.
@@ -346,8 +363,26 @@ class FeatureTable(Dumpable, Sized):
                 table.bgc_probability.append(domain.probability)
         return table
 
+    def to_genes(self) -> Iterable[Gene]:
+        for _, group in itertools.groupby(self, key=operator.attrgetter("protein_id")):
+            rows = list(group)
+            source = SeqRecord(id=rows[0].sequence_id, seq=None)
+            strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
+            protein = Protein(rows[0].protein_id, seq=None)
+            gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
+            for row in rows:
+                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.bgc_probability)
+                gene.protein.domains.append(domain)
+            yield gene
+
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
+
+    def __iter__(self) -> Iterator[Row]:
+        columns = list(self.__annotations__)
+        for i in range(len(self)):
+            row = { c: getattr(self, c)[i] for c in columns }
+            yield self.Row(**row)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
         """Write the feature table in CSV format to the given file.
@@ -362,9 +397,8 @@ class FeatureTable(Dumpable, Sized):
         writer = csv.writer(fh, dialect=dialect)
         header = list(self.__annotations__)
         writer.writerow(header)
-        for i in range(len(self)):
-            row = [ getattr(self, col)[i] for col in header ]
-            writer.writerow(row)
+        for row in self:
+            writer.writerow([ getattr(row, col) for col in header ])
 
     @classmethod
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":
@@ -374,8 +408,7 @@ class FeatureTable(Dumpable, Sized):
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
         columns = [ (header.index(col), col, ty) for col, ty in cls.__annotations__.items() ]
-        import tqdm
-        for row in tqdm.tqdm(reader, total=7248586):
+        for row in reader:
             for index, column, ty in columns:
                 value = ty.__args__[0](row[index])
                 getattr(table, column).append(value)
