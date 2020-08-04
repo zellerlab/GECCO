@@ -53,7 +53,6 @@ def fisher_significance(
         (*A*, *B* and *C*) on BGC membership for a training set containing
         7 proteins:
 
-        >>> from gecco.model import *
         >>> data = [
         ...     Protein("prot1", _, [
         ...         Domain("A", _, _, _, _, probability=1),
@@ -75,7 +74,7 @@ def fisher_significance(
         ...     ]),
         ...     Protein("prot7", _, [Domain("C", _, _, _, _, probability=0)]),
         ... ]
-        >>> sorted(fisher_significance_new(data).items())
+        >>> sorted(fisher_significance(data).items())
         [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]
 
         Since *A* and *C* only appear in BGC and non BGC proteins respectively,
@@ -86,7 +85,7 @@ def fisher_significance(
         It's also possible to get the uncorrected values by giving `None`
         instead of a correction method:
 
-        >>> sorted(fisher_significance_new(data, correction_method=None).items())
+        >>> sorted(fisher_significance(data, correction_method=None).items())
         [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
 
     """
