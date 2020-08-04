@@ -5,17 +5,18 @@ import csv
 import enum
 import re
 import typing
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, NamedTuple, Union
+from collections.abc import Sized
 from dataclasses import dataclass, field
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, NamedTuple, Union
 
 import Bio.Alphabet
 import numpy
-import pandas
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
+from ._base import Dumpable
 
 
 class Strand(enum.IntEnum):
@@ -307,54 +308,9 @@ class Cluster:
         # return the complete BGC
         return bgc
 
-    def to_cluster_table(self) -> pandas.DataFrame:
-        """Convert this cluster to a cluster table with a single row.
-
-        The obtained `pandas.DataFrame` can be concatenated together with
-        other tables, which allows to easily convert a sequence of
-        `~gecco.model.Cluster` into a single `~pandas.DataFrame` quite easily.
-
-        """
-        return pandas.DataFrame(
-            data=[
-                (
-                    self.source.id,
-                    self.id,
-                    self.start,
-                    self.end,
-                    self.average_probability,
-                    self.maximum_probability,
-                    ";".join(self.types),
-                    ";".join(map(str, self.types_probabilities)),
-                    ";".join([gene.id for gene in self.genes]),
-                    ";".join(
-                        sorted(
-                            {
-                                domain.name
-                                for gene in self.genes
-                                for domain in gene.protein.domains
-                            }
-                        )
-                    ),
-                )
-            ],
-            columns=[
-                "sequence_id",
-                "BGC_id",
-                "start",
-                "end",
-                "average_p",
-                "max_p",
-                "BGC_types",
-                "BGC_types_p",
-                "proteins",
-                "domains",
-            ],
-        )
-
 
 @dataclass(frozen=True)
-class FeatureTable:
+class FeatureTable(Dumpable, Sized):
 
     sequence_id: List[str] = field(default_factory = list)
     protein_id: List[str] = field(default_factory = list)
@@ -397,4 +353,52 @@ class FeatureTable:
         writer.writerow(header)
         for i in range(len(self)):
             row = [ getattr(self, col)[i] for col in header ]
+            writer.writerow(row)
+
+
+@dataclass(frozen=True)
+class ClusterTable(Dumpable, Sized):
+
+    sequence_id: List[str] = field(default_factory = list)
+    bgc_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = list)
+    end: List[int] = field(default_factory = list)
+    average_p: List[float] = field(default_factory = list)
+    max_p: List[float] = field(default_factory = list)
+    bgc_types: List[List[str]] = field(default_factory = list)
+    bgc_types_p: List[List[float]] = field(default_factory = list)
+    proteins: List[List[str]] = field(default_factory = list)
+    domains: List[List[str]] = field(default_factory = list)
+
+    @classmethod
+    def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
+        table = cls()
+        for cluster in clusters:
+            table.sequence_id.append(cluster.source.id)
+            table.bgc_id.append(cluster.id)
+            table.start.append(cluster.start)
+            table.end.append(cluster.end)
+            table.average_p.append(cluster.average_probability)
+            table.max_p.append(cluster.maximum_probability)
+            table.bgc_types.append(cluster.types)
+            table.bgc_types_p.append(cluster.types_probabilities)
+            table.proteins.append([ gene.protein.id for gene in cluster.genes ])
+            domains = {d.name for g in cluster.genes for d in g.protein.domains}
+            table.domains.append(sorted(domains))
+        return table
+
+    def __len__(self):
+        return len(self.sequence_id)
+
+    def dump(self, fh, dialect = "excel-tab"):
+        writer = csv.writer(fh, dialect=dialect)
+        header = list(self.__annotations__)
+        writer.writerow(header)
+        for i in range(len(self)):
+            row = []
+            for col in header:
+                value = getattr(self, col)[i]
+                if isinstance(value, list):
+                    value = ";".join(map(str, value))
+                row.append(value)
             writer.writerow(row)

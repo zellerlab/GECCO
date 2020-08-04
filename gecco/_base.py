@@ -1,5 +1,6 @@
 import abc
 import errno
+import io
 import subprocess
 import typing
 from typing import Iterable, Optional, Type
@@ -52,3 +53,17 @@ class BinaryRunner(metaclass=abc.ABCMeta):
 
     def __init__(self) -> None:
         self.check_binary()
+
+
+class Dumpable(metaclass=abc.ABCMeta):
+    """A metaclass for objects that can be dumped to a text file.
+    """
+
+    @abc.abstractmethod
+    def dump(self, fh):
+        return NotImplemented
+
+    def dumps(self) -> str:
+        s = io.StringIO()
+        self.dump(s)
+        return s.getvalue()

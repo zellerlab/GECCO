@@ -14,14 +14,13 @@ import signal
 from typing import Union
 
 import numpy
-import pandas
 from Bio import SeqIO
 
 from ._base import Command
 from .._utils import guess_sequences_format
 from ...crf import ClusterCRF
 from ...hmmer import HMMER, HMM, embedded_hmms
-from ...model import FeatureTable
+from ...model import FeatureTable, ClusterTable
 from ...orf import PyrodigalFinder
 from ...types import TypeClassifier
 from ...refine import ClusterRefiner
@@ -122,7 +121,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: HMM) -> "pandas.DataFrame":
+        def annotate(hmm: HMM):
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )
@@ -195,8 +194,8 @@ class Run(Command):  # noqa: D101
         # Write predicted cluster coordinates to file
         cluster_out = os.path.join(out_dir, f"{base}.clusters.tsv")
         self.logger.debug("Writing cluster coordinates to {!r}", cluster_out)
-        table = pandas.concat([c.to_cluster_table() for c in clusters])
-        table.to_csv(cluster_out, sep="\t", index=False)
+        with open(cluster_out, "w") as out:
+            ClusterTable.from_clusters(clusters).dump(out)
 
         # Write predicted cluster sequences to file
         for cluster in clusters:
