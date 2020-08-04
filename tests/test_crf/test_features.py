@@ -5,7 +5,7 @@ import unittest
 import warnings
 
 import pandas
-import gecco.crf.preprocessing
+import gecco.crf.features
 from gecco.model import Domain, Gene, Protein, Strand
 
 
@@ -49,7 +49,7 @@ class _TestFeatureExtraction(object):
 
 class TestSingleFeatureExtraction(_TestFeatureExtraction, unittest.TestCase):
 
-    extract = staticmethod(gecco.crf.preprocessing.extract_features_single)
+    extract = staticmethod(gecco.crf.features.extract_features_single)
 
     def test_extraction(self):
         X = self.extract(self.genes)
@@ -58,7 +58,7 @@ class TestSingleFeatureExtraction(_TestFeatureExtraction, unittest.TestCase):
 
 class TestGroupFeatureExtraction(_TestFeatureExtraction, unittest.TestCase):
 
-    extract = staticmethod(gecco.crf.preprocessing.extract_features_group)
+    extract = staticmethod(gecco.crf.features.extract_features_group)
 
     def test_extraction(self):
         X = self.extract(self.genes)

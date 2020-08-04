@@ -38,7 +38,7 @@ import sklearn.preprocessing
 
 from ..model import Gene
 from .._meta import OrderedPoolWrapper
-from . import preprocessing, postprocessing
+from . import features
 from .cv import LeaveOneGroupOut
 from .select import fisher_significance
 
@@ -140,13 +140,13 @@ class ClusterCRF(object):
 
         # select the feature extraction method
         if self.feature_type == "group":
-            extract = preprocessing.extract_features_group
-            annotate = postprocessing.annotate_probabilities_group
+            extract = features.extract_features_group
+            annotate = features.annotate_probabilities_group
         elif self.feature_type == "single":
-            extract = preprocessing.extract_features_single
-            annotate = postprocessing.annotate_probabilities_single
+            extract = features.extract_features_single
+            annotate = features.annotate_probabilities_single
         elif self.feature_type == "overlap":
-            raise NotImplementedError("todo: `preprocessing.extract_features_overlap`")
+            raise NotImplementedError("todo: `features.extract_features_overlap`")
         else:
             raise ValueError("invalid feature type")
 
