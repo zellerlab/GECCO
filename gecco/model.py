@@ -322,7 +322,6 @@ class FeatureTable(Dumpable, Sized):
     domain: List[str] = field(default_factory = list)
     hmm: List[str] = field(default_factory = list)
     i_evalue: List[float] = field(default_factory = list)
-    rev_i_evalue: List[float] = field(default_factory = list)
     domain_start: List[int] = field(default_factory = list)
     domain_end: List[int] = field(default_factory = list)
     bgc_probability: List[float] = field(default_factory = list)
@@ -342,7 +341,6 @@ class FeatureTable(Dumpable, Sized):
                 table.domain.append(domain.name)
                 table.hmm.append(domain.hmm)
                 table.i_evalue.append(domain.i_evalue)
-                table.rev_i_evalue.append(1 - domain.i_evalue)
                 table.domain_start.append(domain.start)
                 table.domain_end.append(domain.end)
                 table.bgc_probability.append(domain.probability)
@@ -367,6 +365,21 @@ class FeatureTable(Dumpable, Sized):
         for i in range(len(self)):
             row = [ getattr(self, col)[i] for col in header ]
             writer.writerow(row)
+
+    @classmethod
+    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":
+        """Load a feature table in CSV format from a file handle in text mode.
+        """
+        table = cls()
+        reader = csv.reader(fh, dialect=dialect)
+        header = next(reader)
+        columns = [ (header.index(col), col, ty) for col, ty in cls.__annotations__.items() ]
+        import tqdm
+        for row in tqdm.tqdm(reader, total=7248586):
+            for index, column, ty in columns:
+                value = ty.__args__[0](row[index])
+                getattr(table, column).append(value)
+        return table
 
 
 @dataclass(frozen=True)
@@ -415,7 +428,7 @@ class ClusterTable(Dumpable, Sized):
                 to write the cluster table to.
             dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
                 for allowed values.
-                
+
         """
         writer = csv.writer(fh, dialect=dialect)
         header = list(self.__annotations__)

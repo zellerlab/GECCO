@@ -50,11 +50,11 @@ class OrderedPoolWrapper:
 
     class _OrderedFunc:
 
-        def __init__(self, inner: Callable[[_A], _R], star: bool = False) -> None:
+        def __init__(self, inner: Callable[["_A"], "_R"], star: bool = False) -> None:
             self.inner = inner
             self.star = star
 
-        def __call__(self, args: Tuple[int, _A]) -> Tuple[int, _R]:
+        def __call__(self, args: Tuple[int, "_A"]) -> Tuple[int, "_R"]:
             i, other = args
             if self.star:
                 return i, self.inner(*other)  # type: ignore
@@ -76,14 +76,14 @@ class OrderedPoolWrapper:
     ) -> Optional[bool]:
         return self.inner.__exit__(exc_type, exc_value, traceback)
 
-    def map(self, func: Callable[[_A], _R], it: Iterable[_A]) -> List[_R]:
+    def map(self, func: Callable[["_A"], "_R"], it: Iterable["_A"]) -> List["_R"]:
         wrapped_it = enumerate(it)
         wrapped_func = self._OrderedFunc(func)
         results = self.inner.map(wrapped_func, wrapped_it)
         results.sort(key=operator.itemgetter(0))
         return list(map(operator.itemgetter(1), results))
 
-    def starmap(self, func: Callable[..., _R], it: Iterable[Iterable[Any]]) -> List[_R]:
+    def starmap(self, func: Callable[..., "_R"], it: Iterable[Iterable[Any]]) -> List["_R"]:
         wrapped_it = enumerate(it)
         wrapped_func = self._OrderedFunc(func, star=True)
         results = self.inner.map(wrapped_func, wrapped_it)
