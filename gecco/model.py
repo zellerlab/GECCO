@@ -7,7 +7,7 @@ import re
 import typing
 from collections.abc import Sized
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, NamedTuple, Union
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union
 
 import Bio.Alphabet
 import numpy
@@ -311,6 +311,8 @@ class Cluster:
 
 @dataclass(frozen=True)
 class FeatureTable(Dumpable, Sized):
+    """A table storing condensed domain annotations from different genes.
+    """
 
     sequence_id: List[str] = field(default_factory = list)
     protein_id: List[str] = field(default_factory = list)
@@ -327,6 +329,8 @@ class FeatureTable(Dumpable, Sized):
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
+        """Create a new feature table from an iterable of genes.
+        """
         table = cls()
         for gene in genes:
             for domain in gene.protein.domains:
@@ -344,10 +348,19 @@ class FeatureTable(Dumpable, Sized):
                 table.bgc_probability.append(domain.probability)
         return table
 
-    def __len__(self):
+    def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    def dump(self, fh, dialect = "excel-tab"):
+    def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
+        """Write the feature table in CSV format to the given file.
+
+        Arguments:
+            fh (file-like `object`): A writable file-handle opened in text mode
+                to write the feature table to.
+            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
+                for allowed values.
+
+        """
         writer = csv.writer(fh, dialect=dialect)
         header = list(self.__annotations__)
         writer.writerow(header)
@@ -358,6 +371,8 @@ class FeatureTable(Dumpable, Sized):
 
 @dataclass(frozen=True)
 class ClusterTable(Dumpable, Sized):
+    """A table storing condensed information from several clusters.
+    """
 
     sequence_id: List[str] = field(default_factory = list)
     bgc_id: List[str] = field(default_factory = list)
@@ -372,6 +387,8 @@ class ClusterTable(Dumpable, Sized):
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
+        """Create a new cluster table from an iterable of clusters.
+        """
         table = cls()
         for cluster in clusters:
             table.sequence_id.append(cluster.source.id)
@@ -387,10 +404,19 @@ class ClusterTable(Dumpable, Sized):
             table.domains.append(sorted(domains))
         return table
 
-    def __len__(self):
+    def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    def dump(self, fh, dialect = "excel-tab"):
+    def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
+        """Write the cluster table in CSV format to the given file.
+
+        Arguments:
+            fh (file-like `object`): A writable file-handle opened in text mode
+                to write the cluster table to.
+            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
+                for allowed values.
+                
+        """
         writer = csv.writer(fh, dialect=dialect)
         header = list(self.__annotations__)
         writer.writerow(header)
