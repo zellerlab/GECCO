@@ -29,7 +29,6 @@ from typing import (
 )
 
 import numpy
-import pandas
 import tqdm
 import pkg_resources
 import sklearn_crfsuite
@@ -47,7 +46,7 @@ class ClusterCRF(object):
 
     @classmethod
     def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":
-        """Create a new pre-trained `ClusterCRF` instance from a model file.
+        """Create a new pre-trained `ClusterCRF` instance from a model path.
 
         Arguments:
             model_path (`str`, optional): The path to the model directory
@@ -97,11 +96,11 @@ class ClusterCRF(object):
 
         Arguments:
             feature_type (`str`): Defines how features should be extracted.
-                Should be one *domain*, *protein*, or *overlap*.
+                Should be either *domain*, *protein*, or *overlap*.
             algorithm (`str`): The optimization algorithm for the model. See
                 https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
-            overlap (`int`): In case of `feature_type = "overlap"`, defines
+            overlap (`int`): In case of ``feature_type = "overlap"``, defines
                 the sliding window size to use. The resulting window width is
                 ``2*overlap+1``.
             pool_factory (`multiprocessing.pool.Pool` subclass, or callable):
@@ -134,9 +133,11 @@ class ClusterCRF(object):
         )
 
     def predict_probabilities(self, genes: Iterable[Gene], *, jobs: Optional[int] = None) -> List[Gene]:
+        """Predict
+        """
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
-        seqs = [list(group) for _, group in groups]
+        seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
 
         # select the feature extraction method
         if self.feature_type == "group":

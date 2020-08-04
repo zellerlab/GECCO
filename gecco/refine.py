@@ -9,7 +9,6 @@ import typing
 from typing import List, Mapping, Optional, Tuple, Iterator
 
 import numpy
-import pandas
 from Bio.SeqRecord import SeqRecord
 
 from .model import Cluster, Domain, Gene, Protein, Strand
@@ -64,10 +63,6 @@ class GeneGrouper:
 
 class ClusterRefiner:
     """A post-processor to extract contiguous BGCs from CRF predictions.
-
-    Like `~gecco.crf.ClusterCRF`, it can be configured to support non-standard
-    column names in arguments `~pandas.DataFrame`.
-
     """
 
     def __init__(

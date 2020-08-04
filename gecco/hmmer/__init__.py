@@ -13,7 +13,6 @@ import tempfile
 import typing
 from typing import Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
-import pandas
 import pkg_resources
 from Bio import SeqIO
 
