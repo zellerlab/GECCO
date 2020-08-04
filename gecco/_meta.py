@@ -6,12 +6,16 @@ import functools
 import operator
 import typing
 from multiprocessing.pool import Pool
-from typing import Callable
+from typing import Any, Callable, Iterable, List, Tuple, Optional, Type
 
 if typing.TYPE_CHECKING:
+    from types import TracebackType
+
     _S = typing.TypeVar("_S")
     _T = typing.TypeVar("_T")
-
+    _A = typing.TypeVar("_A")
+    _R = typing.TypeVar("_R")
+    # _F = typing.TypeVar("_F", bound=Callable[[_A], _R])
 
 class classproperty(property):
     """A class property decorator.
@@ -46,35 +50,40 @@ class OrderedPoolWrapper:
 
     class _OrderedFunc:
 
-        def __init__(self, inner, star=False):
+        def __init__(self, inner: Callable[[_A], _R], star: bool = False) -> None:
             self.inner = inner
             self.star = star
 
-        def __call__(self, args):
+        def __call__(self, args: Tuple[int, _A]) -> Tuple[int, _R]:
             i, other = args
             if self.star:
-                return i, self.inner(*other)
+                return i, self.inner(*other)  # type: ignore
             else:
                 return i, self.inner(other)
 
     def __init__(self, inner: Pool) -> None:
         self.inner = inner
 
-    def __enter__(self) -> "OrderedPool":
+    def __enter__(self) -> "OrderedPoolWrapper":
         self.inner.__enter__()
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        return self.inner.__exit__(exc_type, exc_value, exc_tb)
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional["TracebackType"],
+    ) -> Optional[bool]:
+        return self.inner.__exit__(exc_type, exc_value, traceback)
 
-    def map(self, func, it):
+    def map(self, func: Callable[[_A], _R], it: Iterable[_A]) -> List[_R]:
         wrapped_it = enumerate(it)
         wrapped_func = self._OrderedFunc(func)
         results = self.inner.map(wrapped_func, wrapped_it)
         results.sort(key=operator.itemgetter(0))
         return list(map(operator.itemgetter(1), results))
 
-    def starmap(self, func, it):
+    def starmap(self, func: Callable[..., _R], it: Iterable[Iterable[Any]]) -> List[_R]:
         wrapped_it = enumerate(it)
         wrapped_func = self._OrderedFunc(func, star=True)
         results = self.inner.map(wrapped_func, wrapped_it)

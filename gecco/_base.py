@@ -3,7 +3,7 @@ import errno
 import io
 import subprocess
 import typing
-from typing import Iterable, Optional, Type
+from typing import Iterable, Optional, Type, TextIO
 from subprocess import DEVNULL
 
 from ._meta import classproperty
@@ -60,8 +60,8 @@ class Dumpable(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def dump(self, fh):
-        return NotImplemented
+    def dump(self, fh: TextIO) -> None:
+        raise NotImplementedError
 
     def dumps(self) -> str:
         s = io.StringIO()
