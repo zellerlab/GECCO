@@ -151,7 +151,7 @@ class Train(Command):  # noqa: D101
             c1=self.args["--c1"],
             c2=self.args["--c2"],
         )
-        crf.fit(genes, select=self.args["--select"])
+        crf.fit(genes, select=self.args["--select"], shuffle=not self.args["--no-shuffle"])
 
         # --- MODEL SAVING ---------------------------------------------------
         os.makedirs(self.args["--output-dir"], exist_ok=True)

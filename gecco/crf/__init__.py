@@ -162,9 +162,7 @@ class ClusterCRF(object):
         # probabilities set
         return list(itertools.chain.from_iterable(annotated_genes))
 
-    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, *, jobs: Optional[int] = None):
-
-
+    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, jobs: Optional[int] = None):
         # select the feature extraction method
         if self.feature_type == "group":
             extract_features = features.extract_features_group
@@ -180,6 +178,10 @@ class ClusterCRF(object):
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
+
+        # shuffle sequences
+        if shuffle:
+            random.shuffle(seqs)
 
         # perform feature selection
         if select is not None:
