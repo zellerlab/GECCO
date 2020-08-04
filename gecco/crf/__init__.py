@@ -133,7 +133,7 @@ class ClusterCRF(object):
         )
 
     def predict_probabilities(self, genes: Iterable[Gene], *, jobs: Optional[int] = None) -> List[Gene]:
-        """Predict
+        """Predict how likely each given gene is part of a gene cluster.
         """
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
@@ -161,3 +161,33 @@ class ClusterCRF(object):
         # return the genes that were passed as input but now having BGC
         # probabilities set
         return list(itertools.chain.from_iterable(annotated_genes))
+
+    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, *, jobs: Optional[int] = None):
+        # feature selection
+        if select is not None:
+            raise ValueError("todo select")
+
+        # select the feature extraction method
+        if self.feature_type == "group":
+            extract_features = features.extract_features_group
+            extract_labels = features.extract_labels_group
+        elif self.feature_type == "single":
+            extract_features = features.extract_features_single
+            extract_labels = features.extract_labels_single
+        elif self.feature_type == "overlap":
+            raise NotImplementedError("todo: `features.extract_features_overlap`")
+        else:
+            raise ValueError("invalid feature type")
+
+        # group input genes by sequence
+        groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
+        seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
+
+        # proces each sequence / group in parallel
+        with OrderedPoolWrapper(self.pool_factory(jobs)) as pool:
+            # extract features in parallel and predict cluster probabilities
+            X = pool.map(extract_features, seqs)
+            Y = pool.map(extract_labels, seqs)
+
+        # fit the model
+        self.model.fit(X, Y)
