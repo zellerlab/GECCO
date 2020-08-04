@@ -163,9 +163,7 @@ class ClusterCRF(object):
         return list(itertools.chain.from_iterable(annotated_genes))
 
     def fit(self, genes: Iterable[Gene], select: Optional[float] = None, *, jobs: Optional[int] = None):
-        # feature selection
-        if select is not None:
-            raise ValueError("todo select")
+
 
         # select the feature extraction method
         if self.feature_type == "group":
@@ -182,6 +180,21 @@ class ClusterCRF(object):
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
+
+        # perform feature selection
+        if select is not None:
+            if select <= 0 or select > 1:
+                raise ValueError(f"invalid value for select: {select}")
+            # find most significant features
+            sig = fisher_significance([g.protein for seq in seqs for g in seq])
+            sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
+            self.significant_features = frozenset(sorted_sig)
+            # remove non significant domains
+            for gene in itertools.chain.from_iterable(seqs):
+                gene.protein.domains = [
+                    domain for domain in gene.protein.domains
+                    if domain.name in self.significant_features
+                ]
 
         # proces each sequence / group in parallel
         with OrderedPoolWrapper(self.pool_factory(jobs)) as pool:
