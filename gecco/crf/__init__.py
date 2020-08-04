@@ -16,7 +16,6 @@ import textwrap
 import typing
 import warnings
 from multiprocessing.pool import Pool
-from multiprocessing.shared_memory import ShareableList
 from typing import (
     Callable,
     Dict,
@@ -42,7 +41,6 @@ from .._meta import OrderedPoolWrapper
 from . import preprocessing, postprocessing
 from .cv import LeaveOneGroupOut
 from .select import fisher_significance
-
 
 
 class ClusterCRF(object):
@@ -135,7 +133,7 @@ class ClusterCRF(object):
             **kwargs,
         )
 
-    def predict_probabilities(self, genes: List[Gene], *, jobs: Optional[int] = None) -> List[Gene]:
+    def predict_probabilities(self, genes: Iterable[Gene], *, jobs: Optional[int] = None) -> List[Gene]:
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [list(group) for _, group in groups]

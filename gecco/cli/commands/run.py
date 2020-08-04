@@ -62,7 +62,7 @@ class Run(Command):  # noqa: D101
                                       (antismash or gecco). [default: gecco]
 
     Parameters - Debug:
-        --model <model.crf>           the path to an alternative CRF model
+        --model <directory>           the path to an alternative CRF model
                                       to use (obtained with `gecco train`).
     """
 
