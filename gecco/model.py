@@ -5,7 +5,7 @@ import csv
 import enum
 import re
 import typing
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, NamedTuple
 from dataclasses import dataclass
 
 import Bio.Alphabet
@@ -32,8 +32,7 @@ class Strand(enum.IntEnum):
         return "+" if self is Strand.Coding else "-"
 
 
-@dataclass
-class Domain:
+class Domain(NamedTuple):
     """A conserved region within a protein.
 
     Attributes:
@@ -62,17 +61,14 @@ class Domain:
     probability: Optional[float]
     qualifiers: Dict[str, object]
 
-    def __init__(
-        self, name: str, start: int, end: int, hmm: str, i_evalue: float = 0.0,
-        probability: Optional[float] = None, qualifiers: Optional[Dict[str, object]] = None
-    ):  # noqa: D107
-        self.name = name
-        self.start = start
-        self.end = end
-        self.hmm = hmm
-        self.i_evalue = i_evalue
-        self.probability = probability
-        self.qualifiers = qualifiers or dict()
+
+    def with_probability(self, probability: Optional[float]) -> "Domain":
+        """Copy the current domain and assign it a BGC probability.
+        """
+        return Domain(
+            self.name, self.start, self.end, self.hmm, self.i_evalue,
+            probability, self.qualifiers
+        )
 
     def to_seq_feature(self, protein_coordinates: bool = False) -> SeqFeature:
         """Convert the domain to a single feature.

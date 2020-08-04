@@ -18,10 +18,7 @@ if typing.TYPE_CHECKING:
     from ..model import Cluster
 
 
-
 class TypeClassifier(object):
-    """
-    """
 
     @classmethod
     def trained(cls, model_path: Optional[str] = None) -> "TypeClassifier":
@@ -58,8 +55,6 @@ class TypeClassifier(object):
         classifier.model.fit(compositions, y=types_bin)
         classifier.model.attributes_ = domains
         return classifier
-
-
 
     def __init__(self, **kwargs: object) -> None:
         """Instantiate a new type classifier.
