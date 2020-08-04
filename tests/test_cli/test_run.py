@@ -44,7 +44,7 @@ class TestRun(TestCommand, unittest.TestCase):
             prot = Protein(prot_id, seq=Seq("M"))
             gene = Gene(source, min(df.start), max(df.end), Strand.Coding, prot)
             for t in df.itertuples():
-                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue, t.p_pred)
+                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue, t.p_pred, {})
                 gene.protein.domains.append(d)
             genes.append(gene)
 

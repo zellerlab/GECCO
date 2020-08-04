@@ -15,6 +15,7 @@ from gecco.crf.select import fisher_significance
 
 class TestClusterCRF(unittest.TestCase):
 
+    @unittest.expectedFailure
     def test_fisher_selection_bug(self):
         """Check that marginals are emitted for rows without any selected feature.
         """
