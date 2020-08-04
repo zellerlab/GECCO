@@ -21,8 +21,9 @@ from ._base import Command
 from .._utils import guess_sequences_format
 from ...crf import ClusterCRF
 from ...hmmer import HMMER, HMM, embedded_hmms
-from ...types import TypeClassifier
+from ...model import FeatureTable
 from ...orf import PyrodigalFinder
+from ...types import TypeClassifier
 from ...refine import ClusterRefiner
 
 
@@ -161,12 +162,10 @@ class Run(Command):  # noqa: D101
         self.logger.debug("Predicting BGC probabilities")
         genes = crf.predict_probabilities(genes)
 
-        self.logger.debug("Extracting feature table")
-        feats_df = pandas.concat([g.to_feature_table() for g in genes], sort=False)
-
         pred_out = os.path.join(out_dir, f"{base}.features.tsv")
         self.logger.debug("Writing feature table to {!r}", pred_out)
-        feats_df.to_csv(pred_out, sep="\t", index=False)
+        with open(pred_out, "w") as f:
+            FeatureTable.from_genes(genes).dump(f)
 
         # --- REFINE ---------------------------------------------------------
         self.logger.info("Extracting gene clusters from prediction")

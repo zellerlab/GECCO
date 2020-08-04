@@ -6,7 +6,7 @@ import enum
 import re
 import typing
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, NamedTuple, Union
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import Bio.Alphabet
 import numpy
@@ -32,7 +32,8 @@ class Strand(enum.IntEnum):
         return "+" if self is Strand.Coding else "-"
 
 
-class Domain(NamedTuple):
+@dataclass(frozen=True)
+class Domain:
     """A conserved region within a protein.
 
     Attributes:
@@ -58,9 +59,8 @@ class Domain(NamedTuple):
     end: int
     hmm: str
     i_evalue: float
-    probability: Optional[float]
-    qualifiers: Mapping[str, Union[str, List[str]]]
-
+    probability: Optional[float] = None
+    qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
         """Copy the current domain and assign it a BGC probability.
@@ -100,14 +100,7 @@ class Protein:
 
     id: str
     seq: Seq
-    domains: List[Domain]
-
-    def __init__(
-        self, id: str, seq: Seq, domains: Optional[List[Domain]] = None
-    ):  # noqa: D107
-        self.id = id
-        self.seq = seq
-        self.domains = domains or list()
+    domains: List[Domain] = field(default_factory=list)
 
     def to_seq_record(self) -> SeqRecord:
         """Convert the protein to a single record.
@@ -140,15 +133,7 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
-    qualifiers: Mapping[str, Union[str, List[str]]]
-
-    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Mapping[str, Union[str, List[str]]]] = None): # noqa: D107
-        self.source = source
-        self.start = start
-        self.end = end
-        self.strand = strand
-        self.protein = protein
-        self.qualifiers = qualifiers or dict()
+    qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
 
     @property
     def id(self) -> str:
@@ -171,51 +156,6 @@ class Gene:
         return max(p) if p else None
 
     # ---
-
-    def to_feature_table(self) -> pandas.DataFrame:
-        """Convert this gene to a feature table listing domain annotations.
-
-        The returned objects can be concatenated together to obtain a feature
-        table that can be passed to a `~gecco.crf.ClusterCRF` instance.
-
-        Returns:
-            `pandas.DataFrame`: A dataframe listing all domain annotation
-            in no particular order.
-
-        """
-        return pandas.DataFrame(
-            data=[
-                (
-                    self.source.id,
-                    self.id,
-                    self.start,
-                    self.end,
-                    self.strand.sign,
-                    domain.name,
-                    domain.hmm,
-                    domain.i_evalue,
-                    1 - domain.i_evalue,
-                    domain.start,
-                    domain.end,
-                    domain.probability,
-                )
-                for domain in self.protein.domains
-            ],
-            columns=[
-                "sequence_id",
-                "protein_id",
-                "start",
-                "end",
-                "strand",
-                "domain",
-                "hmm",
-                "i_Evalue",
-                "rev_i_Evalue",
-                "domain_start",
-                "domain_end",
-                "bgc_probability"
-            ],
-        )
 
     def to_seq_feature(self) -> SeqFeature:
         """Convert the gene to a single feature.
@@ -412,7 +352,49 @@ class Cluster:
             ],
         )
 
-    def to_feature_table(self) -> pandas.DataFrame:
-        """Convert this cluster to a feature table listing domain annotations.
-        """
-        return pandas.concat(map(Gene.to_feature_table, self.genes))
+
+@dataclass(frozen=True)
+class FeatureTable:
+
+    sequence_id: List[str] = field(default_factory = list)
+    protein_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = list)
+    end: List[int] = field(default_factory = list)
+    strand: List[str] = field(default_factory = list)
+    domain: List[str] = field(default_factory = list)
+    hmm: List[str] = field(default_factory = list)
+    i_evalue: List[float] = field(default_factory = list)
+    rev_i_evalue: List[float] = field(default_factory = list)
+    domain_start: List[int] = field(default_factory = list)
+    domain_end: List[int] = field(default_factory = list)
+    bgc_probability: List[float] = field(default_factory = list)
+
+    @classmethod
+    def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
+        table = cls()
+        for gene in genes:
+            for domain in gene.protein.domains:
+                table.sequence_id.append(gene.source.id)
+                table.protein_id.append(gene.protein.id)
+                table.start.append(gene.start)
+                table.end.append(gene.end)
+                table.strand.append(gene.strand.sign)
+                table.domain.append(domain.name)
+                table.hmm.append(domain.hmm)
+                table.i_evalue.append(domain.i_evalue)
+                table.rev_i_evalue.append(1 - domain.i_evalue)
+                table.domain_start.append(domain.start)
+                table.domain_end.append(domain.end)
+                table.bgc_probability.append(domain.probability)
+        return table
+
+    def __len__(self):
+        return len(self.sequence_id)
+
+    def dump(self, fh, dialect = "excel-tab"):
+        writer = csv.writer(fh, dialect=dialect)
+        header = list(self.__annotations__)
+        writer.writerow(header)
+        for i in range(len(self)):
+            row = [ getattr(self, col)[i] for col in header ]
+            writer.writerow(row)
