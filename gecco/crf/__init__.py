@@ -124,7 +124,7 @@ class ClusterCRF(object):
         self.overlap: int = overlap
         self.algorithm = algorithm
         self.pool_factory = pool_factory
-        self.significant_features: Dict[str, FrozenSet[str]] = {}
+        self.significant_features: Optional[FrozenSet[str]] = None
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
             all_possible_transitions=True,
@@ -156,13 +156,13 @@ class ClusterCRF(object):
             # extract features in parallel and predict cluster probabilities
             marginals = self.model.predict_marginals(pool.map(extract, seqs))
             # Annotate the genes with the predicted probabilities
-            annotated_genes = pool.starmap(annotate, zip(seqs, marginals))
+            annotated_seqs = pool.starmap(annotate, zip(seqs, marginals))
 
         # return the genes that were passed as input but now having BGC
         # probabilities set
-        return list(itertools.chain.from_iterable(annotated_genes))
+        return list(itertools.chain.from_iterable(annotated_seqs)) # type: ignore
 
-    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, jobs: Optional[int] = None):
+    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, jobs: Optional[int] = None) -> None:
         # select the feature extraction method
         if self.feature_type == "group":
             extract_features = features.extract_features_group

@@ -1,9 +1,13 @@
 """Features extraction and sanitization utilities for `~gecco.crf.ClusterCRF`.
 """
 import itertools
-from typing import Iterable, List, Dict
+import typing
+from typing import Iterable, List, Sequence, Dict
 
 from ..model import Gene
+
+if typing.TYPE_CHECKING:
+    _S = typing.TypeVar("_S", bound=Sequence[Gene])
 
 
 def extract_features_group(sequence: Iterable[Gene]) -> List[Dict[str, float]]:
@@ -18,13 +22,17 @@ def extract_features_group(sequence: Iterable[Gene]) -> List[Dict[str, float]]:
     return [{d.name: 1 - d.i_evalue for d in g.protein.domains } for g in sequence if g.protein.domains]
 
 def extract_labels_group(sequence: Iterable[Gene]) -> List[str]:
-    return [str(int(g.average_probability > 0.5)) for g in sequence if g.protein.domains]
+    return [
+        str(int(g.average_probability > 0.5))  # type: ignore
+        for g in sequence
+        if g.protein.domains
+    ]
 
 
 def annotate_probabilities_group(
-    sequence: Iterable[Gene],
-    marginals: List[List[Dict[str, float]]]
-) -> List[Dict[str, float]]:
+    sequence: "_S",
+    marginals: List[Dict[str, float]]
+) -> "_S":
     probabilities = iter(marginals)
     for gene in sequence:
         if not gene.protein.domains:
@@ -35,9 +43,9 @@ def annotate_probabilities_group(
 
 
 def annotate_probabilities_single(
-    sequence: Iterable[Gene],
-    marginals: List[List[Dict[str, float]]]
-) -> List[Dict[str, float]]:
+    sequence: "_S",
+    marginals: List[Dict[str, float]]
+) -> "_S":
     domains = [ domain for gene in sequence for domain in gene.protein.domains ]
     for domain, probability in itertools.zip_longest(domains, marginals):
         assert domain is not None
@@ -46,7 +54,11 @@ def annotate_probabilities_single(
     return sequence
 
 def extract_labels_single(sequence: Iterable[Gene]) -> List[str]:
-    return [str(int(d.probability > 0.5)) for g in sequence for d in g.protein.domains]
+    return [
+        str(int(d.probability > 0.5))  # type: ignore
+        for g in sequence
+        for d in g.protein.domains
+    ]
 
 
 def extract_features_single(sequence: Iterable[Gene]) -> List[Dict[str, float]]:

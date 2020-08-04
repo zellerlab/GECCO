@@ -121,7 +121,7 @@ class Run(Command):  # noqa: D101
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: HMM):
+        def annotate(hmm: HMM) -> None:
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )

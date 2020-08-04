@@ -13,7 +13,6 @@ import random
 import typing
 
 import numpy
-import pandas
 import scipy.sparse
 import tqdm
 from Bio.Seq import Seq
@@ -134,8 +133,8 @@ class Train(Command):  # noqa: D101
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
-        with open(self.args["--input"]) as f:
-            table = FeatureTable.load(f)
+        with open(self.args["--input"]) as in_:
+            table = FeatureTable.load(in_)
 
         # Converting table to genes and sort by location
         genes = sorted(table.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
@@ -157,15 +156,15 @@ class Train(Command):  # noqa: D101
         os.makedirs(self.args["--output-dir"], exist_ok=True)
         model_out = os.path.join(self.args["--output-dir"], "model.pkl")
         self.logger.info("Writing the model to {!r}", model_out)
-        with open(model_out, "wb") as f:
-            pickle.dump(crf, f, protocol=4)
+        with open(model_out, "wb") as out:
+            pickle.dump(crf, out, protocol=4)
 
         self.logger.debug("Computing and saving model checksum")
         hasher = hashlib.md5()
-        with open(model_out, "rb") as f:
-            hasher.update(f.read())  # FIXME: iterate on file blocks
-        with open(f"{model_out}.md5", "w") as f:
-            f.write(hasher.hexdigest())
+        with open(model_out, "rb") as out:
+            hasher.update(out.read())  # FIXME: iterate on file blocks
+        with open(f"{model_out}.md5", "w") as out_hash:
+            out_hash.write(hasher.hexdigest())
 
         self.logger.info("Writing transitions weights")
         with open(os.path.join(self.args["--output-dir"], "model.trans.tsv"), "w") as f:
@@ -180,3 +179,5 @@ class Train(Command):  # noqa: D101
             writer.writerow(["attr", "label", "weight"])
             for attrs, weight in crf.model.state_features_.items():
                 writer.writerow([*attrs, weight])
+
+        return 0

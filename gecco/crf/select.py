@@ -42,11 +42,44 @@ def significance_correction(
 
 
 def fisher_significance(
-    data: Iterable[Protein],
+    proteins: Iterable[Protein],
     correction_method: Optional[str] = "indep",
-    threshold: float = 0.5,
 ) -> Dict[str, float]:
     r"""Estimate the significance of each domain in the given proteins.
+
+
+    For each feature $F$, we create the following contingency table, by
+    counting how many time the feature appears or does not appear in BGC
+    proteins, and non-BGC proteins:
+
+    +-------------+-------------------------+-------------------------------+
+    | *proteins*  |    with feature $F$     |      without feature $F $     |
+    +=============+=========================+===============================+
+    | within BGC  |    :math:`N_{F,BGC}`    |    :math:`N_{\bar{F},BGC}`    |
+    +-------------+-------------------------+-------------------------------+
+    | outside BGC | :math:`N_{F,\bar{BGC}}` | :math:`N_{\bar{F},\bar{BGC}}` |
+    +-------------+-------------------------+-------------------------------+
+
+    Then, we run a Fisher Exact Test on this distribution, which gives us the
+    probability to observe the same table under the hypothesis of independece
+    of the two variables.
+
+    Arguments:
+        proteins (iterable of `~gecco.model.Protein`): An iterable yielding
+            annotated proteins which domains to estimate the significance of.
+            **Domains must have a ``probability`` of 1 if they are part of
+            BGC, or of 0 if they are not.**
+        correction_method (`str`, optional): The name of the multiple test
+            correction method to use when computing significance, or `None` to
+            skip correction. See `statsmodels.stats.multitest.fdrcorrection`
+            for allowed values.
+
+    Returns:
+        `dict`: A dictionary which to each feature associates the p-value of
+        the two-tail Fisher Exact Test in the conditions described above.
+
+    Raises:
+        `ValueError`: when ``proteins`` contain domains without probabilities.
 
     Example:
         In the following example, we check the significance of three domains
@@ -90,24 +123,26 @@ def fisher_significance(
 
     """
     # set of all proteins, +proteins grouped by features
-    proteins = set(), set()  # type: ignore
-    features = collections.defaultdict(set), collections.defaultdict(set)  # type: ignore
+    proteins_ = set(), set()  # type: ignore
+    features_ = collections.defaultdict(set), collections.defaultdict(set)  # type: ignore
 
     # collect proteins / features for all data tables
-    for protein in data:
+    for protein in proteins:
         for domain in protein.domains:
-            in_bgc = domain.probability > threshold
-            proteins[in_bgc].add(protein.id)
-            features[in_bgc][domain.name].add(protein.id)
+            if domain.probability is None:
+                raise ValueError("domain is missing a BGC probability")
+            in_bgc = domain.probability > 0.5
+            proteins_[in_bgc].add(protein.id)
+            features_[in_bgc][domain.name].add(protein.id)
 
     # make the contigency table for each feature
     significance = {}
-    for feature in set(features[False]).union(features[True]):
+    for feature in set(features_[False]).union(features_[True]):
         pvalue = fisher.pvalue(
-            len(features[True][feature]),  # with feature, in BGC
-            len(proteins[True]) - len(features[True][feature]),  # without feature, in BGC
-            len(features[False][feature]),  # with feature, not in BGC
-            len(proteins[False]) - len(features[False][feature]),  # without feature, not in BGC
+            len(features_[True][feature]),  # with feature, in BGC
+            len(proteins_[True]) - len(features_[True][feature]),  # without feature, in BGC
+            len(features_[False][feature]),  # with feature, not in BGC
+            len(proteins_[False]) - len(features_[False][feature]),  # without feature, not in BGC
         )
         significance[feature] = pvalue.two_tail
 
