@@ -5,7 +5,7 @@ import csv
 import enum
 import re
 import typing
-from typing import Dict, Iterable, List, Optional, Sequence, NamedTuple
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, NamedTuple, Union
 from dataclasses import dataclass
 
 import Bio.Alphabet
@@ -59,7 +59,7 @@ class Domain(NamedTuple):
     hmm: str
     i_evalue: float
     probability: Optional[float]
-    qualifiers: Dict[str, object]
+    qualifiers: Mapping[str, Union[str, List[str]]]
 
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
@@ -81,7 +81,7 @@ class Domain(NamedTuple):
         """
         stride = 1 if protein_coordinates else 3
         loc = FeatureLocation(0, (self.end - self.start)*stride)
-        qualifiers = self.qualifiers.copy()
+        qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("standard_name", self.name)
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
@@ -140,9 +140,9 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
-    qualifiers: Dict[str, object]
+    qualifiers: Mapping[str, Union[str, List[str]]]
 
-    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Dict[str, object]] = None): # noqa: D107
+    def __init__(self, source: SeqRecord, start: int, end: int, strand: Strand, protein: Protein, qualifiers: Optional[Mapping[str, Union[str, List[str]]]] = None): # noqa: D107
         self.source = source
         self.start = start
         self.end = end
@@ -224,7 +224,7 @@ class Gene:
         # but Biopython expects 0-based ranges with exclusive ends
         end = self.end - self.start + 1
         loc = FeatureLocation(start=0, end=end, strand=int(self.strand))
-        qualifiers = self.qualifiers.copy()
+        qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
         return SeqFeature(location=loc, type="cds", qualifiers=qualifiers)
