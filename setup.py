@@ -145,7 +145,7 @@ class build_py(_build_py):
             response = urllib.request.urlopen(options["url"])
         # download the HMM
         format = dict(
-            total=int(res.headers["Content-Length"]),
+            total=int(response.headers["Content-Length"]),
             desc=os.path.basename(output),
             leave=False,
         )
