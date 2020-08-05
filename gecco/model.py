@@ -7,6 +7,7 @@ import itertools
 import operator
 import re
 import typing
+from array import array
 from collections.abc import Sized
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
@@ -335,14 +336,14 @@ class FeatureTable(Dumpable, Sized):
 
     sequence_id: List[str] = field(default_factory = list)
     protein_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = list)
-    end: List[int] = field(default_factory = list)
+    start: List[int] = field(default_factory = lambda: array("l"))
+    end: List[int] = field(default_factory = lambda: array("l"))
     strand: List[str] = field(default_factory = list)
     domain: List[str] = field(default_factory = list)
     hmm: List[str] = field(default_factory = list)
-    i_evalue: List[float] = field(default_factory = list)
-    domain_start: List[int] = field(default_factory = list)
-    domain_end: List[int] = field(default_factory = list)
+    i_evalue: List[float] = field(default_factory = lambda: array("d"))
+    domain_start: List[int] = field(default_factory = lambda: array("l"))
+    domain_end: List[int] = field(default_factory = lambda: array("l"))
     bgc_probability: List[Optional[float]] = field(default_factory = list)
 
     class Row(NamedTuple):
@@ -481,10 +482,10 @@ class ClusterTable(Dumpable, Sized):
 
     sequence_id: List[str] = field(default_factory = list)
     bgc_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = list)
-    end: List[int] = field(default_factory = list)
-    average_p: List[float] = field(default_factory = list)
-    max_p: List[float] = field(default_factory = list)
+    start: List[int] = field(default_factory = lambda: array("l"))
+    end: List[int] = field(default_factory = lambda: array("l"))
+    average_p: List[float] = field(default_factory = lambda: array("d"))
+    max_p: List[float] = field(default_factory = lambda: array("d"))
     bgc_types: List[List[str]] = field(default_factory = list)
     bgc_types_p: List[List[float]] = field(default_factory = list)
     proteins: List[List[str]] = field(default_factory = list)
