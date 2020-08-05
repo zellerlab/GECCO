@@ -5,4 +5,4 @@ include gecco/_version.txt
 
 recursive-include gecco/crf *.pkl *.pkl.md5
 recursive-include gecco/hmmer *.ini
-recursive-include gecco/knn *.tsv *.npz
+recursive-include gecco/types *.tsv *.npz
