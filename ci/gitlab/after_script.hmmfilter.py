@@ -3,9 +3,12 @@ import gzip
 import re
 import os
 import io
+import sys
 
 import tqdm
-from gecco.crf import ClusterCRF
+import pkg_resources
+sys.path.insert(0, os.path.realpath(os.path.join(__file__, "..", "..", "..")))
+
 from gecco.hmmer import embedded_hmms
 from gecco.interpro import InterPro
 
@@ -15,21 +18,22 @@ os.makedirs(os.path.join("ci", "artifacts"), exist_ok=True)
 # Load InterPro to know how many entries we have to process
 interpro = InterPro.load()
 
-# Load the internal CRF model and compile a regex that matches the domains
+# Load the domains used by the CRF and compile a regex that matches the domains
 # known to the CRF (i.e. useful domains for us to annotate with)
-crf = ClusterCRF.trained()
-rx = re.compile("|".join(crf.model.attributes_).encode("utf-8"))
-
+with pkg_resources.resource_stream("gecco.types", "domains.tsv") as f:
+    domains = [ domain.strip() for domain in f ]
+    rx = re.compile(b"|".join(domains))
 
 # Filter the hmms
 for hmm in embedded_hmms():
     out = os.path.join("ci", "artifacts", "{}.hmm.gz".format(hmm.id))
+    in_ = os.path.join("ci", "cache", "{}.{}.hmm.gz".format(hmm.id, hmm.version))
     size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(hmm.id.upper()))
     pbar = tqdm.tqdm(desc=hmm.id, total=size)
 
     with contextlib.ExitStack() as ctx:
         pbar = ctx.enter_context(pbar)
-        src = ctx.enter_context(gzip.open(hmm.path, "rb"))
+        src = ctx.enter_context(gzip.open(in_, "rb"))
         dst = ctx.enter_context(gzip.open(out, "wb"))
 
         blocklines = []
