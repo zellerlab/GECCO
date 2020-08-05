@@ -2,19 +2,20 @@
 """
 
 import functools
+import itertools
 import os
+import operator
 import multiprocessing
 import random
 import typing
 from typing import List
 
-import pandas
+import tqdm
+import sklearn.model_selection
 
 from ._base import Command
+from ...model import FeatureTable
 from ...crf import ClusterCRF
-
-if typing.TYPE_CHECKING:
-    from pandas import DataFrame
 
 
 class Cv(Command):  # noqa: D101
@@ -26,7 +27,6 @@ class Cv(Command):  # noqa: D101
     Usage:
         gecco cv (-h | --help)
         gecco cv kfold -i <data>  [-w <col>]... [-f <col>]... [options]
-        gecco cv loto  -i <data>  [-w <col>]... [-f <col>]... [options]
 
     Arguments:
         -i <data>, --input <data>       a domain annotation table with regions
@@ -116,66 +116,46 @@ class Cv(Command):  # noqa: D101
         return None
 
     def __call__(self) -> int:  # noqa: D102
+
         # --- LOADING AND PREPROCESSING --------------------------------------
-        self.logger.info("Loading the data from {!r}", self.args["--input"])
-        data_tbl = pandas.read_csv(self.args["--input"], sep="\t", encoding="utf-8")
-        self.logger.debug(
-            "Filtering results with e-value under {}", self.args["--e-filter"]
-        )
-        data_tbl = data_tbl[data_tbl["i_Evalue"] < self.args["--e-filter"]]
-        self.logger.debug("Splitting input by column {!r}", self.args["--split-col"])
-        data: List["DataFrame"] = [
-            s for _, s in data_tbl.groupby(self.args["--split-col"])
-        ]
+        # Load the table
+        self.logger.info("Loading the data")
+        with open(self.args["--input"]) as in_:
+            table = FeatureTable.load(in_)
 
+        # Converting table to genes and sort by location
+        genes = sorted(table.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
+        for gene in genes:
+            gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
+
+
+        # group by sequence
+        groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
+        seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
+
+        # shuffle if required
         if self.args["--shuffle"]:
-            self.logger.debug("Shuffling rows")
-            random.shuffle(data)
+            random.shuffle(seqs)
 
-        # --- CROSS VALIDATION -----------------------------------------------
-        crf = ClusterCRF(
-            feature_columns=self.args["--feature-cols"],
-            weight_columns=self.args["--weight-cols"],
-            feature_type=self.args["--feature-type"],
-            label_column=self.args["--y-col"],
-            overlap=self.args["--overlap"],
-            algorithm="lbfgs",
-            c1=self.args["--c1"],
-            c2=self.args["--c2"],
-        )
-
-        if self.args["loto"]:
-            cv_type = "loto"
-            cross_validate = crf.loto_cv
-        elif self.args["kfold"]:
-            cv_type = "kfold"
-            cross_validate = functools.partial(crf.cv, k=self.args["--splits"])
+        # --- CROSS-VALIDATION ------------------------------------------------
+        k = 10
+        splits = list(sklearn.model_selection.KFold(k).split(seqs))
+        new_genes = []
 
         self.logger.info("Performing cross-validation")
-        results = pandas.concat(
-            cross_validate(
-                data,
-                self.args["--strat-col"],
-                trunc=self.args["--truncate"],
-                select=self.args["--select"],
-                jobs=self.args["--jobs"],
+        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
+            train_data = [gene for i in train_indices for gene in seqs[i]]
+            test_data = [gene for i in test_indices for gene in seqs[i]]
+            crf = ClusterCRF(
+                self.args["--feature-type"],
+                algorithm="lbfgs",
+                overlap=self.args["--overlap"],
+                c1=self.args["--c1"],
+                c2=self.args["--c2"],
             )
-        )
+            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
+            new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
 
-        # Add all the arguments given from CLI as table data
-        self.logger.info("Formatting results")
-        results["c1"] = self.args["--c1"]
-        results["c2"] = self.args["--c2"]
-        results["feature_type"] = self.args["--feature-type"]
-        results["e_filter"] = self.args["--e-filter"]
-        results["overlap"] = self.args["--overlap"]
-        results["weight"] = ",".join(map(str, self.args["--weight-cols"]))
-        results["feature"] = ",".join(self.args["--feature-cols"])
-        results["truncate"] = self.args["--truncate"]
-        results["input"] = os.path.basename(self.args["--input"])
-        results["cv_type"] = cv_type
 
-        # Write results
-        self.logger.info("Writing output to {!r}", self.args["--output"])
-        results.to_csv(self.args["--output"], sep="\t", index=False)
-        return 0
+        with open(self.args["--input"]+".cv.tsv", "w") as out:
+            FeatureTable.from_genes(new_genes).dump(out)
