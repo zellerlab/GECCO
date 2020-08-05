@@ -328,7 +328,7 @@ class FeatureTable(Dumpable, Sized):
     i_evalue: List[float] = field(default_factory = list)
     domain_start: List[int] = field(default_factory = list)
     domain_end: List[int] = field(default_factory = list)
-    bgc_probability: List[float] = field(default_factory = list)
+    bgc_probability: List[Optional[float]] = field(default_factory = list)
 
     class Row(NamedTuple):
         """A single row in a feature table.
@@ -416,11 +416,31 @@ class FeatureTable(Dumpable, Sized):
         table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
-        columns = [ (header.index(col), col, ty) for col, ty in cls.__annotations__.items() ]
+
+        # find the columns and the type of each column based on the annotations
+        columns = [
+            (
+                (header.index(col) if col in header else None),
+                col,
+                operator.attrgetter(col),
+                getattr(ty.__args__[0], "__args__", ty.__args__)[0], # concrete type
+            )
+            for col, ty in cls.__annotations__.items()
+        ]
+
+        # check that if a column is missing, it is Optional
+        missing = [
+            c
+            for i, c, _, _ in columns
+            if i is None and not isinstance(cls.__annotations__[c].__args__[0], type)
+        ]
+        if missing:
+            raise ValueError("table is missing columns: {}".format(", ".join(missing)))
+
+        # extract elements from the CSV rows
         for row in reader:
-            for index, column, ty in columns:
-                value = ty.__args__[0](row[index])
-                getattr(table, column).append(value)
+            for index, _, getter, ty in columns:
+                getter(table).append(None if index is None else ty(row[index]))
         return table
 
 
