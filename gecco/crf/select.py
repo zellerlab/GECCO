@@ -34,10 +34,9 @@ def significance_correction(
         [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
 
     """
-    fdrcorrection = statsmodels.stats.multitest.fdrcorrection
     features = sorted(significance, key=significance.__getitem__)
     pvalues = numpy.array([significance[feature] for feature in features])
-    _, corrected = fdrcorrection(pvalues, method=method, is_sorted=True)
+    _, corrected = multitest.fdrcorrection(pvalues, method=method, is_sorted=True)
     return dict(zip(features, corrected))
 
 

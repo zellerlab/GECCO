@@ -68,7 +68,8 @@ class requires:
         else:
 
             newfunc = func
-            newfunc.__globals__[self.module_name] = self.module
+            basename = self.module_name.split(".")[-1]
+            newfunc.__globals__[basename] = self.module
 
         return newfunc
 
