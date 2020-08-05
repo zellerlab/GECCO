@@ -65,7 +65,7 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch("gecco.cli.commands.run.TypeClassifier.predict_types", new=_fit_predict)
             )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
-            main(argv, stream=io.StringIO())
+            self.assertEqual(main(argv, stream=io.StringIO()), 0)
 
         # make sure we have generated the files we want
         # and that we found one cluster

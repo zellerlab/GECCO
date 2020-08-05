@@ -313,6 +313,21 @@ class Cluster:
         return bgc
 
 
+class _UnknownSeq(Seq):
+    """An unknown sequence that uses limited memory.
+
+    Used by `FeatureTable.to_genes` to fake the `Gene.source.seq` attribute.
+    """
+
+    def __init__(self):
+        super().__init__(data="")
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return Seq("N" * ((index.stop - index.start) // (index.step or 1)) )
+        return "N"
+
+
 @dataclass(frozen=True)
 class FeatureTable(Dumpable, Sized):
     """A table storing condensed domain annotations from different genes.
@@ -375,7 +390,7 @@ class FeatureTable(Dumpable, Sized):
         """
         for _, group in itertools.groupby(self, key=operator.attrgetter("protein_id")):
             rows = list(group)
-            source = SeqRecord(id=rows[0].sequence_id, seq=None)
+            source = SeqRecord(id=rows[0].sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
             protein = Protein(rows[0].protein_id, seq=None)
             gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
@@ -422,7 +437,7 @@ class FeatureTable(Dumpable, Sized):
             (
                 (header.index(col) if col in header else None),
                 col,
-                operator.attrgetter(col),
+                getattr(table, col).append,
                 getattr(ty.__args__[0], "__args__", ty.__args__)[0], # concrete type
             )
             for col, ty in cls.__annotations__.items()
@@ -439,8 +454,8 @@ class FeatureTable(Dumpable, Sized):
 
         # extract elements from the CSV rows
         for row in reader:
-            for index, _, getter, ty in columns:
-                getter(table).append(None if index is None else ty(row[index]))
+            for index, _, append, ty in columns:
+                append(None if index is None else ty(row[index]))
         return table
 
 
