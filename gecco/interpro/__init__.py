@@ -11,6 +11,9 @@ import pkg_resources
 
 @dataclass
 class InterProEntry:
+    """A single domain entry in the InterPro database.
+    """
+
     accession: str
     go_terms: Dict[str, Dict[str, str]]
     integrated: Optional[str]
@@ -22,6 +25,9 @@ class InterProEntry:
 
 @dataclass
 class InterPro:
+    """A subset of the InterPro database exposing domain metadata.
+    """
+
     entries: List[InterProEntry]
 
     def __init__(self, entries: List[InterProEntry]):

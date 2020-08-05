@@ -319,6 +319,9 @@ class FeatureTable(Dumpable, Sized):
     """
 
     class Row(NamedTuple):
+        """A single row in a feature table.
+        """
+
         sequence_id: str
         protein_id: str
         start: int
@@ -358,6 +361,12 @@ class FeatureTable(Dumpable, Sized):
         return cls(rows)
 
     def to_genes(self) -> Iterable[Gene]:
+        """Convert a feature table to actual genes.
+
+        Since the source sequence cannot be known, a *dummy* sequence is
+        built for each gene of size ``gene.end``, so that each gene can still
+        be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
+        """
         for _, group in itertools.groupby(self, key=operator.attrgetter("protein_id")):
             rows = list(group)
             source = SeqRecord(id=rows[0].sequence_id, seq=Seq("N"*rows[0].end))
@@ -372,7 +381,7 @@ class FeatureTable(Dumpable, Sized):
     def __len__(self) -> int:  # noqa: D105
         return len(self.rows)
 
-    def __iter__(self) -> Iterator[Row]:
+    def __iter__(self) -> Iterator[Row]:  # noqa: D105
         return iter(self.rows)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
@@ -395,7 +404,6 @@ class FeatureTable(Dumpable, Sized):
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":
         """Load a feature table in CSV format from a file handle in text mode.
         """
-
         rows = []
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
@@ -418,6 +426,9 @@ class ClusterTable(Dumpable, Sized):
     """
 
     class Row(NamedTuple):
+        """A single row in a cluster table.
+        """
+
         sequence_id: str
         bgc_id: str
         start: int
@@ -457,7 +468,7 @@ class ClusterTable(Dumpable, Sized):
     def __len__(self) -> int:  # noqa: D105
         return len(self.rows)
 
-    def __iter__(self) -> Iterator[Row]:
+    def __iter__(self) -> Iterator[Row]:  # noqa: D105
         return iter(self.rows)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
@@ -484,6 +495,8 @@ class ClusterTable(Dumpable, Sized):
 
     @classmethod
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":
+        """Load a cluster table in CSV format from a file handle in text mode.
+        """
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
         columns = [

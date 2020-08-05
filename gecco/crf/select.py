@@ -47,7 +47,6 @@ def fisher_significance(
 ) -> Dict[str, float]:
     r"""Estimate the significance of each domain in the given proteins.
 
-
     For each feature $F$, we create the following contingency table, by
     counting how many time the feature appears or does not appear in BGC
     proteins, and non-BGC proteins:
