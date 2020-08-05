@@ -2,6 +2,7 @@
 """
 
 import csv
+import copy
 import functools
 import hashlib
 import itertools
@@ -188,7 +189,7 @@ class ClusterCRF(object):
             if select <= 0 or select > 1:
                 raise ValueError(f"invalid value for select: {select}")
             # find most significant features
-            sig = fisher_significance([g.protein for seq in seqs for g in seq])
+            sig = fisher_significance(g.protein for seq in seqs for g in seq)
             sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
             self.significant_features = frozenset(sorted_sig)
             # remove non significant domains
