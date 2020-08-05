@@ -124,7 +124,13 @@ class Cv(Command):  # noqa: D101
             table = FeatureTable.load(in_)
 
         # Converting table to genes and sort by location
-        genes = sorted(table.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
+        self.logger.info("Converting data to genes")
+        gene_count = len(set(table.protein_id))
+        genes = list(tqdm.tqdm(table.to_genes(), total=gene_count))
+        del table
+
+        self.logger.info("Sorting genes by location")
+        genes.sort(key=operator.attrgetter("source.id", "start", "end"))
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
 
@@ -155,6 +161,5 @@ class Cv(Command):  # noqa: D101
             crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
             new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
 
-
-        with open(self.args["--input"]+".cv.tsv", "w") as out:
+        with open(self.args["--output"], "w") as out:
             FeatureTable.from_genes(new_genes).dump(out)
