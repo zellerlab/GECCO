@@ -8,7 +8,6 @@ import unittest
 from unittest import mock
 
 import Bio.SeqIO
-import pandas
 from Bio.Seq import Seq
 
 import gecco.cli.commands.run
