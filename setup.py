@@ -86,24 +86,11 @@ class update_model(setuptools.Command):
             dst = os.path.join("gecco", "knn", filename)
             shutil.copy(src=src, dst=dst)
 
-
-class build_py(_build_py):
-    """A hacked `build_py` command to download data before wheel creation.
-    """
-
-    def run(self):
-        _build_py.run(self)
-        self.download_hmms()
-        self.build_interpro_list()
-
-    def build_interpro_list(self):
-        path = os.path.join(self.build_lib, "gecco", "interpro", "interpro.json.gz")
-        if os.path.exists(path):
-            return
-        self.mkpath(os.path.dirname(path))
-        self.announce("getting Pfam entries from InterPro", level=2)
+        # Update the interpro entries
+        path = os.path.join("gecco", "interpro", "interpro.json.gz")
+        self.info("getting Pfam entries from InterPro")
         entries = self.download_interpro_entries("pfam")
-        self.announce("getting Tigrfam entries from InterPro", level=2)
+        self.info("getting Tigrfam entries from InterPro")
         entries.extend(self.download_interpro_entries("tigrfams"))
         with gzip.open(path, "wt") as dest:
             json.dump(entries, dest)
@@ -121,6 +108,15 @@ class build_py(_build_py):
                     entries.extend(payload["results"])
                     pbar.update(len(payload["results"]))
         return entries
+
+
+class build_py(_build_py):
+    """A hacked `build_py` command to download data before wheel creation.
+    """
+
+    def run(self):
+        _build_py.run(self)
+        self.download_hmms()
 
     def download_hmms(self):
         for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
