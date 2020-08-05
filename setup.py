@@ -24,39 +24,6 @@ from setuptools.command.sdist import sdist as _sdist
 from tqdm import tqdm
 
 
-class ResponseProgressBar(object):
-
-    def __init__(self, inner, tqdm=tqdm, **kwargs):
-        self.inner = inner
-        self.total = total = int(inner.headers['Content-Length'])
-        self.pbar = tqdm(
-            total=total,
-            leave=False,
-            unit='iB',
-            unit_scale=True,
-            unit_divisor=1024,
-            file=sys.stdout,
-            **kwargs
-        )
-        self.update = self.pbar.update
-        self.refresh = self.pbar.refresh
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if sys.version_info >= (3,):
-            self.inner.__exit__(exc_type, exc_value, traceback)
-        if self.pbar is not None:
-            self.pbar.__exit__(exc_type, exc_value, traceback)
-        return False
-
-    def read(self, n=None):
-        chunk = self.inner.read(n)
-        self.update(len(chunk))
-        return chunk
-
-
 class sdist(_sdist):
     """An extension to the `sdist` command that generates a `pyproject.toml`.
     """
@@ -66,7 +33,7 @@ class sdist(_sdist):
         c = configparser.ConfigParser()
         c.add_section("build-system")
         c.set("build-system", "requires", str(self.distribution.setup_requires))
-        c.set("build-system", 'build-backend', '"setuptools.build_meta"')
+        c.set("build-system", "build-backend", '"setuptools.build_meta"')
         with open("pyproject.toml", "w") as pyproject:
             c.write(pyproject)
 
@@ -78,9 +45,9 @@ class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.
     """
 
-    description = 'update the CRF model embedded in the source'
+    description = "update the CRF model embedded in the source"
     user_options = [
-      ('model=', 'm', 'the path to the new CRF model to use'),
+        ("model=", "m", "the path to the new CRF model to use"),
     ]
 
     def initialize_options(self):
@@ -103,7 +70,7 @@ class update_model(setuptools.Command):
         with open(os.path.join(self.model, "model.pkl"), "rb") as src:
             with open(os.path.join("gecco", "crf", "model.pkl"), "wb") as dst:
                 read = lambda: src.read(io.DEFAULT_BUFFER_SIZE)
-                for chunk in iter(read, b''):
+                for chunk in iter(read, b""):
                     hasher.update(chunk)
                     dst.write(chunk)
 
@@ -158,9 +125,9 @@ class build_py(_build_py):
         for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
-            out = os.path.join(self.build_lib, in_.replace('.ini', '.hmm.gz'))
+            out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm.gz"))
             try:
-                self.make_file([in_], out, self.download_hmm, [out, dict(cfg.items('hmm'))])
+                self.make_file([in_], out, self.download_hmm, [out, dict(cfg.items("hmm"))])
             except:
                 if os.path.exists(out):
                     os.remove(out)
@@ -177,16 +144,17 @@ class build_py(_build_py):
             self.announce("using fallback {}".format(options["url"]), level=2)
             response = urllib.request.urlopen(options["url"])
         # download the HMM
-        with ResponseProgressBar(response, desc=os.path.basename(output)) as src:
+        format = dict(
+            total=int(res.headers["Content-Length"]),
+            desc=os.path.basename(output),
+            leave=False,
+        )
+        with tqdm.wrapattr(response, "read", **format) as src:
             with open(output, "wb") as dst:
                 shutil.copyfileobj(src, dst)
 
 
 if __name__ == "__main__":
     setuptools.setup(
-        cmdclass={
-            "build_py": build_py,
-            "sdist": sdist,
-            "update_model": update_model,
-        },
+        cmdclass={"build_py": build_py, "sdist": sdist, "update_model": update_model,},
     )
