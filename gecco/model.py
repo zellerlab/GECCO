@@ -318,6 +318,18 @@ class FeatureTable(Dumpable, Sized):
     """A table storing condensed domain annotations from different genes.
     """
 
+    sequence_id: List[str] = field(default_factory = list)
+    protein_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = list)
+    end: List[int] = field(default_factory = list)
+    strand: List[str] = field(default_factory = list)
+    domain: List[str] = field(default_factory = list)
+    hmm: List[str] = field(default_factory = list)
+    i_evalue: List[float] = field(default_factory = list)
+    domain_start: List[int] = field(default_factory = list)
+    domain_end: List[int] = field(default_factory = list)
+    bgc_probability: List[float] = field(default_factory = list)
+
     class Row(NamedTuple):
         """A single row in a feature table.
         """
@@ -332,33 +344,27 @@ class FeatureTable(Dumpable, Sized):
         i_evalue: float
         domain_start: int
         domain_end: int
-        bgc_probability: Optional[float] = None
-
-    rows: List[Row] = field(default_factory = list)
+        bgc_probability: float
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
         """Create a new feature table from an iterable of genes.
         """
-        rows = []
+        table = cls()
         for gene in genes:
             for domain in gene.protein.domains:
-                rows.append(
-                    cls.Row(
-                        sequence_id=gene.source.id,
-                        protein_id=gene.protein.id,
-                        start=gene.start,
-                        end=gene.end,
-                        strand=gene.strand.sign,
-                        domain=domain.name,
-                        hmm=domain.hmm,
-                        i_evalue=domain.i_evalue,
-                        domain_start=domain.start,
-                        domain_end=domain.end,
-                        bgc_probability=domain.probability
-                    )
-                )
-        return cls(rows)
+                table.sequence_id.append(gene.source.id)
+                table.protein_id.append(gene.protein.id)
+                table.start.append(gene.start)
+                table.end.append(gene.end)
+                table.strand.append(gene.strand.sign)
+                table.domain.append(domain.name)
+                table.hmm.append(domain.hmm)
+                table.i_evalue.append(domain.i_evalue)
+                table.domain_start.append(domain.start)
+                table.domain_end.append(domain.end)
+                table.bgc_probability.append(domain.probability)
+        return table
 
     def to_genes(self) -> Iterable[Gene]:
         """Convert a feature table to actual genes.
@@ -369,7 +375,7 @@ class FeatureTable(Dumpable, Sized):
         """
         for _, group in itertools.groupby(self, key=operator.attrgetter("protein_id")):
             rows = list(group)
-            source = SeqRecord(id=rows[0].sequence_id, seq=Seq("N"*rows[0].end))
+            source = SeqRecord(id=rows[0].sequence_id, seq=None)
             strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
             protein = Protein(rows[0].protein_id, seq=None)
             gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
@@ -379,10 +385,13 @@ class FeatureTable(Dumpable, Sized):
             yield gene
 
     def __len__(self) -> int:  # noqa: D105
-        return len(self.rows)
+        return len(self.sequence_id)
 
     def __iter__(self) -> Iterator[Row]:  # noqa: D105
-        return iter(self.rows)
+        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
+        for i in range(len(self)):
+            row = { c: getter(self)[i] for c, getter in columns.items() }
+            yield self.Row(**row)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
         """Write the feature table in CSV format to the given file.
@@ -395,7 +404,7 @@ class FeatureTable(Dumpable, Sized):
 
         """
         writer = csv.writer(fh, dialect=dialect)
-        header = list(self.Row.__annotations__)
+        header = list(self.__annotations__)
         writer.writerow(header)
         for row in self:
             writer.writerow([ getattr(row, col) for col in header ])
@@ -404,20 +413,15 @@ class FeatureTable(Dumpable, Sized):
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":
         """Load a feature table in CSV format from a file handle in text mode.
         """
-        rows = []
+        table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
-
-        columns = [
-            (header.index(col), col, getattr(ty, "__args__", [ty])[0])
-            for col, ty in cls.Row.__annotations__.items()
-            if col in header
-        ]
-
-        for line in reader:
-            raw = { column: ty(line[index]) for index, column, ty in columns }
-            rows.append(cls.Row(**raw))
-        return cls(rows)
+        columns = [ (header.index(col), col, ty) for col, ty in cls.__annotations__.items() ]
+        for row in reader:
+            for index, column, ty in columns:
+                value = ty.__args__[0](row[index])
+                getattr(table, column).append(value)
+        return table
 
 
 @dataclass(frozen=True)
@@ -440,36 +444,38 @@ class ClusterTable(Dumpable, Sized):
         proteins: List[str]
         domains: List[str]
 
-    rows: List[Row] = field(default_factory=list)
+    sequence_id: List[str] = field(default_factory = list)
+    bgc_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = list)
+    end: List[int] = field(default_factory = list)
+    average_p: List[float] = field(default_factory = list)
+    max_p: List[float] = field(default_factory = list)
+    bgc_types: List[List[str]] = field(default_factory = list)
+    bgc_types_p: List[List[float]] = field(default_factory = list)
+    proteins: List[List[str]] = field(default_factory = list)
+    domains: List[List[str]] = field(default_factory = list)
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
         """Create a new cluster table from an iterable of clusters.
         """
-        rows = []
+        table = cls()
         for cluster in clusters:
+            table.sequence_id.append(cluster.source.id)
+            table.bgc_id.append(cluster.id)
+            table.start.append(cluster.start)
+            table.end.append(cluster.end)
+            table.average_p.append(cluster.average_probability)
+            table.max_p.append(cluster.maximum_probability)
+            table.bgc_types.append(cluster.types)
+            table.bgc_types_p.append(cluster.types_probabilities)
+            table.proteins.append([ gene.protein.id for gene in cluster.genes ])
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
-            rows.append(
-                cls.Row(
-                    sequence_id=cluster.source.id,
-                    bgc_id=cluster.id,
-                    start=cluster.start,
-                    end=cluster.end,
-                    average_p=cluster.average_probability,
-                    max_p=cluster.maximum_probability,
-                    bgc_types=cluster.types[:],
-                    bgc_types_p=cluster.types_probabilities[:],
-                    proteins=[gene.protein.id for gene in cluster.genes],
-                    domains=sorted(domains),
-                )
-            )
-        return cls(rows)
+            table.domains.append(sorted(domains))
+        return table
 
     def __len__(self) -> int:  # noqa: D105
-        return len(self.rows)
-
-    def __iter__(self) -> Iterator[Row]:  # noqa: D105
-        return iter(self.rows)
+        return len(self.sequence_id)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
         """Write the cluster table in CSV format to the given file.
@@ -482,16 +488,16 @@ class ClusterTable(Dumpable, Sized):
 
         """
         writer = csv.writer(fh, dialect=dialect)
-        header = list(self.Row.__annotations__)
+        header = list(self.__annotations__)
         writer.writerow(header)
-        for row in self:
-            line = []
+        for i in range(len(self)):
+            row = []
             for col in header:
-                value = getattr(row, col)
+                value = getattr(self, col)[i]
                 if isinstance(value, list):
                     value = ";".join(map(str, value))
-                line.append(value)
-            writer.writerow(line)
+                row.append(value)
+            writer.writerow(row)
 
     @classmethod
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":
