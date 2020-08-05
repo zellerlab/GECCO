@@ -193,11 +193,13 @@ class ClusterCRF(object):
             sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
             self.significant_features = frozenset(sorted_sig)
             # remove non significant domains
-            for gene in itertools.chain.from_iterable(seqs):
-                gene.protein.domains = [
-                    domain for domain in gene.protein.domains
-                    if domain.name in self.significant_features
-                ]
+            for i, seq in enumerate(seqs):
+                for j, gene in enumerate(seq):
+                    seqs[i][j] = gene = copy.deepcopy(gene)
+                    gene.protein.domains = [
+                        domain for domain in gene.protein.domains
+                        if domain.name in self.significant_features
+                    ]
 
         # proces each sequence / group in parallel
         with OrderedPoolWrapper(self.pool_factory(jobs)) as pool:

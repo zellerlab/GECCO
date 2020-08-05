@@ -128,7 +128,6 @@ class Cv(Command):  # noqa: D101
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
 
-
         # group by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
