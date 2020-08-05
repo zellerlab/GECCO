@@ -5,16 +5,15 @@ import collections
 import typing
 from typing import Dict, Iterable, Mapping, Optional, Set, Tuple
 
-import fisher
 import numpy
-from statsmodels.stats.multitest import fdrcorrection
 
 from ..model import Domain, Protein
+from .._meta import requires
 
 if typing.TYPE_CHECKING:
     from ..bgc import BGC
 
-
+@requires("statsmodels.stats.multitest")
 def significance_correction(
     significance: Mapping[str, float], method: str,
 ) -> Dict[str, float]:
@@ -35,12 +34,14 @@ def significance_correction(
         [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
 
     """
+    fdrcorrection = statsmodels.stats.multitest.fdrcorrection
     features = sorted(significance, key=significance.__getitem__)
     pvalues = numpy.array([significance[feature] for feature in features])
     _, corrected = fdrcorrection(pvalues, method=method, is_sorted=True)
     return dict(zip(features, corrected))
 
 
+@requires("fisher")
 def fisher_significance(
     proteins: Iterable[Protein],
     correction_method: Optional[str] = "indep",

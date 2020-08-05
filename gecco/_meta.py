@@ -3,6 +3,7 @@
 
 import abc
 import functools
+import importlib
 import operator
 import typing
 from multiprocessing.pool import Pool
@@ -42,6 +43,34 @@ class classproperty(property):
 
     def __get__(self, obj: object, owner: "_S") -> "_T":  # type: ignore
         return self.f(owner)
+
+
+class requires:
+    """A decorator for functions that require optional dependencies.
+    """
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+        try:
+            self.module = importlib.import_module(module_name)
+        except ImportError as err:
+            self.module = err
+
+    def __call__(self, func):
+
+        if isinstance(self.module, ImportError):
+
+            @functools.wraps(func)
+            def newfunc(*args, **kwargs):
+                msg = f"calling {func.__qualname__} requires module {self.module.name}"
+                raise RuntimeError(msg) from self.module
+        else:
+
+            newfunc = func
+            newfunc.__globals__[self.module_name] = self.module
+
+        return newfunc
 
 
 class OrderedPoolWrapper:
