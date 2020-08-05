@@ -100,6 +100,7 @@ class build_py(_build_py):
         path = os.path.join(self.build_lib, "gecco", "interpro", "interpro.json.gz")
         if os.path.exists(path):
             return
+        self.mkpath(os.path.dirname(path))
         self.announce("getting Pfam entries from InterPro", level=2)
         entries = self.download_interpro_entries("pfam")
         self.announce("getting Tigrfam entries from InterPro", level=2)
