@@ -23,20 +23,17 @@ class Main(Command):
 
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
-        return {
-            cmd.name: cmd.load() for cmd in pkg_resources.iter_entry_points(__parent__)
-        }
+        commands = {}
+        for cmd in pkg_resources.iter_entry_points(__parent__):
+            try:
+                commands[cmd.name] = cmd.load()
+            except pkg_resources.DistributionNotFound as err:
+                pass
+        return commands
 
     @classmethod
     def _get_subcommand(cls, name: str) -> Optional[Type[Command]]:
-        try:
-            return next(
-                typing.cast(Type[Command], ep.load())
-                for ep in pkg_resources.iter_entry_points(__parent__)
-                if ep.name == name
-            )
-        except StopIteration:
-            return None
+        return cls._get_subcommands().get(name)
 
     @classproperty
     def doc(cls) -> str:  # type: ignore
