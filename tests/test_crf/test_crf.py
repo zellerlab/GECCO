@@ -8,7 +8,6 @@ import warnings
 from unittest import mock
 
 import Bio.SeqIO
-import pandas
 from gecco.crf import ClusterCRF
 from gecco.crf.select import fisher_significance
 

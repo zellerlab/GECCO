@@ -12,7 +12,7 @@ import pandas
 from Bio.Seq import Seq
 
 import gecco.cli.commands.run
-from gecco.model import Domain, Gene, Protein, Strand
+from gecco.model import ClusterTable, FeatureTable
 from gecco.types import TypeClassifier
 from gecco.cli import main
 from gecco.cli.commands.run import Run
@@ -37,16 +37,8 @@ class TestRun(TestCommand, unittest.TestCase):
         sequence = os.path.join(self.folder, "BGC0001866.fna")
         source = Bio.SeqIO.read(sequence, "fasta")
         with open(os.path.join(self.folder, "BGC0001866.features.tsv")) as f:
-            feats_df = pandas.read_table(f)
-
-        genes = []
-        for prot_id, df in feats_df.groupby("protein_id"):
-            prot = Protein(prot_id, seq=Seq("M"))
-            gene = Gene(source, min(df.start), max(df.end), Strand.Coding, prot)
-            for t in df.itertuples():
-                d = Domain(t.domain, t.domain_start, t.domain_end, t.hmm, t.i_Evalue, t.p_pred, {})
-                gene.protein.domains.append(d)
-            genes.append(gene)
+            features = FeatureTable.load(f)
+            genes = list(features.to_genes())
 
         # we mock time consuming operations (type prediction and HMM annotation)
         # with precomputed or fake results
@@ -80,5 +72,7 @@ class TestRun(TestCommand, unittest.TestCase):
         output = os.listdir(self.tmpdir)
         self.assertIn("BGC0001866.features.tsv", output)
         self.assertIn("BGC0001866.clusters.tsv", output)
-        clusters = pandas.read_table(os.path.join(self.tmpdir, "BGC0001866.clusters.tsv"))
+
+        with open(os.path.join(self.tmpdir, "BGC0001866.clusters.tsv")) as f:
+            clusters = ClusterTable.load(f)
         self.assertEqual(len(clusters), 1)

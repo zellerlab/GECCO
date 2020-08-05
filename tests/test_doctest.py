@@ -14,7 +14,6 @@ import types
 import warnings
 from unittest import mock
 
-import pandas
 import gecco
 
 
