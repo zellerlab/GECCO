@@ -20,7 +20,7 @@ pip install -U coverage tqdm
 mkdir -p ci/cache
 mkdir -p build/lib/gecco/data/hmms
 
-if [ "$CI_SERVER" == "true" ]; then
+if [ "$CI_SERVER" = "yes" ]; then
     QUIET="-q"
 else
     QUIET=""
