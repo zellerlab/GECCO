@@ -3,6 +3,7 @@
 
 import csv
 import enum
+import functools
 import itertools
 import operator
 import re
@@ -500,8 +501,8 @@ class ClusterTable(Dumpable, Sized):
         end: int
         average_p: float
         max_p: float
-        bgc_types: List[str]
-        bgc_types_p: List[float]
+        type: ProductType
+        type_probabilities: Mapping[ProductType, float]
         proteins: List[str]
         domains: List[str]
 
@@ -511,8 +512,16 @@ class ClusterTable(Dumpable, Sized):
     end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
     average_p: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
     max_p: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
-    bgc_types: List[List[str]] = field(default_factory = list)
-    bgc_types_p: List[List[float]] = field(default_factory = list)
+
+    type: List[ProductType] = field(default_factory = list)
+    alkaloid_probability: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
+    polyketide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
+    ripp_probability: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
+    saccharide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
+    terpene_probability: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
+    nrp_probability: List[float] = field(default_factory = lambda: array("d"))         # type: ignore
+    other_probability: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
+
     proteins: List[List[str]] = field(default_factory = list)
     domains: List[List[str]] = field(default_factory = list)
 
@@ -528,9 +537,16 @@ class ClusterTable(Dumpable, Sized):
             table.end.append(cluster.end)
             table.average_p.append(cluster.average_probability)
             table.max_p.append(cluster.maximum_probability)
-            table.bgc_types.append([ty.name for ty in cluster.type.unpack()])
-            probas = [cluster.type_probabilities[ty] for ty in cluster.type.unpack()]
-            table.bgc_types_p.append(probas)
+
+            table.type.append(cluster.type)
+            table.alkaloid_probability.append(cluster.type_probabilities.get(ProductType.Alkaloid, 0))
+            table.polyketide_probability.append(cluster.type_probabilities.get(ProductType.Polyketide, 0))
+            table.ripp_probability.append(cluster.type_probabilities.get(ProductType.RiPP, 0))
+            table.saccharide_probability.append(cluster.type_probabilities.get(ProductType.Saccharide, 0))
+            table.terpene_probability.append(cluster.type_probabilities.get(ProductType.Terpene, 0))
+            table.nrp_probability.append(cluster.type_probabilities.get(ProductType.NRP, 0))
+            table.other_probability.append(cluster.type_probabilities.get(ProductType.Other, 0))
+
             table.proteins.append([ gene.protein.id for gene in cluster.genes ])
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
             table.domains.append(sorted(domains))
@@ -556,7 +572,9 @@ class ClusterTable(Dumpable, Sized):
             row = []
             for col in header:
                 value = getattr(self, col)[i]
-                if isinstance(value, list):
+                if col == "type":
+                    value = ";".join(map(operator.attrgetter("name"), value.unpack()))
+                elif isinstance(value, list):
                     value = ";".join(map(str, value))
                 row.append(value)
             writer.writerow(row)
@@ -576,7 +594,10 @@ class ClusterTable(Dumpable, Sized):
         for line in reader:
             raw = {}
             for index, column, ty in columns:
-                if isinstance(ty, type):
+                if ty is ProductType:
+                    types = [ ProductType.__members__[k] for k in line[index].split(";") ]
+                    raw[column] = functools.reduce(operator.or_, types)
+                elif isinstance(ty, type):
                     raw[column] = ty(line[index])
                 elif line[index]:
                     ty = ty.__args__[0]
