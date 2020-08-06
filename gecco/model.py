@@ -561,6 +561,12 @@ class ClusterTable(Dumpable, Sized):
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
+    def __iter__(self) -> Iterator[Row]:  # noqa: D105
+        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
+        for i in range(len(self)):
+            row = { c: getter(self)[i] for c, getter in columns.items() }
+            yield self.Row(**row)
+
     def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
         """Write the cluster table in CSV format to the given file.
 
@@ -589,27 +595,39 @@ class ClusterTable(Dumpable, Sized):
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":
         """Load a cluster table in CSV format from a file handle in text mode.
         """
+
+        table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
+
+        # find the columns and the type of each column based on the annotations
         columns = [
-            (header.index(col), col, ty)
-            for col, ty in cls.Row.__annotations__.items()
+            (
+                (header.index(col) if col in header else None),
+                col,
+                getattr(table, col).append,
+                getattr(ty.__args__[0], "__args__", ty.__args__)[0], # concrete type
+            )
+            for col, ty in cls.__annotations__.items()
         ]
 
-        rows = []
+        # check that no column is missing
+        missing = [c for i, c, _, _ in columns if i is None]
+        if missing:
+            raise ValueError("table is missing columns: {}".format(", ".join(missing)))
+
+        # extract elements from the CSV rows
         for line in reader:
-            raw = {}
-            for index, column, ty in columns:
+            for index, column, append, ty in columns:
+
                 if ty is ProductType:
                     types = [ ProductType.__members__[k] for k in line[index].split(";") ]
-                    raw[column] = functools.reduce(operator.or_, types)
+                    append(functools.reduce(operator.or_, types))
+                elif column == "proteins" or column == "domains":
+                    append(list(line[index].split(";")))
                 elif isinstance(ty, type):
-                    raw[column] = ty(line[index])
-                elif line[index]:
-                    ty = ty.__args__[0]
-                    raw[column] = list(map(ty, line[index].split(";")))
+                    append(ty(line[index]))
                 else:
-                    raw[column] = []
-            rows.append(cls.Row(**raw))
+                    raise ValueError
 
-        return cls(rows)
+        return table
