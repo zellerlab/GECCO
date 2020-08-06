@@ -39,6 +39,14 @@ class ProductType(enum.IntFlag):
 
     @classmethod
     def pack(cls, members: Iterable["ProductType"]) -> "ProductType":
+        """Pack together a list of individual product types.
+
+        Example:
+            >>> types = [ProductType.Polyketide, ProductType.Saccharide]
+            >>> ProductType.pack(types)
+            <ProductType.Saccharide|Polyketide: 20>
+
+        """
         return functools.reduce(operator.or_, members, cls.Unknown)
 
     def unpack(self) -> List["ProductType"]:
@@ -48,6 +56,7 @@ class ProductType(enum.IntFlag):
             >>> ty = ProductType.Polyketide | ProductType.Saccharide
             >>> ty.unpack()
             [<ProductType.Polyketide: 4>, <ProductType.Saccharide: 16>]
+
         """
         return [ x for x in ProductType.__members__.values() if (x & self) ]
 
@@ -599,7 +608,6 @@ class ClusterTable(Dumpable, Sized):
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":
         """Load a cluster table in CSV format from a file handle in text mode.
         """
-
         table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
@@ -623,7 +631,6 @@ class ClusterTable(Dumpable, Sized):
         # extract elements from the CSV rows
         for line in reader:
             for index, column, append, ty in columns:
-
                 if ty is ProductType:
                     types = [ ProductType.__members__[k] for k in line[index].split(";") ]
                     append(functools.reduce(operator.or_, types))
