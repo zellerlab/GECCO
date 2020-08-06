@@ -9,7 +9,7 @@ API Reference
    hmmer
    crf
    refine
-   knn
+   types
 
 
 Data Model
@@ -20,7 +20,6 @@ Data Model
 .. autosummary::
    :nosignatures:
 
-   Hmm
    Strand
    Domain
    Protein
@@ -75,9 +74,9 @@ BGC Extraction
 Type Prediction
 ---------------
 
-.. currentmodule:: gecco.knn
+.. currentmodule:: gecco.types
 
 .. autosummary::
    :nosignatures:
 
-   ClusterKNN
+   TypeClassifier

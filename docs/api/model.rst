@@ -5,8 +5,6 @@ Data Model
 .. automodule:: gecco.model
 
 
-.. autoclass:: Hmm
-
 .. autoclass:: Domain
 
 .. autoclass:: Protein
