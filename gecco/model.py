@@ -598,7 +598,8 @@ class ClusterTable(Dumpable, Sized):
             for col in header:
                 value = getattr(self, col)[i]
                 if col == "type":
-                    value = ";".join(map(operator.attrgetter("name"), value.unpack()))
+                    types = value.unpack() or [ProductType.Unknown]
+                    value = ";".join(map(operator.attrgetter("name"), types))
                 elif isinstance(value, list):
                     value = ";".join(map(str, value))
                 row.append(value)
