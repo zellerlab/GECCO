@@ -37,6 +37,13 @@ class ProductType(enum.IntFlag):
     NRP        = 0b01000000
 
     def unpack(self) -> List["ProductType"]:
+        """Unpack a composite `ProductType` into a list of individual flags.
+
+        Example:
+            >>> ty = ProductType.Polyketide | ProductType.Saccharide
+            >>> ty.unpack()
+            [<ProductType.Polyketide: 4>, <ProductType.Saccharide: 16>]
+        """
         return [ x for x in ProductType.__members__.values() if (x & self) ]
 
 

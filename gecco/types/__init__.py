@@ -38,7 +38,6 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
         return classes
 
 
-
 class TypeClassifier(object):
 
     @classmethod
