@@ -502,7 +502,13 @@ class ClusterTable(Dumpable, Sized):
         average_p: float
         max_p: float
         type: ProductType
-        type_probabilities: Mapping[ProductType, float]
+        alkaloid_probability: float
+        polyketide_probability: float
+        ripp_probability: float
+        saccharide_probability: float
+        terpene_probability: float
+        nrp_probability: float
+        other_probability: float
         proteins: List[str]
         domains: List[str]
 
