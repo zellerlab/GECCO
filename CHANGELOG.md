@@ -5,10 +5,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.3.0...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...master
+
+## [v0.4.0] - 2020-08-06
+[v0.4.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.3.0...v0.4.0
+### Added
+- `gecco.model.ProductType` enum to model the biosynthetic class of a BGC.
+### Removed
+- `pandas` interaction from internal data model.
+- `ClusterCRF` code specific to cross-validation.
+### Changed
+- `pandas`, `fisher` and `statsmodels` dependencies are now optional.
+- `gecco train` command expects a cluster table in addition to the feature
+   table to know the types of the input BGCs.
 
 ## [v0.3.0] - 2020-08-03
-[v0.2.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.2...v0.3.0
+[v0.3.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.2...v0.3.0
 ### Changed
 - Replaced Nearest-Neighbours classifier with Random Forest to perform type
   prediction for candidate BGCs.
