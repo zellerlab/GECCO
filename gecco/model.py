@@ -37,8 +37,12 @@ class ProductType(enum.IntFlag):
     Terpene    = 0b00100000
     NRP        = 0b01000000
 
+    @classmethod
+    def pack(cls, members: Iterable["ProductType"]) -> "ProductType":
+        return functools.reduce(operator.or_, members, cls.Unknown)
+
     def unpack(self) -> List["ProductType"]:
-        """Unpack a composite `ProductType` into a list of individual flags.
+        """Unpack a composite `ProductType` into a list of individual types.
 
         Example:
             >>> ty = ProductType.Polyketide | ProductType.Saccharide
