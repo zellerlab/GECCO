@@ -19,7 +19,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from ._base import Command
-from ...model import Domain, Gene, Protein, Strand, FeatureTable
+from ...model import FeatureTable, ClusterTable, Cluster
 from ...crf import ClusterCRF
 from ...refine import ClusterRefiner
 from ...hmmer import HMMER
@@ -33,12 +33,14 @@ class Train(Command):  # noqa: D101
 
     Usage:
         gecco train (-h | --help)
-        gecco train -i <data> [-w <col>]... [--feature-cols <col>]...
-                    [--sort-cols <col>]... [--strat-cols <col>]... [options]
+        gecco train --features <table> --clusters <table> [options]
 
     Arguments:
-        -i <data>, --input <data>       a domain annotation table with regions
-                                        labeled as BGCs and non-BGCs.
+        -f <data>, --features <table>   a domain annotation table, used to
+                                        train the CRF model.
+        -c <data>, --clusters <table>   a cluster annotation table, used to
+                                        extract the domain composition for
+                                        the type classifier.
 
     Parameters:
         -o <out>, --output-dir <out>    the directory to use for the model
@@ -68,28 +70,6 @@ class Train(Command):  # noqa: D101
         --select <N>                    fraction of most significant features
                                         to select from the training data.
 
-    Parameters - Column Names:
-        -y <col>, --y-col <col>         column with class label. [default: BGC]
-        -w <col>, --weight-cols <col>   columns with local weights on features.
-                                        [default: rev_i_Evalue]
-        -f <col>, --feature-cols <col>  column to be used as features.
-                                        [default: domain]
-        -s <col>, --split-col <col>     column to be used for splitting into
-                                        samples, i.e different sequences
-                                        [default: sequence_id]
-        -g <col>, --group-col <col>     column to be used for grouping features
-                                        if `--feature-type` is *group*.
-                                        [default: protein_id]
-        --sort-cols <col>               columns to be used for sorting the data
-                                        [default: genome_id start domain_start]
-        --strat-cols <col>              columns to be used for stratifying the
-                                        samples (BGC types).
-
-    Parameters - Type Prediction:
-        --type-col <col>                column containing BGC types to use for
-                                        domain composition. [default: BGC_type]
-        --id-col <col>                  column containing BGC id to use for
-                                        BGC labelling. [default: BGC_id]
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -98,10 +78,10 @@ class Train(Command):  # noqa: D101
             return retcode
 
         # Check the input exists
-        input_ = self.args["--input"]
-        if not os.path.exists(input_):
-            self.logger.error("could not locate input file: {!r}", input_)
-            return 1
+        for input_ in self.args["--features"], self.args["--clusters"]:
+            if not os.path.exists(input_):
+                self.logger.error("could not locate input file: {!r}", input_)
+                return 1
 
         # Check the `--feature-type`
         type_ = self.args["--feature-type"]
@@ -133,13 +113,14 @@ class Train(Command):  # noqa: D101
         # --- LOADING AND PREPROCESSING --------------------------------------
         # Load the table
         self.logger.info("Loading the data")
-        with open(self.args["--input"]) as in_:
-            table = FeatureTable.load(in_)
+        with open(self.args["--features"]) as in_:
+            features = FeatureTable.load(in_)
 
         # Converting table to genes and sort by location
-        genes = sorted(table.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
+        genes = sorted(features.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
+        del features
 
         # --- MODEL FITTING --------------------------------------------------
         self.logger.info("Fitting the CRF model to the training data")
@@ -179,5 +160,37 @@ class Train(Command):  # noqa: D101
             writer.writerow(["attr", "label", "weight"])
             for attrs, weight in crf.model.state_features_.items():
                 writer.writerow([*attrs, weight])
+
+        # --- DOMAIN COMPOSITION ---------------------------------------------
+        self.logger.info("Extracting domain composition for type classifier")
+
+        self.logger.debug("Loading cluster table")
+        with open(self.args["--clusters"]) as f:
+            clusters = [
+                Cluster(c.bgc_id, [g for g in genes if g.id in c.proteins], c.type)
+                for c in sorted(ClusterTable.load(f), key=operator.attrgetter("bgc_id"))
+            ]
+
+        self.logger.debug("Finding the array of possible domains")
+        if crf.significant_features is not None:
+            all_possible = sorted(crf.significant_features)
+        else:
+            all_possible = sorted({d.name for g in genes for d in g.protein.domains})
+
+        self.logger.debug("Saving training matrix labels for BGC type classifier")
+        with open(os.path.join(self.args["--output-dir"], "domains.tsv"), "w") as out:
+            out.writelines([f"{domain}\n" for domain in all_possible])
+        with open(os.path.join(self.args["--output-dir"], "types.tsv"), "w") as out:
+            writer = csv.writer(out, dialect="excel-tab")
+            for cluster in clusters:
+                types =  ";".join(ty.name for ty in cluster.type.unpack())
+                writer.writerow([cluster.id, types])
+
+        self.logger.debug("Building new domain composition matrix")
+        comp = numpy.array([c.domain_composition(all_possible) for c in clusters])
+
+        comp_out = os.path.join(self.args["--output-dir"], "compositions.npz")
+        self.logger.debug("Saving new domain composition matrix to {!r}", comp_out)
+        scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(comp))
 
         return 0
