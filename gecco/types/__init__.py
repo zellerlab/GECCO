@@ -24,17 +24,17 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
         super().__init__(self.classes_)
 
     def transform(self, y: Iterable[ProductType]) -> Iterable[Iterable[int]]:
-        matrix = numpy.zeros((len(y), len(self.classes)))
+        matrix = numpy.zeros((len(y), len(self.classes_)))
         for i, label in enumerate(y):
             for j, cls in enumerate(self.classes_):
-                matrix[i, j] = int(label & cls)
+                matrix[i, j] = bool(label & cls)
         return matrix
 
     def inverse_transform(self, yt: Iterable[Iterable[int]]) -> Iterable[ProductType]:
         classes = []
         for y in yt:
             filtered = [cls for i, cls in enumerate(self.classes_) if y[i]]
-            classes.append(functools.reduce(operator.or_, filtered))
+            classes.append(ProductType.pack(filtered))
         return classes
 
 
@@ -69,15 +69,12 @@ class TypeClassifier(object):
             domains = [ line.strip() for line in src ]
         with open(typs_path, "r") as src:
             types = [
-                [ProductType.__members__[ty] for ty in tys.split(";")]
-                for tys in (line.split("\t")[1].strip() for line in src)
-            ]
-            compact_types = [
-                functools.reduce(operator.or_, tys) for tys in types
+                ProductType.pack(ProductType.__members__[ty] for ty in raw.split(";"))
+                for raw in (line.split("\t")[1].strip() for line in src)
             ]
 
         classifier = cls(random_state=0)
-        types_bin = classifier.binarizer.transform(compact_types)
+        types_bin = classifier.binarizer.transform(types)
         classifier.model.fit(compositions, y=types_bin)
         classifier.model.attributes_ = domains
         return classifier
@@ -101,12 +98,21 @@ class TypeClassifier(object):
         # extract domain compositions from input clusters
         comps = numpy.array([c.domain_composition(self.model.attributes_) for c in clusters])
 
-        # only take 'positive' probabilities for each class
-        probas = numpy.array(self.model.predict_proba(comps))[:, :, 1].transpose()
-        preds = self.binarizer.inverse_transform(probas > 0.5)
+        # predict type probabilities with the internal classifier
+        probas = self.model.predict_proba(comps)
+
+        # extract only the *positive* probabilites and translate them to proper
+        # type predictions using the binarizer
+        if len(comps) == 1:
+            posit = numpy.array([[1 - cls[0][0] for cls in probas]])
+        else:
+            posit = 1 - numpy.array(probas)[:, :, 1].transpose()
+
+        # translate probabilities into product type predictions
+        types = self.binarizer.inverse_transform(posit > 0.5)
 
         # annotate the input clusters
-        results = zip(typing.cast(Iterable["Cluster"], clusters), probas, preds)
+        results = zip(typing.cast(Iterable["Cluster"], clusters), posit, types)
         for cluster, proba, ty in results:
             cluster.type = ty
             cluster.type_probabilities = dict(zip(self.binarizer.classes_, proba))
