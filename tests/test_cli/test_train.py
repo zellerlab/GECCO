@@ -24,9 +24,10 @@ class TestTrain(TestCommand, unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_train_embedding(self):
-        table = os.path.join(self.folder, "mibig-2.0.Pfam-33.0.Tigrfam-15.0.tsv")
-        argv = ["-vv", "--traceback", "train", "-i", table, "-o", self.tmpdir]
+        base = os.path.join(self.folder, "mibig-2.0.Pfam-33.0.Tigrfam-15.0")
+        clusters, features = f"{base}.clusters.tsv", f"{base}.features.tsv"
 
+        argv = ["-vv", "--traceback", "train", "-f", features, "-c", clusters, "-o", self.tmpdir]
         with io.StringIO() as stream:
             retcode = main(argv, stream=stream)
             self.assertEqual(retcode, 0, stream.getvalue())
