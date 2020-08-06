@@ -3,6 +3,7 @@
 
 import csv
 import functools
+import operator
 import os
 import typing
 from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
@@ -13,9 +14,29 @@ import scipy.sparse
 import sklearn.ensemble
 import sklearn.preprocessing
 
+from ..model import ProductType, Cluster
 
-if typing.TYPE_CHECKING:
-    from ..model import Cluster
+
+class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
+
+    def __init__(self):
+        self.classes_ = sorted(x for x in ProductType.__members__.values() if x)
+        super().__init__(self.classes_)
+
+    def transform(self, y: Iterable[ProductType]) -> Iterable[Iterable[int]]:
+        matrix = numpy.zeros((len(y), len(self.classes)))
+        for i, label in enumerate(y):
+            for j, cls in enumerate(self.classes_):
+                matrix[i, j] = int(label & cls)
+        return matrix
+
+    def inverse_transform(self, yt: Iterable[Iterable[int]]) -> Iterable[ProductType]:
+        classes = []
+        for y in yt:
+            filtered = [cls for i, cls in enumerate(self.classes_) if y[i]]
+            classes.append(functools.reduce(operator.or_, filtered))
+        return classes
+
 
 
 class TypeClassifier(object):
@@ -48,10 +69,16 @@ class TypeClassifier(object):
         with open(doms_path, "r") as src:
             domains = [ line.strip() for line in src ]
         with open(typs_path, "r") as src:
-            types = [ line.split("\t")[1].strip() for line in src ]
+            types = [
+                [ProductType.__members__[ty] for ty in tys.split(";")]
+                for tys in (line.split("\t")[1].strip() for line in src)
+            ]
+            compact_types = [
+                functools.reduce(operator.or_, tys) for tys in types
+            ]
 
         classifier = cls(random_state=0)
-        types_bin = classifier.binarizer.fit_transform([t.split(";") for t in types])
+        types_bin = classifier.binarizer.transform(compact_types)
         classifier.model.fit(compositions, y=types_bin)
         classifier.model.attributes_ = domains
         return classifier
@@ -65,7 +92,7 @@ class TypeClassifier(object):
 
         """
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
-        self.binarizer = sklearn.preprocessing.MultiLabelBinarizer()
+        self.binarizer = TypeBinarizer()
 
     _S = typing.TypeVar("_S", bound=Sequence["Cluster"])
 
@@ -81,8 +108,7 @@ class TypeClassifier(object):
 
         # annotate the input clusters
         results = zip(typing.cast(Iterable["Cluster"], clusters), probas, preds)
-        for cluster, proba, pred in results:
-            cluster.types = list(pred)
-            cluster.types_probabilities = list(proba[proba > 0.5])
-
+        for cluster, proba, ty in results:
+            cluster.type = ty
+            cluster.type_probabilities = dict(zip(self.binarizer.classes_, proba))
         return clusters
