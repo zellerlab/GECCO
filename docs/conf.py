@@ -197,6 +197,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "statsmodels": ("https://tedboy.github.io/statsmodels_doc/", None),
+    "biopython": ("https://biopython.org/docs/1.77/api/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
