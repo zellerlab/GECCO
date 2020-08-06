@@ -22,6 +22,24 @@ from . import __version__
 from ._base import Dumpable
 
 
+# fmt: off
+class ProductType(enum.IntFlag):
+    """A flag to declare the type of product synthesized by a gene cluster.
+    """
+
+    Unknown    = 0b00000000
+    Other      = 0b00000001
+    Alkaloid   = 0b00000010
+    Polyketide = 0b00000100
+    RiPP       = 0b00001000
+    Saccharide = 0b00010000
+    Terpene    = 0b00100000
+    NRP        = 0b01000000
+
+    def unpack(self) -> List["ProductType"]:
+        return [ x for x in ProductType.__members__.values() if (x & self) ]
+
+
 class Strand(enum.IntEnum):
     """A flag to declare on which DNA strand a gene is located.
     """
@@ -193,24 +211,24 @@ class Cluster:
 
     id: str
     genes: List[Gene]
-    types: List[str]
-    types_probabilities: List[float]
+    type: ProductType
+    type_probabilities: Mapping[ProductType, float]
 
     def __init__(
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
-        types: Optional[List[str]] = None,
-        types_probabilities: Optional[List[float]] = None,
+        type: ProductType = ProductType.Unknown,
+        type_probabilities: Optional[Dict[ProductType, float]] = None,
     ):  # noqa: D107
         self.id = id
         self.genes = genes or list()
-        self.types = types or list()
-        self.types_probabilities = types_probabilities or list()
+        self.type = type
+        self.type_probabilities = type_probabilities or dict()
 
-        if len(self.types) != len(self.types_probabilities):
-            err = "type and type probability lists must have the same dimensions"
-            raise ValueError(err)
+        # if len(self.types) != len(self.types_probabilities):
+        #     err = "type and type probability lists must have the same dimensions"
+        #     raise ValueError(err)
 
 
     @property
@@ -320,7 +338,7 @@ class _UnknownSeq(Seq):
     Used by `FeatureTable.to_genes` to fake the `Gene.source.seq` attribute.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(data="")
 
     def __getitem__(self, index):
@@ -336,14 +354,14 @@ class FeatureTable(Dumpable, Sized):
 
     sequence_id: List[str] = field(default_factory = list)
     protein_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))
-    end: List[int] = field(default_factory = lambda: array("l"))
+    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
+    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
     strand: List[str] = field(default_factory = list)
     domain: List[str] = field(default_factory = list)
     hmm: List[str] = field(default_factory = list)
-    i_evalue: List[float] = field(default_factory = lambda: array("d"))
-    domain_start: List[int] = field(default_factory = lambda: array("l"))
-    domain_end: List[int] = field(default_factory = lambda: array("l"))
+    i_evalue: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
+    domain_start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
+    domain_end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
     bgc_probability: List[Optional[float]] = field(default_factory = list)
 
     class Row(NamedTuple):
@@ -482,10 +500,10 @@ class ClusterTable(Dumpable, Sized):
 
     sequence_id: List[str] = field(default_factory = list)
     bgc_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))
-    end: List[int] = field(default_factory = lambda: array("l"))
-    average_p: List[float] = field(default_factory = lambda: array("d"))
-    max_p: List[float] = field(default_factory = lambda: array("d"))
+    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
+    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
+    average_p: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
+    max_p: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
     bgc_types: List[List[str]] = field(default_factory = list)
     bgc_types_p: List[List[float]] = field(default_factory = list)
     proteins: List[List[str]] = field(default_factory = list)
@@ -503,8 +521,9 @@ class ClusterTable(Dumpable, Sized):
             table.end.append(cluster.end)
             table.average_p.append(cluster.average_probability)
             table.max_p.append(cluster.maximum_probability)
-            table.bgc_types.append(cluster.types)
-            table.bgc_types_p.append(cluster.types_probabilities)
+            table.bgc_types.append([ty.name for ty in cluster.type.unpack()])
+            probas = [cluster.type_probabilities[ty] for ty in cluster.type.unpack()]
+            table.bgc_types_p.append(probas)
             table.proteins.append([ gene.protein.id for gene in cluster.genes ])
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
             table.domains.append(sorted(domains))
