@@ -54,15 +54,6 @@ class TestRun(TestCommand, unittest.TestCase):
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
             )
-            stack.enter_context(
-                mock.patch("gecco.crf.ClusterCRF.predict_probabilities", new=_predict_probabilities)
-            )
-            stack.enter_context(
-                mock.patch("gecco.cli.commands.run.TypeClassifier.trained", new=lambda model: TypeClassifier())
-            )
-            stack.enter_context(
-                mock.patch("gecco.cli.commands.run.TypeClassifier.predict_types", new=_fit_predict)
-            )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
             self.assertEqual(main(argv, stream=io.StringIO()), 0)
 
