@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...master
+
+## [v0.4.1] - 2020-08-07
+[v0.4.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...v0.4.1
+### Fixed
+- `gecco run` command crashing on input sequences not containing any genes.
 
 ## [v0.4.0] - 2020-08-06
 [v0.4.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.3.0...v0.4.0
