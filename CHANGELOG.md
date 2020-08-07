@@ -5,10 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.2...master
+
+## [v0.4.2] - 2020-08-07
+[v0.4.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...v0.4.2
+### Fixed
+- `TypeClassifier.predict_types` using inverse type probabilities when 
+  given several clusters to process.
 
 ## [v0.4.1] - 2020-08-07
-[v0.4.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...v0.4.1
+[v0.4.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...v0.4.1
 ### Fixed
 - `gecco run` command crashing on input sequences not containing any genes.
 
