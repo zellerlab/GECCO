@@ -106,7 +106,7 @@ class TypeClassifier(object):
         if len(comps) == 1:
             posit = numpy.array([[1 - cls[0][0] for cls in probas]])
         else:
-            posit = 1 - numpy.array(probas)[:, :, 1].transpose()
+            posit = 1 - numpy.array(probas)[:, :, 0].transpose()
 
         # translate probabilities into product type predictions
         types = self.binarizer.inverse_transform(posit > 0.5)
