@@ -115,7 +115,12 @@ class Run(Command):  # noqa: D101
         genes = list(
             itertools.chain.from_iterable(map(orf_finder.find_genes, sequences))
         )
-        self.logger.info("Found {} potential genes", len(genes))
+ 
+        if genes:
+            self.logger.info("Found {} potential genes", len(genes))
+        else:
+            self.logger.warning("No genes were found")
+            return 0
 
         # --- HMMER ----------------------------------------------------------
         self.logger.info("Running domain annotation")
