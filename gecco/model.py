@@ -210,7 +210,7 @@ class Gene:
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
-        return SeqFeature(location=loc, type="cds", qualifiers=qualifiers)
+        return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
 
 @dataclass
