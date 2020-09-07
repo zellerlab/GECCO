@@ -5,7 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...master
+
+## [v0.4.3] - 2020-09-07
+[v0.4.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.2...v0.4.3
+### Fixed
+- GenBank files being written with invalid `/cds` feature type.
+### Changed
+- Blocked installation of Biopython `v1.78` or newer as it removes `Bio.Alphabet`
+  and breaks the current code.
 
 ## [v0.4.2] - 2020-08-07
 [v0.4.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...v0.4.2
