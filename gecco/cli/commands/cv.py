@@ -71,11 +71,11 @@ class Cv(Command):  # noqa: D101
         if retcode is not None:
             return retcode
 
-        # Check the input exists
-        input_ = self.args["--input"]
-        if not os.path.exists(input_):
-            self.logger.error("could not locate input file: {!r}", input_)
-            return 1
+        # Check the inputs exist
+        for input_ in filter(None, (self.args["--features"], self.args["--clusters"])):
+            if not os.path.exists(input_):
+                self.logger.error("could not locate input file: {!r}", input_)
+                return 1
 
         # Check the `--feature-type`
         type_ = self.args["--feature-type"]
