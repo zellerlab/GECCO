@@ -16,6 +16,7 @@ import sklearn.model_selection
 from ._base import Command
 from ...model import FeatureTable
 from ...crf import ClusterCRF
+from ...crf.cv import LeaveOneGroupOut
 
 
 class Cv(Command):  # noqa: D101
@@ -26,11 +27,15 @@ class Cv(Command):  # noqa: D101
 
     Usage:
         gecco cv (-h | --help)
-        gecco cv kfold -i <data>  [-w <col>]... [-f <col>]... [options]
+        gecco cv kfold -f <table> [-c <data>] [options]
+        gecco cv loto  -f <table>  -c <data>  [options]
 
     Arguments:
-        -i <data>, --input <data>       a domain annotation table with regions
+        -f <data>, --features <table>   a domain annotation table, used to
                                         labeled as BGCs and non-BGCs.
+        -c <data>, --clusters <table>   a cluster annotation table, use to
+                                        stratify clusters by type in LOTO
+                                        mode.
 
     Parameters:
         -o <out>, --output <out>        the name of the output cross-validation
@@ -51,8 +56,6 @@ class Cv(Command):  # noqa: D101
         --feature-type <type>           how features should be extracted
                                         (single, overlap, or group).
                                         [default: group]
-        --truncate <N>                  the maximum number of rows to use from
-                                        the training set.
         --overlap <N>                   how much overlap to consider if
                                         features overlap. [default: 2]
         --splits <N>                    number of folds for cross-validation
@@ -61,20 +64,6 @@ class Cv(Command):  # noqa: D101
                                         to select from the training data.
         --shuffle                       enable shuffling of stratified rows.
 
-    Parameters - Column Names:
-        -y <col>, --y-col <col>         column with class label. [default: BGC]
-        -w <col>, --weight-cols <col>   columns with local weights on features.
-                                        [default: rev_i_Evalue]
-        -f <col>, --feature-cols <col>  column to be used as features.
-                                        [default: domain]
-        -s <col>, --split-col <col>     column to be used for splitting into
-                                        samples, i.e different sequences
-                                        [default: sequence_id]
-        -g <col>, --group-col <col>     column to be used for grouping features
-                                        if `--feature-type` is *group*.
-                                        [default: protein_id]
-        --strat-col <col>               column to be used for stratifying the
-                                        samples. [default: BGC_type]
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -95,8 +84,6 @@ class Cv(Command):  # noqa: D101
             return 1
 
         # Check value of numeric arguments
-        if self.args["--truncate"] is not None:
-            self.args["--truncate"] = int(self.args["--truncate"])
         self.args["--overlap"] = int(self.args["--overlap"])
         self.args["--c1"] = float(self.args["--c1"])
         self.args["--c2"] = float(self.args["--c2"])
@@ -116,14 +103,13 @@ class Cv(Command):  # noqa: D101
         return None
 
     def __call__(self) -> int:  # noqa: D102
+        return self._kfold() if self.args["kfold"] else self._loto()
 
-        # --- LOADING AND PREPROCESSING --------------------------------------
-        # Load the table
-        self.logger.info("Loading the data")
-        with open(self.args["--input"]) as in_:
+    def _load_sequences(self):
+        self.logger.info("Loading the feature table")
+        with open(self.args["--features"]) as in_:
             table = FeatureTable.load(in_)
 
-        # Converting table to genes and sort by location
         self.logger.info("Converting data to genes")
         gene_count = len(set(table.protein_id))
         genes = list(tqdm.tqdm(table.to_genes(), total=gene_count))
@@ -134,17 +120,46 @@ class Cv(Command):  # noqa: D101
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
 
-        # group by sequence
+        self.logger.info("Grouping genes by source sequence")
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
 
-        # shuffle if required
         if self.args["--shuffle"]:
+            self.logger.info("Shuffling training data sequences")
             random.shuffle(seqs)
+
+        return seqs
+
+    def _loto(self) -> int:
+        seqs = self._load_sequences()
 
         # --- CROSS-VALIDATION ------------------------------------------------
         k = 10
         splits = list(sklearn.model_selection.KFold(k).split(seqs))
+        new_genes = []
+
+        self.logger.info("Performing cross-validation")
+        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
+            train_data = [gene for i in train_indices for gene in seqs[i]]
+            test_data = [gene for i in test_indices for gene in seqs[i]]
+            crf = ClusterCRF(
+                self.args["--feature-type"],
+                algorithm="lbfgs",
+                overlap=self.args["--overlap"],
+                c1=self.args["--c1"],
+                c2=self.args["--c2"],
+            )
+            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
+            new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
+
+        with open(self.args["--output"], "w") as out:
+            FeatureTable.from_genes(new_genes).dump(out)
+
+    def _kfold(self) -> int:
+        seqs = self._load_sequences()
+
+        # --- CROSS-VALIDATION ------------------------------------------------
+        splits = list(LeaveOneGroupOut().split(seqs, groups=groups))
         new_genes = []
 
         self.logger.info("Performing cross-validation")
