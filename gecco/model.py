@@ -456,6 +456,9 @@ class FeatureTable(Dumpable, Sized):
                 to write the feature table to.
             dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
                 for allowed values.
+            header (`bool`): Whether or not to include the column header when
+                writing the table (useful for appending to an existing table).
+                Defaults to `True`.
 
         """
         writer = csv.writer(fh, dialect=dialect)
