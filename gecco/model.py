@@ -584,7 +584,7 @@ class ClusterTable(Dumpable, Sized):
             row = { c: getter(self)[i] for c, getter in columns.items() }
             yield self.Row(**row)
 
-    def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
+    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
         """Write the cluster table in CSV format to the given file.
 
         Arguments:
@@ -592,14 +592,19 @@ class ClusterTable(Dumpable, Sized):
                 to write the cluster table to.
             dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
                 for allowed values.
+            header (`bool`): Whether or not to include the column header when
+                writing the table (useful for appending to an existing table).
+                Defaults to `True`.
 
         """
         writer = csv.writer(fh, dialect=dialect)
-        header = list(self.__annotations__)
-        writer.writerow(header)
+        columns = list(self.__annotations__)
+        row = []
+        if header:
+            writer.writerow(columns)
         for i in range(len(self)):
-            row = []
-            for col in header:
+            row.clear()
+            for col in columns:
                 value = getattr(self, col)[i]
                 if col == "type":
                     types = value.unpack() or [ProductType.Unknown]
