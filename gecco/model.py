@@ -448,7 +448,7 @@ class FeatureTable(Dumpable, Sized):
             row = { c: getter(self)[i] for c, getter in columns.items() }
             yield self.Row(**row)
 
-    def dump(self, fh: TextIO, dialect: str = "excel-tab") -> None:
+    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
         """Write the feature table in CSV format to the given file.
 
         Arguments:
@@ -459,10 +459,11 @@ class FeatureTable(Dumpable, Sized):
 
         """
         writer = csv.writer(fh, dialect=dialect)
-        header = list(self.__annotations__)
-        writer.writerow(header)
+        columns = list(self.__annotations__)
+        if header:
+            writer.writerow(columns)
         for row in self:
-            writer.writerow([ getattr(row, col) for col in header ])
+            writer.writerow([ getattr(row, col) for col in columns ])
 
     @classmethod
     def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":

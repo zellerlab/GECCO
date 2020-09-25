@@ -152,8 +152,8 @@ class Cv(Command):  # noqa: D101
             crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
             new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
 
-        with open(self.args["--output"], "w") as out:
-            FeatureTable.from_genes(new_genes).dump(out)
+            with open(self.args["--output"], "w" if i == 0 else "a") as out:
+                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
 
     def _kfold(self) -> int:
         seqs = self._load_sequences()
@@ -176,5 +176,5 @@ class Cv(Command):  # noqa: D101
             crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
             new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
 
-        with open(self.args["--output"], "w") as out:
-            FeatureTable.from_genes(new_genes).dump(out)
+            with open(self.args["--output"], "w" if i == 0 else "a") as out:
+                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
