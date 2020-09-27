@@ -14,7 +14,7 @@ import tqdm
 import sklearn.model_selection
 
 from ._base import Command
-from ...model import FeatureTable
+from ...model import ClusterTable, FeatureTable
 from ...crf import ClusterCRF
 from ...crf.cv import LeaveOneGroupOut
 
@@ -159,7 +159,12 @@ class Cv(Command):  # noqa: D101
         with open(self.args["--clusters"]) as in_:
             table = ClusterTable.load(in_)
             index = { protein: row.type for row in table for protein in row.proteins }
-        groups = [ index[ cluster[0].id ].unpack() for cluster in seqs ]
+
+        groups = []
+        for cluster in seqs:
+            ty = next(index[seq.id] for seq in cluster if seq.id in index)
+            groups.append(ty.unpack())
+
         return list(LeaveOneGroupOut().split(seqs, groups=groups))
 
     def _kfold_splits(self, seqs):
