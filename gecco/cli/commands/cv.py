@@ -103,7 +103,31 @@ class Cv(Command):  # noqa: D101
         return None
 
     def __call__(self) -> int:  # noqa: D102
-        return self._kfold() if self.args["kfold"] else self._loto()
+        seqs = self._load_sequences()
+
+        if self.args["loto"]:
+            splits = self._loto_splits(seqs)
+        else:
+            splits = self._kfold_splits(seqs)
+
+        self.logger.info("Performing cross-validation")
+        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
+            train_data = [gene for i in train_indices for gene in seqs[i]]
+            test_data = [gene for i in test_indices for gene in seqs[i]]
+            crf = ClusterCRF(
+                self.args["--feature-type"],
+                algorithm="lbfgs",
+                overlap=self.args["--overlap"],
+                c1=self.args["--c1"],
+                c2=self.args["--c2"],
+            )
+            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
+            new_genes = crf.predict_probabilities(test_data, jobs=self.args["--jobs"])
+
+            with open(self.args["--output"], "a" if i else "w") as out:
+                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
+
+        return 0
 
     def _load_sequences(self):
         self.logger.info("Loading the feature table")
@@ -130,51 +154,14 @@ class Cv(Command):  # noqa: D101
 
         return seqs
 
-    def _loto(self) -> int:
-        seqs = self._load_sequences()
+    def _loto_splits(self, seqs):
+        self.logger.info("Loading the clusters table")
+        with open(self.args["--clusters"]) as in_:
+            table = ClusterTable.load(in_)
+            index = { protein: row.type for row in table for protein in row.proteins }
+        groups = [ index[ cluster[0].id ].unpack() for cluster in seqs ]
+        return list(LeaveOneGroupOut().split(seqs, groups=groups))
 
-        # --- CROSS-VALIDATION ------------------------------------------------
-        k = 10
-        splits = list(sklearn.model_selection.KFold(k).split(seqs))
-        new_genes = []
-
-        self.logger.info("Performing cross-validation")
-        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
-            train_data = [gene for i in train_indices for gene in seqs[i]]
-            test_data = [gene for i in test_indices for gene in seqs[i]]
-            crf = ClusterCRF(
-                self.args["--feature-type"],
-                algorithm="lbfgs",
-                overlap=self.args["--overlap"],
-                c1=self.args["--c1"],
-                c2=self.args["--c2"],
-            )
-            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
-            new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
-
-            with open(self.args["--output"], "w" if i == 0 else "a") as out:
-                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
-
-    def _kfold(self) -> int:
-        seqs = self._load_sequences()
-
-        # --- CROSS-VALIDATION ------------------------------------------------
-        splits = list(LeaveOneGroupOut().split(seqs, groups=groups))
-        new_genes = []
-
-        self.logger.info("Performing cross-validation")
-        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
-            train_data = [gene for i in train_indices for gene in seqs[i]]
-            test_data = [gene for i in test_indices for gene in seqs[i]]
-            crf = ClusterCRF(
-                self.args["--feature-type"],
-                algorithm="lbfgs",
-                overlap=self.args["--overlap"],
-                c1=self.args["--c1"],
-                c2=self.args["--c2"],
-            )
-            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
-            new_genes.extend(crf.predict_probabilities(test_data, jobs=self.args["--jobs"]))
-
-            with open(self.args["--output"], "w" if i == 0 else "a") as out:
-                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
+    def _kfold_splits(self, seqs):
+        k = self.args["--splits"]
+        return list(sklearn.model_selection.KFold(k).split(seqs))
