@@ -362,7 +362,15 @@ class _UnknownSeq(Seq):
     def __init__(self) -> None:
         super().__init__(data="")
 
-    def __getitem__(self, index):
+    @typing.overload
+    def __getitem__(self, index: int) -> str:
+        pass
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> Seq:
+        pass
+
+    def __getitem__(self, index: Union[slice, int]) -> Union[str, Seq]:
         if isinstance(index, slice):
             return Seq("N" * ((index.stop - index.start) // (index.step or 1)) )
         return "N"
@@ -399,7 +407,7 @@ class FeatureTable(Dumpable, Sized):
         i_evalue: float
         domain_start: int
         domain_end: int
-        bgc_probability: float
+        bgc_probability: Optional[float]
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
@@ -439,6 +447,9 @@ class FeatureTable(Dumpable, Sized):
                 gene.protein.domains.append(domain)
             yield gene
 
+    def __bool__(self) -> bool:  # noqa: D105
+        return len(self) != 0
+
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
@@ -447,6 +458,21 @@ class FeatureTable(Dumpable, Sized):
         for i in range(len(self)):
             row = { c: getter(self)[i] for c, getter in columns.items() }
             yield self.Row(**row)
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "FeatureTable":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: int) -> Row:  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "Row"]:   # noqa: D105
+        columns = [getattr(self, col)[item] for col in self.__annotations__]
+        if isinstance(item, slice):
+            return type(self)(*columns)
+        else:
+            return self.Row(*columns)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
         """Write the feature table in CSV format to the given file.
@@ -500,6 +526,8 @@ class FeatureTable(Dumpable, Sized):
         for row in reader:
             for index, _, append, ty in columns:
                 append(None if index is None else ty(row[index]))
+
+
         return table
 
 
@@ -507,6 +535,25 @@ class FeatureTable(Dumpable, Sized):
 class ClusterTable(Dumpable, Sized):
     """A table storing condensed information from several clusters.
     """
+
+    sequence_id: List[str] = field(default_factory = list)
+    bgc_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
+    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
+    average_p: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
+    max_p: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
+
+    type: List[ProductType] = field(default_factory = list)
+    alkaloid_probability: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
+    polyketide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
+    ripp_probability: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
+    saccharide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
+    terpene_probability: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
+    nrp_probability: List[float] = field(default_factory = lambda: array("d"))         # type: ignore
+    other_probability: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
+
+    proteins: List[List[str]] = field(default_factory = list)
+    domains: List[List[str]] = field(default_factory = list)
 
     class Row(NamedTuple):
         """A single row in a cluster table.
@@ -528,25 +575,6 @@ class ClusterTable(Dumpable, Sized):
         other_probability: float
         proteins: List[str]
         domains: List[str]
-
-    sequence_id: List[str] = field(default_factory = list)
-    bgc_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
-    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
-    average_p: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
-    max_p: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
-
-    type: List[ProductType] = field(default_factory = list)
-    alkaloid_probability: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
-    polyketide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
-    ripp_probability: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
-    saccharide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
-    terpene_probability: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
-    nrp_probability: List[float] = field(default_factory = lambda: array("d"))         # type: ignore
-    other_probability: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
-
-    proteins: List[List[str]] = field(default_factory = list)
-    domains: List[List[str]] = field(default_factory = list)
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
@@ -583,6 +611,24 @@ class ClusterTable(Dumpable, Sized):
         for i in range(len(self)):
             row = { c: getter(self)[i] for c, getter in columns.items() }
             yield self.Row(**row)
+
+    def __bool__(self) -> bool:  # noqa: D105
+        return len(self) != 0
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "ClusterTable":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: int) -> Row:  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[int, slice]) -> Union["ClusterTable", Row]:  # noqa: D105
+        columns = [getattr(self, col)[item] for col in self.__annotations__]
+        if isinstance(item, slice):
+            return type(self)(*columns)
+        else:
+            return self.Row(*columns)
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
         """Write the cluster table in CSV format to the given file.
