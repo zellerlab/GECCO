@@ -167,13 +167,15 @@ class Cv(Command):  # noqa: D101
         self.logger.info("Loading the clusters table")
         with open(self.args["--clusters"]) as in_:
             table = ClusterTable.load(in_)
-            index = { protein: row.type for row in table for protein in row.proteins }
+            index = { row.sequence_id: row.type for row in table }
+            if len(index) != len(table):
+                raise ValueError("Training data contains several clusters per sequence")
 
         groups = []
         for cluster in seqs:
-            ty = next((index[seq.id] for seq in cluster if seq.id in index), None)
+            ty = next((index[g.source.id] for g in cluster if g.source.id in index), None)
             if ty is None:
-                seq_id = next(seq.id for seq in cluster)
+                seq_id = next(gene.source.id for gene in cluster)
                 self.logger.warning("Could not find type of cluster in {!r}", seq_id)
                 ty = ProductType.Unknown
             groups.append(ty.unpack())
