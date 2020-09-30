@@ -12,29 +12,30 @@ import sklearn.model_selection
 class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
     """A `~sklearn.model_selection.LeaveOneGroupOut` supporting multiple labels.
 
-    If a sample has multiple class labels, it will be left out of the training
-    data each time the fold corresponds to one of its class labels::
+    If a sample has multiple class labels, it will be excluded from both 
+    training and testing data when one of its labels corresponds to the 
+    fold::
 
         >>> loto = LeaveOneGroupOut()
         >>> groups = numpy.array([ ["a"], ["b"], ["c"], ["a", "b"] ])
         >>> for i, (trn, tst) in enumerate(loto.split(range(4), groups=groups)):
         ...     print("-"*20)
         ...     print(" FOLD", i+1)
-        ...     print("TRAIN", trn, list(groups[trn]))
-        ...     print(" TEST", tst, list(groups[tst]))
+        ...     print("TRAIN", f"{str(trn):<7}", list(groups[trn]))
+        ...     print(" TEST", f"{str(tst):<7}", list(groups[tst]))
         ...
         --------------------
          FOLD 1
-        TRAIN [1 2] [['b'], ['c']]
-         TEST [0 3] [['a'], ['a', 'b']]
+        TRAIN [1 2]   [['b'], ['c']]
+         TEST [0]     [['a']]
         --------------------
          FOLD 2
-        TRAIN [0 2] [['a'], ['c']]
-         TEST [1 3] [['b'], ['a', 'b']]
+        TRAIN [0 2]   [['a'], ['c']]
+         TEST [1]     [['b']]
         --------------------
          FOLD 3
         TRAIN [0 1 3] [['a'], ['b'], ['a', 'b']]
-         TEST [2] [['c']]
+         TEST [2]     [['c']]
 
     """
 
@@ -75,18 +76,16 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         labels = {label for labels in groups for label in labels}
         return len(labels)
 
-    def _iter_test_masks(
-        self, X: object, y: object, groups: Iterable[Iterable[object]]
-    ) -> Iterator["numpy.ndarray"]:
+    def split(self, X, y=None, groups=None):
         if groups is None:
-            raise ValueError("The 'groups' parameter should not be None.")
-        # We collect the groups to avoid side-effects during iteration
-        group_sets: List[Set[object]] = list(map(set, groups))  # type: ignore
+            raise ValueError("The 'groups' parameter should not be None")
+        # collect groups
+        group_sets: List[Set[object]] = list(map(set, groups))
         unique_groups = {label for labels in group_sets for label in labels}
-        if len(unique_groups) <= 1:
-            raise ValueError(
-                "The groups parameter contains fewer than 2 unique groups "
-                f"({unique_groups}). LeaveOneGroupOut expects at least 2."
-            )
-        for i in sorted(unique_groups):
-            yield numpy.array([i in group for group in groups])
+        # 
+        indices = numpy.arange(len(X))
+        for ty in sorted(unique_groups):
+            test_mask = numpy.array([list(group) == [ty] for group in groups])
+            train_mask = numpy.array([ty not in group for group in groups])
+            yield indices[train_mask], indices[test_mask]
+            
