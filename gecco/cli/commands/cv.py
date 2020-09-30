@@ -134,7 +134,7 @@ class Cv(Command):  # noqa: D101
 
             with open(self.args["--output"], "a" if i else "w") as out:
                 frame = FeatureTable.from_genes(new_genes).to_dataframe()
-                frame.assign(fold=i).to_csv(out, header=i==0, sep="\t")
+                frame.assign(fold=i).to_csv(out, header=i==0, sep="\t", index=False)
 
         return 0
 
