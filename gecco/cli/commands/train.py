@@ -117,6 +117,7 @@ class Train(Command):  # noqa: D101
             features = FeatureTable.load(in_)
 
         # Converting table to genes and sort by location
+        self.logger.info("Sorting genes by location")
         genes = sorted(features.to_genes(), key=operator.attrgetter("source.id", "start", "end"))
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
