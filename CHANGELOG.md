@@ -5,7 +5,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...master
+
+## [v0.4.4] - 2020-09-30
+[v0.4.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...v0.4.4
+### Added
+- `gecco cv loto` command to run LOTO cross-validation using BGC types 
+  for stratification.
+- `header` keyword argument to `FeatureTable.dump` and `ClusterTable.dump`
+  to write the table without the column header allowing to append to an 
+  existing table.
+- `__getitem__` implementation for `FeatureTable` and `ClusterTable` 
+  that returns a single row or a sub-table from a table.
+### Fixed
+- `gecco cv` command now writes results iteratively instead of holding 
+  the tables for every fold in memory.
+### Changed
+- Bumped `pandas` training dependency to `v1.0`.
 
 ## [v0.4.3] - 2020-09-07
 [v0.4.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.2...v0.4.3
