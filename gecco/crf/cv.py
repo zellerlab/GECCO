@@ -76,7 +76,7 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         labels = {label for labels in groups for label in labels}
         return len(labels)
 
-    def split(self, X, y=None, groups=None):
+    def split(self, X, y=None, groups=None):  # noqa: D102
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None")
         # collect groups
