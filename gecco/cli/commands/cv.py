@@ -15,7 +15,7 @@ import tqdm
 import sklearn.model_selection
 
 from ._base import Command
-from ...model import ClusterTable, FeatureTable
+from ...model import ClusterTable, FeatureTable, ProductType
 from ...crf import ClusterCRF
 from ...crf.cv import LeaveOneGroupOut
 
@@ -146,8 +146,7 @@ class Cv(Command):  # noqa: D101
 
         self.logger.info("Converting data to genes")
         gene_count = len(set(table.protein_id))
-        genes = list(tqdm.tqdm(table.to_genes(), total=gene_count))
-        del table
+        genes = list(tqdm.tqdm(table.to_genes(), total=gene_count, leave=False))
 
         self.logger.info("Sorting genes by location")
         genes.sort(key=operator.attrgetter("source.id", "start", "end"))
@@ -172,7 +171,11 @@ class Cv(Command):  # noqa: D101
 
         groups = []
         for cluster in seqs:
-            ty = next(index[seq.id] for seq in cluster if seq.id in index)
+            ty = next((index[seq.id] for seq in cluster if seq.id in index), None)
+            if ty is None:
+                seq_id = next(seq.id for seq in cluster)
+                self.logger.warning("Could not find type of cluster in {!r}", seq_id)
+                ty = ProductType.Unknown
             groups.append(ty.unpack())
 
         return list(LeaveOneGroupOut().split(seqs, groups=groups))
