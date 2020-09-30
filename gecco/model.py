@@ -21,6 +21,7 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 from ._base import Dumpable
+from ._meta import requires
 
 
 # fmt: off
@@ -446,6 +447,13 @@ class FeatureTable(Dumpable, Sized):
                 domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.bgc_probability)
                 gene.protein.domains.append(domain)
             yield gene
+
+    @requires("pandas")
+    def to_dataframe(self) -> "pandas.DataFrame":
+        frame = pandas.DataFrame()  # type: ignore
+        for column in self.__annotations__:
+            frame[column] = getattr(self, column)
+        return frame
 
     def __bool__(self) -> bool:  # noqa: D105
         return len(self) != 0

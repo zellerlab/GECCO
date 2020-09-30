@@ -1,6 +1,7 @@
 """Implementation of the ``gecco cv`` subcommand.
 """
 
+import copy
 import functools
 import itertools
 import os
@@ -112,8 +113,16 @@ class Cv(Command):  # noqa: D101
 
         self.logger.info("Performing cross-validation")
         for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
+            # extract train data
             train_data = [gene for i in train_indices for gene in seqs[i]]
-            test_data = [gene for i in test_indices for gene in seqs[i]]
+
+            # extract test data and erase existing probabilities
+            test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
+            for gene in test_data:
+                for domain in gene.protein.domains:
+                    domain.probability = None
+
+            # fit and predict the CRF for the current fold
             crf = ClusterCRF(
                 self.args["--feature-type"],
                 algorithm="lbfgs",
@@ -125,7 +134,8 @@ class Cv(Command):  # noqa: D101
             new_genes = crf.predict_probabilities(test_data, jobs=self.args["--jobs"])
 
             with open(self.args["--output"], "a" if i else "w") as out:
-                FeatureTable.from_genes(new_genes).dump(out, header=i==0)
+                frame = FeatureTable.from_genes(new_genes).to_dataframe()
+                frame.assign(fold=i).to_csv(out, header=i==0, sep="\t")
 
         return 0
 
