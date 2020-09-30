@@ -119,8 +119,7 @@ class Cv(Command):  # noqa: D101
             # extract test data and erase existing probabilities
             test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
             for gene in test_data:
-                for domain in gene.protein.domains:
-                    domain.probability = None
+                gene.protein.domains = [d.with_probability(None) for d in gene.protein.domains]
 
             # fit and predict the CRF for the current fold
             crf = ClusterCRF(
