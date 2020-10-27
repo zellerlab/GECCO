@@ -156,15 +156,15 @@ class HMMER(BinaryRunner):
         for row in rows:
             # extract domain from the domain table row
             accession = self.hmm.relabel(row.query_accession or row.query_name)
-            entry = interpro.by_accession[accession]
+            entry = interpro.by_accession.get(accession)
             # add additional qualifiers with available metadata
             qualifiers: Dict[str, List[str]] = {
                 "inference": ["protein motif"],
                 "note": ["e-value: {}".format(row.i_evalue)],
                 "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
-                "function": [entry.name]
+                "function": [] if entry is None else [entry.name]
             }
-            if entry.integrated is not None:
+            if entry is not None and entry.integrated is not None:
                 qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
             # add the domain to the protein domains of the right gene
             domain = Domain(accession, row.env_from, row.env_to, self.hmm.id, row.i_evalue, None, qualifiers)
