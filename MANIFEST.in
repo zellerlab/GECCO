@@ -2,6 +2,7 @@ include README.md
 include LICENSE
 include static/gecco.png
 include gecco/_version.txt
+include gecco/py.typed
 
 recursive-include gecco/crf *.pkl *.pkl.md5
 recursive-include gecco/hmmer *.ini
