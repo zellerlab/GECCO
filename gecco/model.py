@@ -450,6 +450,12 @@ class FeatureTable(Dumpable, Sized):
 
     @requires("pandas")
     def to_dataframe(self) -> "pandas.DataFrame":
+        """Convert the feature table to a `~pandas.DataFrame`.
+
+        Raises:
+            ImportError: if the `pandas` module could not be imported.
+        
+        """
         frame = pandas.DataFrame()  # type: ignore
         for column in self.__annotations__:
             frame[column] = getattr(self, column)
