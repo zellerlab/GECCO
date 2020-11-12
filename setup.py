@@ -19,7 +19,7 @@ from functools import partial
 from xml.etree import ElementTree as etree
 
 import setuptools
-from setuptools.command.build_py import build_py as _build_py
+from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from tqdm import tqdm
 
@@ -110,30 +110,37 @@ class update_model(setuptools.Command):
         return entries
 
 
-class build_py(_build_py):
-    """A hacked `build_py` command to download data before wheel creation.
+class build_ext(_build_ext):
+    """A hacked `build_ext` command to download data before wheel creation.
+
+    Using ``build_ext`` switches `setuptools` to build in non-universal mode,
+    and to generate platform-specific wheels. We do not have platform-specific
+    code in GECCO, but we have platform-specific data: binary HMM pressed with
+    ``hmmpressed`` are CPU-architecture-specific, so we can only install them
+    on a x86-64 machine if they were pressed on a x86-64 machine.
+
     """
 
     def run(self):
-        _build_py.run(self)
-        self.download_hmms()
-        self.press_hmms()
+        for ext in self.extensions:
+            in_ = ext.sources[0]
+            pressed = os.path.join(self.build_lib, in_).replace(".ini", ".hmm.h3i")
+            self.make_file([in_], pressed, self.download_and_press, (in_,))
 
-    def press_hmms(self):
-        for in_ in glob.glob(os.path.join(self.build_lib, "gecco", "hmmer", "*.hmm")):
-            self.make_file([in_], "{}.h3m".format(in_), self.spawn, (["hmmpress", in_],))
+    def download_and_press(self, in_):
+        cfg = configparser.ConfigParser()
+        cfg.read(in_)
+        out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm"))
 
-    def download_hmms(self):
-        for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
-            cfg = configparser.ConfigParser()
-            cfg.read(in_)
-            out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm"))
-            try:
-                self.make_file([in_], out, self.download_hmm, [out, dict(cfg.items("hmm"))])
-            except:
-                if os.path.exists(out):
-                    os.remove(out)
-                raise
+        try:
+            self.download_hmm(out, dict(cfg.items("hmm")))
+        except:
+            if os.path.exists(out):
+                os.remove(out)
+            raise
+
+        self.spawn(["hmmpress", out])
+        os.remove(out)
 
     def download_hmm(self, output, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
@@ -158,5 +165,9 @@ class build_py(_build_py):
 
 if __name__ == "__main__":
     setuptools.setup(
-        cmdclass={"build_py": build_py, "sdist": sdist, "update_model": update_model,},
+        cmdclass={"build_ext": build_ext, "sdist": sdist, "update_model": update_model,},
+        ext_modules=[
+            setuptools.Extension("Pfam", [os.path.join("gecco", "hmmer", "Pfam.ini")]),
+            setuptools.Extension("Tigrfam", [os.path.join("gecco", "hmmer", "Tigrfam.ini")]),
+        ]
     )
