@@ -7,5 +7,5 @@ set -e
 
 
 python setup.py bdist_wheel
-python -m pip install --no-index --find-links=dist gecco[train]
+python -m pip install --find-links=dist gecco[train]
 python -m coverage run -p -m unittest discover -vv
