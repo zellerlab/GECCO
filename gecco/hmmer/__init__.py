@@ -180,4 +180,4 @@ def embedded_hmms() -> Iterator[HMM]:
     for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
-        yield HMM(path=ini.replace(".ini", ".hmm.gz"), **dict(cfg.items("hmm")))
+        yield HMM(path=ini.replace(".ini", ".hmm"), **dict(cfg.items("hmm")))

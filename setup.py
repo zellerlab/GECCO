@@ -117,12 +117,17 @@ class build_py(_build_py):
     def run(self):
         _build_py.run(self)
         self.download_hmms()
+        self.press_hmms()
+
+    def press_hmms(self):
+        for in_ in glob.glob(os.path.join(self.build_lib, "gecco", "hmmer", "*.hmm")):
+            self.make_file([in_], "{}.h3m".format(in_), self.spawn, (["hmmpress", in_],))
 
     def download_hmms(self):
         for in_ in glob.glob(os.path.join("gecco", "hmmer", "*.ini")):
             cfg = configparser.ConfigParser()
             cfg.read(in_)
-            out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm.gz"))
+            out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm"))
             try:
                 self.make_file([in_], out, self.download_hmm, [out, dict(cfg.items("hmm"))])
             except:
@@ -148,7 +153,7 @@ class build_py(_build_py):
         )
         with tqdm.wrapattr(response, "read", **format) as src:
             with open(output, "wb") as dst:
-                shutil.copyfileobj(src, dst)
+                shutil.copyfileobj(gzip.open(src), dst)
 
 
 if __name__ == "__main__":
