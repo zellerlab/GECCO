@@ -117,23 +117,23 @@ class HMMER(BinaryRunner):
         self.hmm = hmm
         self.cpus = cpus
 
-    def run(self, genes: Sequence[Gene]) -> Sequence[Gene]:
+    def run(self, genes: Iterable[Gene]) -> List[Gene]:
         """Run HMMER on proteins of ``genes`` and update them with domains.
 
         Arguments:
-            genes (sequence of `~gecco.model.Gene`): A sequence of genes to
-                annotate with ``self.hmm``.
+            genes (iterable of `~gecco.model.Gene`): An iterable that yield
+                genes to annotate with ``self.hmm``.
 
         """
         # collect genes and build an index of genes by protein id
-        gene_index = {gene.id: gene for gene in genes}
+        gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
         # create a temporary file to write the input and output to
         seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
         doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
 
         # write protein sequences
-        protein_records = (g.protein.to_seq_record() for g in genes)
+        protein_records = (g.protein.to_seq_record() for g in gene_index.values())
         SeqIO.write(protein_records, seqs_tmp.name, "fasta")
 
         # Prepare the command line arguments
@@ -171,7 +171,7 @@ class HMMER(BinaryRunner):
             gene_index[row.target_name].protein.domains.append(domain)
 
         # return the updated list of genes that was given in argument
-        return genes
+        return list(gene.values())
 
 
 def embedded_hmms() -> Iterator[HMM]:
