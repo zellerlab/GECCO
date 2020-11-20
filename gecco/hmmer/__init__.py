@@ -171,7 +171,7 @@ class HMMER(BinaryRunner):
             gene_index[row.target_name].protein.domains.append(domain)
 
         # return the updated list of genes that was given in argument
-        return list(gene.values())
+        return list(gene_index.values())
 
 
 def embedded_hmms() -> Iterator[HMM]:
