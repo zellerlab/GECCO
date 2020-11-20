@@ -4,10 +4,12 @@
 import abc
 import io
 import os
-import subprocess
+import queue
+import threading
 import tempfile
 import typing
-from typing import Iterable, Iterator, List, Optional
+from multiprocessing import Value
+from typing import Callable, Iterable, Iterator, List, Optional
 
 import Bio.Alphabet
 import Bio.SeqIO
@@ -27,7 +29,7 @@ class ORFFinder(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def find_genes(self, dna: SeqRecord) -> Iterable[Gene]:  # type: ignore
+    def find_genes(self, records: Iterable[SeqRecord]) -> Iterable[Gene]:  # type: ignore
         """Find all genes from a DNA sequence.
         """
         return NotImplemented  # type: ignore
@@ -48,34 +50,121 @@ class PyrodigalFinder(ORFFinder):
 
     """
 
-    def __init__(self, metagenome: bool = True) -> None:
+    class _Worker(threading.Thread):
+
+        @staticmethod
+        def _none_callback():
+            pass
+
+        def __init__(
+            self,
+            metagenome: bool,
+            record_count: Value,
+            record_queue: "queue.Queue[typing.Optional[SeqRecord]]",
+            genes_queue: "queue.Queue[Gene]",
+            callback: Optional[Callable[[SeqRecord, int], None]],
+        ) -> None:
+            super().__init__()
+            self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
+            self.record_queue = record_queue
+            self.record_count = record_count
+            self.genes_queue = genes_queue
+            self.callback = callback or self._none_callback
+
+        def run(self) -> None:
+            while True:
+                record = self.record_queue.get()
+                if record is None:
+                    self.record_queue.task_done()
+                    return
+
+                orfs = self.pyrodigal.find_genes(str(record.seq))
+                for j, orf in enumerate(orfs):
+                    # wrap the protein into a Protein object
+                    prot_seq = Seq(orf.translate(), Bio.Alphabet.generic_protein)
+                    protein = Protein(id=f"{record.id}_{j+1}", seq=prot_seq)
+                    # wrap the gene into a Gene
+                    self.genes_queue.put(Gene(
+                        source=record,
+                        start=min(orf.begin, orf.end),
+                        end=max(orf.begin, orf.end),
+                        strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
+                        protein=protein,
+                        qualifiers={
+                            "inference": ["ab initio prediction:Prodigal:2.6"],
+                            "transl_table": str(orf.translation_table),
+                        }
+                    ))
+
+                self.record_queue.task_done()
+                self.callback(record, self.record_count.value)
+
+    def __init__(self, metagenome: bool = True, cpus: int = 0) -> None:
         """Create a new `PyrodigalFinder` instance.
 
         Arguments:
             metagenome (bool): Whether or not to run PRODIGAL in metagenome
                 mode, defaults to `True`.
+            cpus (int): The number of threads to use to run Pyrodigal in
+                parallel. Pass ``0`` to use the number of CPUs on the machine.
 
         """
         super().__init__()
         self.metagenome = metagenome
-        self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
+        self.cpus = cpus
 
-    def find_genes(self, dna: SeqRecord) -> Iterator[Gene]:  # noqa: D102
-        # find all ORFs in the given DNA sequence
-        orfs = self.pyrodigal.find_genes(str(dna.seq))
-        for j, orf in enumerate(orfs):
-            # wrap the protein into a Protein object
-            prot_seq = Seq(orf.translate(), Bio.Alphabet.generic_protein)
-            protein = Protein(id=f"{dna.id}_{j+1}", seq=prot_seq)
-            # wrap the gene into a Gene
-            yield Gene(
-                source=dna,
-                start=min(orf.begin, orf.end),
-                end=max(orf.begin, orf.end),
-                strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
-                protein=protein,
-                qualifiers={
-                    "inference": ["ab initio prediction:Prodigal:2.6"],
-                    "transl_table": str(orf.translation_table),
-                }
+    def find_genes(
+        self,
+        records: Iterable[SeqRecord],
+        progress: Optional[Callable[[SeqRecord, int], None]] = None,
+    ) -> Iterator[Gene]:
+        """Find all genes contained in a sequence of DNA records.
+
+        Arguments:
+            records (iterable of `~Bio.SeqRecord.SeqRecord`): An iterable of
+                DNA records in which to find genes.
+            progress (callable, optional): A progress callback of signature
+                ``progress(record, total)`` that will be called everytime a
+                record has been processed successfully, with ``record`` being
+                the `~Bio.SeqRecord.SeqRecord` instance, and ``total`` being
+                the total number of records to process.
+
+        """
+        # count the number of CPUs to use
+        _cpus = self.cpus if self.cpus > 0 else multiprocessing.cpu_count()
+
+        # create the queue to pass the objects around
+        record_count = Value('i')
+        record_queue = typing.cast("queue.Queue[typing.Optional[SeqRecord]]", queue.Queue())
+        genes_queue = typing.cast("queue.Queue[SeqRecord]", queue.Queue())
+
+        # create and launch one thread per CPU
+        threads = []
+        for _ in range(_cpus):
+            thread = self._Worker(
+                self.metagenome,
+                record_count,
+                record_queue,
+                genes_queue,
+                callback=progress,
             )
+            thread.start()
+            threads.append(thread)
+
+        # queue the sequences passed as arguments
+        for record in records:
+            record_count.value += 1
+            record_queue.put(record)
+
+        # poison-pill the queue so that threads terminate when they
+        # have consumed all the sequences
+        for _ in threads:
+            record_queue.put(None)
+
+        # wait for all sequences to be processed
+        record_queue.join()
+
+        # return an iterable over the output
+        sentinel = object()
+        genes_queue.put(sentinel)
+        return iter(genes_queue.get, sentinel)

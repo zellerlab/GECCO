@@ -111,11 +111,9 @@ class Run(Command):  # noqa: D101
         sequences = SeqIO.parse(genome, guess_sequences_format(genome))
 
         self.logger.debug("Extracting genes from input sequences")
-        orf_finder = PyrodigalFinder(metagenome=True)
-        genes = list(
-            itertools.chain.from_iterable(map(orf_finder.find_genes, sequences))
-        )
- 
+        orf_finder = PyrodigalFinder(metagenome=True, cpus=self.args["--jobs"])
+        genes = list(orf_finder.find_genes(sequences))
+
         if genes:
             self.logger.info("Found {} potential genes", len(genes))
         else:
