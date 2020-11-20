@@ -53,7 +53,7 @@ class PyrodigalFinder(ORFFinder):
     class _Worker(threading.Thread):
 
         @staticmethod
-        def _none_callback():
+        def _none_callback(record, total):
             pass
 
         def __init__(

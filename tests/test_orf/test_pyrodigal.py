@@ -3,6 +3,7 @@
 
 import os
 import unittest
+from unittest import mock
 
 import Bio.SeqIO
 from gecco.model import Strand
@@ -24,8 +25,8 @@ class TestPyrodigalFinder(unittest.TestCase):
     def test_order(self):
         """Test proteins are emitted in the right order from the source file.
         """
-        finder = PyrodigalFinder()
-        for expected, actual in zip(self.proteins, finder.find_genes(self.genome)):
+        finder = PyrodigalFinder(cpus=1)
+        for expected, actual in zip(self.proteins, finder.find_genes([self.genome])):
             self.assertEqual(expected.id, actual.protein.id)
 
     def test_sequence_letters(self):
@@ -33,15 +34,22 @@ class TestPyrodigalFinder(unittest.TestCase):
         """
         by_id = { expected.id: expected for expected in self.proteins }
         finder = PyrodigalFinder()
-        for gene in finder.find_genes(self.genome):
+        for gene in finder.find_genes([self.genome]):
             self.assertEqual( gene.protein.seq, by_id[gene.id].seq )
 
     def test_sequence_coordinates(self):
         """Test emitted genes have the protein sequence matching their coordinates.
         """
         finder = PyrodigalFinder()
-        for gene in finder.find_genes(self.genome):
+        for gene in finder.find_genes([self.genome]):
             subseq = self.genome.seq[gene.start-1:gene.end]
             if gene.strand is Strand.Reverse:
                 subseq = subseq.reverse_complement()
             self.assertEqual(subseq.translate(), gene.protein.seq)
+
+    def test_progress_callback(self):
+        progress = mock.MagicMock()
+        finder = PyrodigalFinder(cpus=1)
+        genes = list(finder.find_genes([self.genome], progress=progress))
+
+        progress.assert_called_with(self.genome, 1)
