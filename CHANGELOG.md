@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 [Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...master
 
+## [v0.4.5] - 2020-11-23
+[v0.4.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...v0.4.5
+### Added
+- Additional `fold` column to cross-validation table output.
+### Changed
+- Use sequence ID instead of protein ID to extract type from cluster in `gecco cv`.
+- Install HMM data in pre-pressed format to make `hmmsearch` runs faster on short sequences.
+- `gecco.orf` was rewritten to extract genes from input sequences in parallel.
+
 ## [v0.4.4] - 2020-09-30
 [v0.4.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...v0.4.4
 ### Added
