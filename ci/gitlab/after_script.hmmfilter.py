@@ -32,7 +32,6 @@ for hmm_db in embedded_hmms():
     size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(hmm_db.id.upper()))
 
     with open(out, "wb") as dst:
-        dst = ctx.enter_context(open(out, "wb"))
         for hmm in tqdm.tqdm(pyhmmer.plan7.HMMFile(in_), desc=hmm_db.id, total=size):
             if hmm_db.relabel(hmm.accession.decode()) in domains:
                 hmm.write(dst)
