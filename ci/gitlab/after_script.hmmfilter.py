@@ -7,6 +7,7 @@ import sys
 
 import tqdm
 import pkg_resources
+import pyhmmer
 sys.path.insert(0, os.path.realpath(os.path.join(__file__, "..", "..", "..")))
 
 from gecco.hmmer import embedded_hmms
@@ -21,26 +22,18 @@ interpro = InterPro.load()
 # Load the domains used by the CRF and compile a regex that matches the domains
 # known to the CRF (i.e. useful domains for us to annotate with)
 with pkg_resources.resource_stream("gecco.types", "domains.tsv") as f:
-    domains = [ domain.strip() for domain in f ]
-    rx = re.compile(b"|".join(domains))
+    domains = [ domain.strip().decode() for domain in f ]
 
 # Filter the hmms
-for hmm in embedded_hmms():
-    out = os.path.join("ci", "artifacts", "{}.hmm.gz".format(hmm.id))
-    in_ = os.path.join("ci", "cache", "{}.{}.hmm.gz".format(hmm.id, hmm.version))
-    size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(hmm.id.upper()))
-    pbar = tqdm.tqdm(desc=hmm.id, total=size)
+for hmm_db in embedded_hmms():
 
-    with contextlib.ExitStack() as ctx:
-        pbar = ctx.enter_context(pbar)
-        src = ctx.enter_context(gzip.open(in_, "rb"))
-        dst = ctx.enter_context(gzip.open(out, "wb"))
+    in_ = os.path.join("ci", "cache", "{}.{}.hmm".format(hmm_db.id, hmm_db.version))
+    out = os.path.join("ci", "artifacts", "{}.hmm".format(hmm_db.id))
+    size = sum(1 for e in interpro.entries if e.source_database.upper().startswith(hmm_db.id.upper()))
 
-        blocklines = []
-        for line in src:
-            blocklines.append(line)
-            if line == b"//\n":
-                if any(rx.search(line) is not None for line in blocklines):
-                    dst.writelines(blocklines)
-                blocklines.clear()
-                pbar.update(1)
+    with open(out, "wb") as dst:
+        dst = ctx.enter_context(open(out, "wb"))
+        for hmm in tqdm.tqdm(pyhmmer.plan7.HMMFile(in_), desc=hmm_db.id, total=size):
+            if hmm_db.relabel(hmm.accession.decode()) in domains:
+                hmm.write(dst)
+                nwritten += 1
