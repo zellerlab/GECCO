@@ -13,6 +13,7 @@ import tempfile
 import typing
 from typing import Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
+import pyhmmer
 import pkg_resources
 from Bio import SeqIO
 
@@ -172,6 +173,63 @@ class HMMER(BinaryRunner):
 
         # return the updated list of genes that was given in argument
         return list(gene_index.values())
+
+
+class PyHMMER(object):
+
+    def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
+        self.hmm = hmm
+        self.cpus = cpus
+
+    def run(self, genes: Iterable[Gene], callback) -> List[Gene]:
+        # collect genes and build an index of genes by protein id
+        gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
+
+        # create a temporary file to write the input and output to
+        seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
+        #doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
+
+        # write protein sequences
+        protein_records = (g.protein.to_seq_record() for g in gene_index.values())
+        SeqIO.write(protein_records, seqs_tmp.name, "fasta")
+
+        # parse easel sequences
+        esl_abc = pyhmmer.easel.Alphabet.amino()
+        esl_sqs = [ seq.digitize(esl_abc) for seq in pyhmmer.easel.SequenceFile(seqs_tmp.name)]
+
+        # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
+        with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
+            hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
+
+        # Load InterPro metadata for the annotation
+        interpro = InterPro.load()
+
+        # Transcribe HMMER hits to GECCO model
+        for hit in hits:
+            target_name = hit.name.decode('utf-8')
+            for domain in hit.domains:
+                raw_acc = domain.alignment.hmm_name
+                accession = self.hmm.relabel(raw_acc.decode('utf-8'))
+                entry = interpro.by_accession.get(accession)
+
+                # extract qualifiers
+                qualifiers: Dict[str, List[str]] = {
+                    "inference": ["protein motif"],
+                    "note": ["e-value: {}".format(domain.i_evalue)],
+                    "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
+                    "function": [] if entry is None else [entry.name]
+                }
+                if entry is not None and entry.integrated is not None:
+                    qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
+
+                # add the domain to the protein domains of the right gene
+                assert domain.env_from < domain.env_to
+                domain = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
+                gene_index[target_name].protein.domains.append(domain)
+
+        # return the updated list of genes that was given in argument
+        return list(gene_index.values())
+
 
 
 def embedded_hmms() -> Iterator[HMM]:
