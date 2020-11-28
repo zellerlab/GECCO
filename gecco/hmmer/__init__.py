@@ -11,12 +11,12 @@ import re
 import subprocess
 import tempfile
 import typing
-from typing import Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
+from typing import Callable, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
-import pyhmmer
 import pkg_resources
 from Bio import SeqIO
 
+from .._meta import requires
 from .._base import BinaryRunner
 from ..model import Gene, Domain
 from ..interpro import InterPro
@@ -181,7 +181,8 @@ class PyHMMER(object):
         self.hmm = hmm
         self.cpus = cpus
 
-    def run(self, genes: Iterable[Gene], callback) -> List[Gene]:
+    @requires("pyhmmer")
+    def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]]) -> List[Gene]:
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
