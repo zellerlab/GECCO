@@ -196,7 +196,10 @@ class PyHMMER(object):
 
         # parse easel sequences
         esl_abc = pyhmmer.easel.Alphabet.amino()
-        esl_sqs = [ seq.digitize(esl_abc) for seq in pyhmmer.easel.SequenceFile(seqs_tmp.name)]
+        esl_sqs = [ 
+            seq.digitize(esl_abc) 
+            for seq in pyhmmer.easel.SequenceFile(seqs_tmp.name, format="fasta")
+        ]
 
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
