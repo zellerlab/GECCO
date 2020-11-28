@@ -182,7 +182,7 @@ class PyHMMER(object):
         self.cpus = cpus
 
     @requires("pyhmmer")
-    def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]]) -> List[Gene]:
+    def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]] = None) -> List[Gene]:
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
