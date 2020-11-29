@@ -203,33 +203,34 @@ class PyHMMER(object):
 
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
-            hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
+            hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
 
-        # Load InterPro metadata for the annotation
-        interpro = InterPro.load()
+            # Load InterPro metadata for the annotation
+            interpro = InterPro.load()
 
-        # Transcribe HMMER hits to GECCO model
-        for hit in hits:
-            target_name = hit.name.decode('utf-8')
-            for domain in hit.domains:
-                raw_acc = domain.alignment.hmm_name
-                accession = self.hmm.relabel(raw_acc.decode('utf-8'))
-                entry = interpro.by_accession.get(accession)
+            # Transcribe HMMER hits to GECCO model
+            for hits in hmms_hits:
+                for hit in hits:
+                    target_name = hit.name.decode('utf-8')
+                    for domain in hit.domains:
+                        raw_acc = domain.alignment.hmm_name
+                        accession = self.hmm.relabel(raw_acc.decode('utf-8'))
+                        entry = interpro.by_accession.get(accession)
 
-                # extract qualifiers
-                qualifiers: Dict[str, List[str]] = {
-                    "inference": ["protein motif"],
-                    "note": ["e-value: {}".format(domain.i_evalue)],
-                    "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
-                    "function": [] if entry is None else [entry.name]
-                }
-                if entry is not None and entry.integrated is not None:
-                    qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
+                        # extract qualifiers
+                        qualifiers: Dict[str, List[str]] = {
+                            "inference": ["protein motif"],
+                            "note": ["e-value: {}".format(domain.i_evalue)],
+                            "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
+                            "function": [] if entry is None else [entry.name]
+                        }
+                        if entry is not None and entry.integrated is not None:
+                            qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
 
-                # add the domain to the protein domains of the right gene
-                assert domain.env_from < domain.env_to
-                domain = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
-                gene_index[target_name].protein.domains.append(domain)
+                        # add the domain to the protein domains of the right gene
+                        assert domain.env_from < domain.env_to
+                        domain = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
+                        gene_index[target_name].protein.domains.append(domain)
 
         # return the updated list of genes that was given in argument
         return list(gene_index.values())
