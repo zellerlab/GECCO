@@ -186,21 +186,16 @@ class PyHMMER(object):
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
-        # create a temporary file to write the input and output to
-        seqs_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".faa")
-        #doms_tmp = tempfile.NamedTemporaryFile(prefix="hmmer", suffix=".dom", mode="rt")
-
-        # write protein sequences
-        protein_records = (g.protein.to_seq_record() for g in gene_index.values())
-        SeqIO.write(protein_records, seqs_tmp.name, "fasta")
-
-        # parse easel sequences
+        # convert to Easel sequences
         esl_abc = pyhmmer.easel.Alphabet.amino()
-        esl_sqs = [ 
-            seq.digitize(esl_abc) 
-            for seq in pyhmmer.easel.SequenceFile(seqs_tmp.name, format="fasta")
+        esl_sqs = [
+            pyhmmer.easel.TextSequence(
+                name=gene.protein.id.encode(), 
+                sequence=str(gene.protein.seq)
+            ).digitize(esl_abc)
+            for gene in gene_index.values()
         ]
-
+        
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
             hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
