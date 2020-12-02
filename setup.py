@@ -19,7 +19,7 @@ from functools import partial
 from xml.etree import ElementTree as etree
 
 import setuptools
-from setuptools.command.build_py import build_py as _build_py
+from distutils.command.build import build as _build
 from setuptools.command.sdist import sdist as _sdist
 from tqdm import tqdm
 from pyhmmer.plan7 import HMMFile
@@ -111,24 +111,36 @@ class update_model(setuptools.Command):
         return entries
 
 
-class build_py(_build_py):
-    """A hacked `build_py` command to download data before wheel creation.
+class build_data(setuptools.Command):
+    """A custom `setuptools` command to download data before wheel creation.
     """
 
-    user_options = _build_py.user_options + [
+    description = "download the HMM libraries used by GECCO to annotate proteins"
+    user_options = [
         ("inplace", "i", "ignore build-lib and put data alongside your Python code")
     ]
 
     def initialize_options(self):
-        _build_py.initialize_options(self)
         self.inplace = False
 
+    def finalize_options(self):
+        _build_py = self.get_finalized_command("build_py")
+        self.build_lib = _build_py.build_lib
+
+    def info(self, msg):
+        self.announce(msg, level=2)
+
     def run(self):
-        _build_py.run(self)
-        with open(os.path.join("gecco", "types", "domains.tsv"), "rb") as f:
+        self.mkpath(self.build_lib)
+
+        domains_file = os.path.join("gecco", "types", "domains.tsv")
+        self.info("loading domain accesssions from {}".format(domains_file))
+        with open(domains_file, "rb") as f:
             domains = [line.strip() for line in f]
+
         for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
             local = os.path.join(self.build_lib, in_).replace(".ini", ".hmm")
+            self.mkpath(os.path.dirname(local))
             self.make_file([in_], local, self.download, (in_, domains))
             if self.inplace:
                 copy = in_.replace(".ini", ".hmm")
@@ -171,10 +183,20 @@ class build_py(_build_py):
                         nwritten += 1
 
 
+class build(_build):
+    """A hacked `build` command that will also run `build_data`.
+    """
+
+    def run(self):
+        self.run_command("build_data")
+        _build.run(self)
+
+
 if __name__ == "__main__":
     setuptools.setup(
         cmdclass={
-            "build_py": build_py,
+            "build": build,
+            "build_data": build_data,
             "sdist": sdist,
             "update_model": update_model,
         },
