@@ -1,4 +1,4 @@
-"""Implementation of the ``gecco run`` subcommand.
+\"""Implementation of the ``gecco run`` subcommand.
 """
 
 import glob
@@ -19,7 +19,7 @@ from Bio import SeqIO
 from ._base import Command
 from .._utils import guess_sequences_format
 from ...crf import ClusterCRF
-from ...hmmer import HMMER, HMM, embedded_hmms
+from ...hmmer import PyHMMER, HMMER, HMM, embedded_hmms
 from ...model import FeatureTable, ClusterTable
 from ...orf import PyrodigalFinder
 from ...types import TypeClassifier
@@ -128,10 +128,10 @@ class Run(Command):  # noqa: D101
             self.logger.debug(
                 "Starting annotation with HMM {} v{}", hmm.id, hmm.version
             )
-            features = HMMER(hmm, self.args["--jobs"]).run(genes)
+            features = PyHMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
 
-        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
+        with multiprocessing.pool.ThreadPool(min(self.args["--jobs"], 2)) as pool:
             pool.map(annotate, embedded_hmms())
 
         # Count number of annotated domains
