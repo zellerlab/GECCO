@@ -115,6 +115,14 @@ class build_py(_build_py):
     """A hacked `build_py` command to download data before wheel creation.
     """
 
+    user_options = _build_py.user_options + [
+        ("inplace", "i", "ignore build-lib and put data alongside your Python code")
+    ]
+
+    def initialize_options(self):
+        _build_py.initialize_options(self)
+        self.inplace = False
+
     def run(self):
         _build_py.run(self)
         with open(os.path.join("gecco", "types", "domains.tsv"), "rb") as f:
@@ -122,6 +130,9 @@ class build_py(_build_py):
         for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
             local = os.path.join(self.build_lib, in_).replace(".ini", ".hmm")
             self.make_file([in_], local, self.download, (in_, domains))
+            if self.inplace:
+                copy = in_.replace(".ini", ".hmm")
+                self.make_file([local], copy, shutil.copy, (local, copy))
 
     def download(self, in_, domains):
         cfg = configparser.ConfigParser()
@@ -134,9 +145,6 @@ class build_py(_build_py):
             if os.path.exists(out):
                 os.remove(out)
             raise
-
-        if self.inplace:
-            shutil.copy(out, in_.replace(".ini", ".hmm"))
 
     def download_hmm(self, output, domains, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
