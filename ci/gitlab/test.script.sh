@@ -6,6 +6,7 @@ set -e
 
 
 
+python setup.py build_py --inplace
 python setup.py bdist_wheel
 python -m pip install --find-links=dist gecco[train]
 python -m coverage run -p -m unittest discover -vv
