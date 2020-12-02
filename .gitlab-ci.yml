@@ -21,10 +21,6 @@ variables:
   after_script:
     - python -m coverage combine
     - python -m coverage report
-    - python ci/gitlab/after_script.hmmfilter.py
-  # artifacts:
-  #   paths:
-  #     - ci/artifacts
 
 # --- Stages -------------------------------------------------------------------
 
