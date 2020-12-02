@@ -1,4 +1,4 @@
-\"""Implementation of the ``gecco run`` subcommand.
+"""Implementation of the ``gecco run`` subcommand.
 """
 
 import glob
