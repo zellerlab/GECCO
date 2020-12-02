@@ -190,12 +190,12 @@ class PyHMMER(object):
         esl_abc = pyhmmer.easel.Alphabet.amino()
         esl_sqs = [
             pyhmmer.easel.TextSequence(
-                name=gene.protein.id.encode(), 
+                name=gene.protein.id.encode(),
                 sequence=str(gene.protein.seq)
             ).digitize(esl_abc)
             for gene in gene_index.values()
         ]
-        
+
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
             hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
@@ -238,4 +238,4 @@ def embedded_hmms() -> Iterator[HMM]:
     for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
-        yield HMM(path=ini.replace(".ini", ".hmm"), **dict(cfg.items("hmm")))
+        yield HMM(path=ini.replace(".ini", ".h3m"), **dict(cfg.items("hmm")))

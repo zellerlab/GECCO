@@ -139,17 +139,17 @@ class build_data(setuptools.Command):
             domains = [line.strip() for line in f]
 
         for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
-            local = os.path.join(self.build_lib, in_).replace(".ini", ".hmm")
+            local = os.path.join(self.build_lib, in_).replace(".ini", ".h3m")
             self.mkpath(os.path.dirname(local))
             self.make_file([in_], local, self.download, (in_, domains))
             if self.inplace:
-                copy = in_.replace(".ini", ".hmm")
+                copy = in_.replace(".ini", ".h3m")
                 self.make_file([local], copy, shutil.copy, (local, copy))
 
     def download(self, in_, domains):
         cfg = configparser.ConfigParser()
         cfg.read(in_)
-        out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm"))
+        out = os.path.join(self.build_lib, in_.replace(".ini", ".h3m"))
 
         try:
             self.download_hmm(out, domains, dict(cfg.items("hmm")))
@@ -179,7 +179,7 @@ class build_data(setuptools.Command):
                 nwritten = 0
                 for hmm in HMMFile(gzip.open(src)):
                     if hmm.accession.split(b".")[0] in domains:
-                        hmm.write(dst)
+                        hmm.write(dst, binary=True)
                         nwritten += 1
 
 
