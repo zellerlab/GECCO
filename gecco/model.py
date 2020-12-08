@@ -2,6 +2,7 @@
 """
 
 import csv
+import datetime
 import enum
 import functools
 import itertools
@@ -9,6 +10,7 @@ import operator
 import re
 import typing
 from array import array
+from collections import OrderedDict
 from collections.abc import Sized
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
@@ -333,10 +335,24 @@ class Cluster:
         bgc.seq.alphabet = Bio.Alphabet.generic_dna
 
         # copy sequence annotations
+        bgc.annotations = self.source.annotations.copy()
         bgc.annotations["topology"] = "linear"
-        bgc.annotations["organism"] = self.source.annotations.get("organism")
-        bgc.annotations["source"] = self.source.annotations.get("source")
-        bgc.annotations["comment"] = ["Detected with GECCO v{}".format(__version__)]
+        bgc.annotations.setdefault("comment", []).append(f"Detected with GECCO v{__version__}")
+        
+        # add GECCO-specific annotations as a structured comment
+        structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
+        structured_comment['GECCO-Data'] = {
+            "version": f"GECCO v{__version__}",
+            "creation_date": datetime.datetime.now().isoformat(),
+            "biosyn_class": ",".join(ty.name for ty in self.type.unpack()),
+            "alkaloid_probability": self.type_probabilities.get(ProductType.Alkaloid, 0.0),
+            "polyketide_probability": self.type_probabilities.get(ProductType.Polyketide, 0.0),
+            "ripp_probability": self.type_probabilities.get(ProductType.RiPP, 0.0),
+            "saccharide_probability": self.type_probabilities.get(ProductType.Saccharide, 0.0),
+            "terpene_probability": self.type_probabilities.get(ProductType.Terpene, 0.0),
+            "nrp_probability": self.type_probabilities.get(ProductType.NRP, 0.0),
+            "other_probability": self.type_probabilities.get(ProductType.Other, 0.0),
+        }
 
         # add proteins as CDS features
         for gene in self.genes:
