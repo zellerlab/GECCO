@@ -290,7 +290,9 @@ class Cluster:
     # ---
 
     def domain_composition(
-        self, all_possible: Optional[Sequence[str]] = None
+        self, 
+        all_possible: Optional[Sequence[str]] = None,
+        normalize: bool = True,
     ) -> numpy.ndarray:
         """Compute weighted domain composition with respect to ``all_possible``.
 
@@ -315,7 +317,9 @@ class Cluster:
         for i, dom in enumerate(all_possible):
             if dom in unique_names:
                 composition[i] = numpy.sum(weights[names == dom])
-        return composition / (composition.sum() or 1)  # type: ignore
+        if normalize:
+            return composition / (composition.sum() or 1)  # type: ignore
+        return composition
 
     # ---
 
