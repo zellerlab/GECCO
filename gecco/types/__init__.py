@@ -21,7 +21,7 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
 
     def __init__(self):
         self.classes_ = sorted(x for x in ProductType.__members__.values() if x)
-        super().__init__(self.classes_)
+        super().__init__(classes=self.classes_)
 
     def transform(self, y: Iterable[ProductType]) -> Iterable[Iterable[int]]:
         matrix = numpy.zeros((len(y), len(self.classes_)))
