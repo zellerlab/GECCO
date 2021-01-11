@@ -20,9 +20,17 @@ variables:
     - ./ci/gitlab/test.script.sh
   after_script:
     - python -m coverage combine
+    - python -m coverage xml
     - python -m coverage report
+  artifacts:
+    reports:
+      cobertura: coverage.xml
 
 # --- Stages -------------------------------------------------------------------
+
+test:python3.6:
+  image: python:3.6
+  <<: *test
 
 test:python3.7:
   image: python:3.7
@@ -32,8 +40,12 @@ test:python3.8:
   image: python:3.8
   <<: *test
 
+test:python3.9:
+  image: python:3.9
+  <<: *test
+
 docs:
-  image: python:3.8
+  image: python:3.9
   stage: pages
   before_script:
     - pip install -U -r docs/requirements.txt
@@ -44,7 +56,7 @@ docs:
       - public
 
 lint:pydocstyle:
-  image: python:3.8
+  image: python:3.9
   stage: lint
   before_script:
     - pip install -U pydocstyle
@@ -52,7 +64,7 @@ lint:pydocstyle:
     - pydocstyle gecco
 
 lint:mypy:
-  image: python:3.8
+  image: python:3.9
   stage: lint
   allow_failure: true
   before_script:
@@ -61,7 +73,7 @@ lint:mypy:
     - mypy gecco
 
 lint:pylint:
-  image: python:3.8
+  image: python:3.9
   stage: lint
   allow_failure: true
   before_script:
@@ -70,7 +82,7 @@ lint:pylint:
     - pylint gecco
 
 lint:radon:
-  image: python:3.8
+  image: python:3.9
   stage: lint
   allow_failure: true
   before_script:
