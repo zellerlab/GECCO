@@ -15,9 +15,11 @@ variables:
     paths:
     - build/
   before_script:
-    - ./ci/gitlab/test.before_script.sh
+    - python -m pip install -U wheel coverage tqdm pyhmmer
   script:
-    - ./ci/gitlab/test.script.sh
+    - python setup.py build_data --inplace bdist_wheel
+    - python -m pip install --find-links=dist gecco[train]
+    - python -m coverage run -p -m unittest discover -vv
   after_script:
     - python -m coverage combine
     - python -m coverage xml
