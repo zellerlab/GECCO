@@ -6,12 +6,6 @@
 ## Requirements
 
 * [Python](https://www.python.org/downloads/) 3.6 or higher
-* [HMMER](http://hmmer.org/) v3.2 or higher
-
-HMMER can be installed through [conda](https://anaconda.org/). It has to
-be in the `$PATH` variable before running GECCO. GECCO also requires
-additional Python libraries, but they are normally installed automatically
-by `pip` or `conda` when installing GECCO.
 
 
 ## Installing GECCO
@@ -24,13 +18,8 @@ $ pip install git+https://git.embl.de/grp-zeller/GECCO/
 ```
 
 Note that this command can take a long time to complete as it need to download
-around 250MB of data from the EBI FTP server. You will need to have writing
-rights to the site folder of Python; if this is not the case, use `pip` with
-the `--user` flag to install it to a local folder. Another option is to use
-a virtual environment, either with `virtualenv` or with `conda`.
-
-Once the install is finished, a `gecco` command will be available in your path
-automatically.
+around 250MB of data from the EBI FTP server. Once the install is finished, a 
+`gecco` command should be available in your path.
 
 
 ## Running GECCO
@@ -45,6 +34,13 @@ $ gecco run --genome some_genome.fna -o some_output_dir
 
 
 ## Training GECCO
+
+By default, GECCO is only installed with prediction support; to be able to train GECCO, 
+you need to install it with its training requirements:
+
+```console
+$ pip install GECCO[train]
+```
 
 ### Resources
 

@@ -55,7 +55,9 @@ class TestRun(TestCommand, unittest.TestCase):
                 mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
             )
             argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
-            self.assertEqual(main(argv, stream=io.StringIO()), 0)
+            with io.StringIO() as stderr:
+                retcode = main(argv, stream=stderr)
+                self.assertEqual(retcode, 0, stderr.getvalue())
 
         # make sure we have generated the files we want
         # and that we found one cluster

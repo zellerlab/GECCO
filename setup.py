@@ -19,9 +19,10 @@ from functools import partial
 from xml.etree import ElementTree as etree
 
 import setuptools
-from setuptools.command.build_ext import build_ext as _build_ext
+from distutils.command.build import build as _build
 from setuptools.command.sdist import sdist as _sdist
 from tqdm import tqdm
+from pyhmmer.plan7 import HMMFile
 
 
 class sdist(_sdist):
@@ -110,39 +111,54 @@ class update_model(setuptools.Command):
         return entries
 
 
-class build_ext(_build_ext):
-    """A hacked `build_ext` command to download data before wheel creation.
-
-    Using ``build_ext`` switches `setuptools` to build in non-universal mode,
-    and to generate platform-specific wheels. We do not have platform-specific
-    code in GECCO, but we have platform-specific data: binary HMM pressed with
-    ``hmmpressed`` are CPU-architecture-specific, so we can only install them
-    on a x86-64 machine if they were pressed on a x86-64 machine.
-
+class build_data(setuptools.Command):
+    """A custom `setuptools` command to download data before wheel creation.
     """
 
-    def run(self):
-        for ext in self.extensions:
-            in_ = ext.sources[0]
-            pressed = os.path.join(self.build_lib, in_).replace(".ini", ".hmm.h3i")
-            self.make_file([in_], pressed, self.download_and_press, (in_,))
+    description = "download the HMM libraries used by GECCO to annotate proteins"
+    user_options = [
+        ("inplace", "i", "ignore build-lib and put data alongside your Python code")
+    ]
 
-    def download_and_press(self, in_):
+    def initialize_options(self):
+        self.inplace = False
+
+    def finalize_options(self):
+        _build_py = self.get_finalized_command("build_py")
+        self.build_lib = _build_py.build_lib
+
+    def info(self, msg):
+        self.announce(msg, level=2)
+
+    def run(self):
+        self.mkpath(self.build_lib)
+
+        domains_file = os.path.join("gecco", "types", "domains.tsv")
+        self.info("loading domain accesssions from {}".format(domains_file))
+        with open(domains_file, "rb") as f:
+            domains = [line.strip() for line in f]
+
+        for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
+            local = os.path.join(self.build_lib, in_).replace(".ini", ".h3m")
+            self.mkpath(os.path.dirname(local))
+            self.make_file([in_], local, self.download, (in_, domains))
+            if self.inplace:
+                copy = in_.replace(".ini", ".h3m")
+                self.make_file([local], copy, shutil.copy, (local, copy))
+
+    def download(self, in_, domains):
         cfg = configparser.ConfigParser()
         cfg.read(in_)
-        out = os.path.join(self.build_lib, in_.replace(".ini", ".hmm"))
+        out = os.path.join(self.build_lib, in_.replace(".ini", ".h3m"))
 
         try:
-            self.download_hmm(out, dict(cfg.items("hmm")))
+            self.download_hmm(out, domains, dict(cfg.items("hmm")))
         except:
             if os.path.exists(out):
                 os.remove(out)
             raise
 
-        self.spawn(["hmmpress", out])
-        os.remove(out)
-
-    def download_hmm(self, output, options):
+    def download_hmm(self, output, domains, options):
         base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
         # attempt to use the GitHub releases URL, otherwise fallback to official URL
@@ -160,14 +176,28 @@ class build_ext(_build_ext):
         )
         with tqdm.wrapattr(response, "read", **format) as src:
             with open(output, "wb") as dst:
-                shutil.copyfileobj(gzip.open(src), dst)
+                nwritten = 0
+                for hmm in HMMFile(gzip.open(src)):
+                    if hmm.accession.split(b".")[0] in domains:
+                        hmm.write(dst, binary=True)
+                        nwritten += 1
+
+
+class build(_build):
+    """A hacked `build` command that will also run `build_data`.
+    """
+
+    def run(self):
+        self.run_command("build_data")
+        _build.run(self)
 
 
 if __name__ == "__main__":
     setuptools.setup(
-        cmdclass={"build_ext": build_ext, "sdist": sdist, "update_model": update_model,},
-        ext_modules=[
-            setuptools.Extension("Pfam", [os.path.join("gecco", "hmmer", "Pfam.ini")]),
-            setuptools.Extension("Tigrfam", [os.path.join("gecco", "hmmer", "Tigrfam.ini")]),
-        ]
+        cmdclass={
+            "build": build,
+            "build_data": build_data,
+            "sdist": sdist,
+            "update_model": update_model,
+        },
     )
