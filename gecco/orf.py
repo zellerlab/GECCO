@@ -3,7 +3,7 @@
 
 import abc
 import io
-import multiprocessing
+import multiprocessing.sharedctypes
 import os
 import queue
 import threading
@@ -11,7 +11,6 @@ import tempfile
 import typing
 from typing import Callable, Iterable, Iterator, List, Optional
 
-import Bio.Alphabet
 import Bio.SeqIO
 import pyrodigal
 from Bio.Seq import Seq
@@ -59,7 +58,7 @@ class PyrodigalFinder(ORFFinder):
         def __init__(
             self,
             metagenome: bool,
-            record_count: multiprocessing.Value,
+            record_count: "multiprocessing.Value",
             record_queue: "queue.Queue[typing.Optional[SeqRecord]]",
             genes_queue: "queue.Queue[Gene]",
             callback: Optional[Callable[[SeqRecord, int], None]],
@@ -81,7 +80,7 @@ class PyrodigalFinder(ORFFinder):
                 orfs = self.pyrodigal.find_genes(str(record.seq))
                 for j, orf in enumerate(orfs):
                     # wrap the protein into a Protein object
-                    prot_seq = Seq(orf.translate(), Bio.Alphabet.generic_protein)
+                    prot_seq = Seq(orf.translate())
                     protein = Protein(id=f"{record.id}_{j+1}", seq=prot_seq)
                     # wrap the gene into a Gene
                     self.genes_queue.put(Gene(

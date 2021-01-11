@@ -15,7 +15,6 @@ from collections.abc import Sized
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
 
-import Bio.Alphabet
 import numpy
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -290,7 +289,7 @@ class Cluster:
     # ---
 
     def domain_composition(
-        self, 
+        self,
         all_possible: Optional[Sequence[str]] = None,
         normalize: bool = True,
     ) -> numpy.ndarray:
@@ -336,13 +335,13 @@ class Cluster:
         # but slicing expects 0-based ranges with exclusive ends
         bgc = self.source[self.start - 1 : self.end]
         bgc.id = bgc.name = self.id
-        bgc.seq.alphabet = Bio.Alphabet.generic_dna
 
         # copy sequence annotations
         bgc.annotations = self.source.annotations.copy()
         bgc.annotations["topology"] = "linear"
+        bgc.annotations["molecule_type"] = "DNA"
         bgc.annotations.setdefault("comment", []).append(f"Detected with GECCO v{__version__}")
-        
+
         # add GECCO-specific annotations as a structured comment
         structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
         structured_comment['GECCO-Data'] = {
@@ -474,7 +473,7 @@ class FeatureTable(Dumpable, Sized):
 
         Raises:
             ImportError: if the `pandas` module could not be imported.
-        
+
         """
         frame = pandas.DataFrame()  # type: ignore
         for column in self.__annotations__:
