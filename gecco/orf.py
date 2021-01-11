@@ -3,12 +3,13 @@
 
 import abc
 import io
-import multiprocessing.sharedctypes
+import multiprocessing
 import os
 import queue
 import threading
 import tempfile
 import typing
+from multiprocessing.sharedctypes import Value
 from typing import Callable, Iterable, Iterator, List, Optional
 
 import Bio.SeqIO
@@ -58,7 +59,7 @@ class PyrodigalFinder(ORFFinder):
         def __init__(
             self,
             metagenome: bool,
-            record_count: "multiprocessing.Value",
+            record_count: "Value",
             record_queue: "queue.Queue[typing.Optional[SeqRecord]]",
             genes_queue: "queue.Queue[Gene]",
             callback: Optional[Callable[[SeqRecord, int], None]],
@@ -133,7 +134,7 @@ class PyrodigalFinder(ORFFinder):
         _cpus = self.cpus if self.cpus > 0 else multiprocessing.cpu_count()
 
         # create the queue to pass the objects around
-        record_count = multiprocessing.Value('i')
+        record_count = Value('i')
         record_queue = typing.cast("queue.Queue[typing.Optional[SeqRecord]]", queue.Queue())
         genes_queue = typing.cast("queue.Queue[SeqRecord]", queue.Queue())
 
