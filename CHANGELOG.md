@@ -5,7 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...master
+
+## [v0.5.0] - 2021-01-11
+[v0.4.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.5...v0.5.0
+### Added
+- Explicit support for Python 3.9.
+### Changed
+- [`pyhmmer`](https://pypi.org/project/pyhmmer) is used to annotate protein sequences instead of HMMER3 binary `hmmsearch`.
+- HMM files are stored in binary format to speedup parsing and reduce storage size.
+- `tqdm` is now a *training*-only dependency.
+- `gecco cv` now requires *training* dependencies.
 
 ## [v0.4.5] - 2020-11-23
 [v0.4.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...v0.4.5
@@ -19,15 +29,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [v0.4.4] - 2020-09-30
 [v0.4.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...v0.4.4
 ### Added
-- `gecco cv loto` command to run LOTO cross-validation using BGC types 
+- `gecco cv loto` command to run LOTO cross-validation using BGC types
   for stratification.
 - `header` keyword argument to `FeatureTable.dump` and `ClusterTable.dump`
-  to write the table without the column header allowing to append to an 
+  to write the table without the column header allowing to append to an
   existing table.
-- `__getitem__` implementation for `FeatureTable` and `ClusterTable` 
+- `__getitem__` implementation for `FeatureTable` and `ClusterTable`
   that returns a single row or a sub-table from a table.
 ### Fixed
-- `gecco cv` command now writes results iteratively instead of holding 
+- `gecco cv` command now writes results iteratively instead of holding
   the tables for every fold in memory.
 ### Changed
 - Bumped `pandas` training dependency to `v1.0`.
@@ -43,7 +53,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [v0.4.2] - 2020-08-07
 [v0.4.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...v0.4.2
 ### Fixed
-- `TypeClassifier.predict_types` using inverse type probabilities when 
+- `TypeClassifier.predict_types` using inverse type probabilities when
   given several clusters to process.
 
 ## [v0.4.1] - 2020-08-07
