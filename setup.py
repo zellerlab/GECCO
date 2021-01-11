@@ -159,7 +159,7 @@ class build_data(setuptools.Command):
             raise
 
     def download_hmm(self, output, domains, options):
-        base = "https://github.com/althonos/GECCO/releases/download/v{version}/{id}.hmm.gz"
+        base = "https://github.com/zellerlab/GECCO/releases/download/v{version}/{id}.hmm.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
         # attempt to use the GitHub releases URL, otherwise fallback to official URL
         try:
