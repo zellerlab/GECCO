@@ -2,6 +2,7 @@ stages:
   - test
   - pages
   - lint
+  - deploy
 
 variables:
   TERM: ansi
@@ -27,6 +28,7 @@ variables:
   artifacts:
     reports:
       cobertura: coverage.xml
+
 
 # --- Stages -------------------------------------------------------------------
 
@@ -94,3 +96,11 @@ lint:radon:
     - pip install -U radon
   script:
     - radon cc -a gecco
+
+deploy:changelog:
+  image: ruby
+  stage: deploy
+  before_script:
+    - gem install chandler
+  script:
+    - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
