@@ -20,7 +20,9 @@ from functools import partial
 from xml.etree import ElementTree as etree
 
 import setuptools
+from distutils import log
 from distutils.command.build import build as _build
+from distutils.command.clean import clean as _clean
 from setuptools.command.sdist import sdist as _sdist
 
 try:
@@ -216,11 +218,28 @@ class build(_build):
         _build.run(self)
 
 
+class clean(_clean):
+
+    def run(self):
+        # remove HMM files that have been installed inplace
+        hmm_dir = os.path.join(os.path.dirname(__file__), "gecco", "hmmer")
+        for ini in glob.iglob(os.path.join(hmm_dir, "*.ini")):
+            for ext in [".h3m", ".hmm"]:
+                path = ini.replace(".ini", ext)
+                if os.path.exists(path):
+                    log.info("Removing %s", path)
+                    if not self.dry_run:
+                        os.remove(path)
+        # run the rest of the command as normal
+        _clean.run(self)
+
+
 if __name__ == "__main__":
     setuptools.setup(
         cmdclass={
             "build": build,
             "build_data": build_data,
+            "clean": clean,
             "sdist": sdist,
             "update_model": update_model,
         },
