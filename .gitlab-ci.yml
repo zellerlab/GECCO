@@ -16,7 +16,7 @@ variables:
     paths:
     - build/
   before_script:
-    - python -m pip install -U wheel coverage
+    - python -m pip install -U wheel coverage tqdm pyhmmer
   script:
     - python setup.py build_data --inplace bdist_wheel
     - python -m pip install --find-links=dist gecco[train]
@@ -52,6 +52,7 @@ test:python3.9:
     expire_in: 1 week
     paths:
       - dist/*.whl
+      - coverage.xml
     reports:
       cobertura: coverage.xml
 
@@ -104,6 +105,26 @@ lint:radon:
   script:
     - radon cc -a gecco
 
+deploy:codecov:
+  image: python:3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  before_script:
+    - pip install -U codecov
+  script:
+    - python -m codecov
+
+deploy:codacy:
+  image: python:3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  before_script:
+    - pip install -U codacy-coverage
+  script:
+    - python -m codacy -r coverage.xml
+
 deploy:changelog:
   image: ruby
   stage: deploy
@@ -113,9 +134,9 @@ deploy:changelog:
     - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
 
 deploy:sdist:
-  image: python3.9
+  image: python:3.9
   stage: deploy
-  on:
+  only:
     - tags
   before_script:
     - python -m pip install -U wheel twine
@@ -125,11 +146,11 @@ deploy:sdist:
     - twine upload --repository testpypi --skip-existing dist/*.tar.gz
 
 deploy:wheel:
-  image: python3.9
+  image: python:3.9
   stage: deploy
   dependencies:
     - test:python3.9
-  on:
+  only:
     - tags
   before_script:
     - python -m pip install -U wheel twine
