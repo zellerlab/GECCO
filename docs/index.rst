@@ -14,6 +14,7 @@ Documentation
 
     Installation <install>
     Training <training>
+    Contributing <contributing>
 
 .. rubric:: Library
 
