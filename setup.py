@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import configparser
+import contextlib
 import csv
 import glob
 import gzip
@@ -21,8 +22,16 @@ from xml.etree import ElementTree as etree
 import setuptools
 from distutils.command.build import build as _build
 from setuptools.command.sdist import sdist as _sdist
-from tqdm import tqdm
-from pyhmmer.plan7 import HMMFile
+
+try:
+    from tqdm import tqdm
+except ImportError as err:
+    tqdm = err
+
+try:
+    from pyhmmer.plan7 import HMMFile
+except ImportError as err:
+    HMMFile = err
 
 
 class sdist(_sdist):
@@ -65,6 +74,10 @@ class update_model(setuptools.Command):
         self.announce(msg, level=2)
 
     def run(self):
+        # Check `tqdm` is installed
+        if isinstance(tqdm, ImportError):
+            raise RuntimeError("tqdm is required to run the `update_model` command") from tqdm
+
         # Copy the file to the new in-source location and compute its hash.
         hasher = hashlib.md5()
         self.info("Copying the trained CRF model to the in-source location")
@@ -133,11 +146,19 @@ class build_data(setuptools.Command):
     def run(self):
         self.mkpath(self.build_lib)
 
+        # Check `tqdm` and `pyhmmer` are installed
+        if isinstance(HMMFile, ImportError):
+            raise RuntimeError("pyhmmer is required to run the `build_data` command") from HMMFile
+        if isinstance(tqdm, ImportError):
+            raise RuntimeError("tqdm is required to run the `build_data` command") from tqdm
+
+        # Load domain whitelist from the type classifier data
         domains_file = os.path.join("gecco", "types", "domains.tsv")
         self.info("loading domain accesssions from {}".format(domains_file))
         with open(domains_file, "rb") as f:
             domains = [line.strip() for line in f]
 
+        # Download and binarize required HMMs
         for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
             local = os.path.join(self.build_lib, in_).replace(".ini", ".h3m")
             self.mkpath(os.path.dirname(local))
@@ -168,13 +189,16 @@ class build_data(setuptools.Command):
         except urllib.error.HTTPError:
             self.announce("using fallback {}".format(options["url"]), level=2)
             response = urllib.request.urlopen(options["url"])
-        # download the HMM
-        format = dict(
+        # use `tqdm` to make a progress bar
+        pbar = tqdm.wrapattr(
+            response,
+            "read",
             total=int(response.headers["Content-Length"]),
             desc=os.path.basename(output),
             leave=False,
         )
-        with tqdm.wrapattr(response, "read", **format) as src:
+        # download the HMM
+        with pbar as src:
             with open(output, "wb") as dst:
                 nwritten = 0
                 for hmm in HMMFile(gzip.open(src)):
