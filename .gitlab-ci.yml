@@ -16,7 +16,7 @@ variables:
     paths:
     - build/
   before_script:
-    - python -m pip install -U wheel coverage tqdm pyhmmer
+    - python -m pip install -U wheel coverage
   script:
     - python setup.py build_data --inplace bdist_wheel
     - python -m pip install --find-links=dist gecco[train]
@@ -55,12 +55,11 @@ test:python3.9:
     reports:
       cobertura: coverage.xml
 
-
 docs:
   image: python:3.9
   stage: pages
   dependencies:
-  - test:python3.9
+    - test:python3.9
   before_script:
     - pip install -U -r docs/requirements.txt
     - pip install -U --find-links dist gecco[train]
@@ -112,3 +111,28 @@ deploy:changelog:
     - gem install chandler
   script:
     - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
+
+deploy:sdist:
+  image: python3.9
+  stage: deploy
+  on:
+    - tags
+  before_script:
+    - python -m pip install -U wheel twine
+  script:
+    - python setup.py sdist
+    - twine check dist/*.tar.gz
+    - twine upload --repository testpypi --skip-existing dist/*.tar.gz
+
+deploy:wheel:
+  image: python3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  on:
+    - tags
+  before_script:
+    - python -m pip install -U wheel twine
+  script:
+    - twine check dist/*.whl
+    - twine upload --repository testpypi dist/*.whl
