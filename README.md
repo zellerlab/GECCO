@@ -1,19 +1,19 @@
+<img align="left" width="100" height="100" src="static/gecco-square.png">
 
-
-# ![](static/gecco.png) Hi, I'm GECCO!
+# Hi, I'm GECCO!
 
 [![GitLabCI](https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&logo=gitlab&style=flat-square&maxAge=600)](https://git.embl.de/grp-zeller/GECCO)
-[![Coverage](https://img.shields.io/codecov/c/gh/zellerlab/GECCO?style=flat-square&maxAge=3600)](https://codecov.io/gh/zellerlab/GECCO/)
-[![PyPI](https://img.shields.io/pypi/v/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO)
-[![Wheel](https://img.shields.io/pypi/wheel/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO/#files)
-[![Python Versions](https://img.shields.io/pypi/pyversions/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO/#files)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
 [![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/)
 [![Mirror](https://img.shields.io/badge/mirror-EMBL-009f4d?style=flat-square&maxAge=2678400)](https://git.embl.de/grp-zeller/GECCO/)
-[![GitHub issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
-[![Docs](https://img.shields.io/readthedocs/gecco/latest?style=flat-square&maxAge=600)](https://gecco.readthedocs.io)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md)
-[![Downloads](https://img.shields.io/badge/dynamic/json?style=flat-square&color=303f9f&maxAge=86400&label=downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fprojects%2Fgecco)](https://pepy.tech/project/GECCO)
+<!-- [![Coverage](https://img.shields.io/codecov/c/gh/zellerlab/GECCO?style=flat-square&maxAge=3600)](https://codecov.io/gh/zellerlab/GECCO/) -->
+<!-- [![PyPI](https://img.shields.io/pypi/v/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-bgc) -->
+<!-- [![Wheel](https://img.shields.io/pypi/wheel/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-bgc/#files) -->
+<!-- [![Python Versions](https://img.shields.io/pypi/pyversions/gecco-bgc.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-bgc/#files) -->
+<!-- [![GitHub issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues) -->
+<!-- [![Docs](https://img.shields.io/readthedocs/gecco/latest?style=flat-square&maxAge=600)](https://gecco.readthedocs.io) -->
+<!-- [![Downloads](https://img.shields.io/badge/dynamic/json?style=flat-square&color=303f9f&maxAge=86400&label=downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fprojects%2Fgecco)](https://pepy.tech/project/GECCO) -->
 
 
 ## 🦎 ️Overview
