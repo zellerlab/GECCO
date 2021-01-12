@@ -1,75 +1,89 @@
-![](static/gecco.png)
-
-# Hi, I'm GECCO!
 
 
-## Requirements
+# ![](static/gecco.png) Hi, I'm GECCO!
 
-* [Python](https://www.python.org/downloads/) 3.6 or higher
+[![GitLabCI](https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&logo=gitlab&style=flat-square&maxAge=600)](https://git.embl.de/grp-zeller/GECCO)
+[![Coverage](https://img.shields.io/codecov/c/gh/zellerlab/GECCO?style=flat-square&maxAge=3600)](https://codecov.io/gh/zellerlab/GECCO/)
+[![PyPI](https://img.shields.io/pypi/v/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO)
+[![Wheel](https://img.shields.io/pypi/wheel/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO/#files)
+[![Python Versions](https://img.shields.io/pypi/pyversions/GECCO.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/GECCO/#files)
+[![License](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
+[![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/)
+[![Mirror](https://img.shields.io/badge/mirror-EMBL-009f4d?style=flat-square&maxAge=2678400)](https://git.embl.de/grp-zeller/GECCO/)
+[![GitHub issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
+[![Docs](https://img.shields.io/readthedocs/gecco/latest?style=flat-square&maxAge=600)](https://gecco.readthedocs.io)
+[![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md)
+[![Downloads](https://img.shields.io/badge/dynamic/json?style=flat-square&color=303f9f&maxAge=86400&label=downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fprojects%2Fgecco)](https://pepy.tech/project/GECCO)
 
 
-## Installing GECCO
+## 🦎 ️Overview
 
-### Development version
+GECCO (Gene Cluster prediction with Conditional Random Fields) is a fast and
+scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs)
+in genomic and metagenomic data using Conditional Random Fields (CRFs).
 
-To install GECCO from the EMBL git server, run:
+
+## 🔧 Installing GECCO
+
+GECCO is implemented in [Python](https://www.python.org/), and supports [all
+versions](https://endoflife.date/python) from Python 3.6. It requires
+additional libraries that can be installed directly from
+PyPI, the Python Package Index.
+
+Use `pip` to install GECCO on your machine:
 ```console
-$ pip install git+https://git.embl.de/grp-zeller/GECCO/
+$ pip install gecco
 ```
 
-Note that this command can take a long time to complete as it need to download
-around 250MB of data from the EBI FTP server. Once the install is finished, a
-`gecco` command should be available in your path.
+This will download GECCO, its dependencies, and the data needed to run
+predictions. Once done, you will have a ``gecco`` command in your $PATH.
+
+*Note that GECCO uses [HMMER3](http://hmmer.org/), which can only run
+on PowerPC and and recent x86-64 machines running a POSIX operating system.
+Therefore, Linux and OSX are supported platforms, but GECCO will not be able
+to run on Windows.*
 
 
-## Running GECCO
+## 🧬 Running GECCO
 
-Once `gecco.py` is available in your `PATH`, you can run it from everywhere by
-giving it a FASTA or GenBank file with the genome you want to analyze, as well
-as an output directory.
+Once `gecco` is installed, you can run it from the terminal by giving it a
+FASTA or GenBank file with the genomic sequence you want to analyze, as
+well as an output directory:
 
 ```console
 $ gecco run --genome some_genome.fna -o some_output_dir
 ```
 
-## Housekeeping GECCO
+Additional parameters of interest are:
 
+- `--jobs`, which controls the number of threads that will be spawned by
+  GECCO whenever a step can be parallelized. The default, *0*, will
+  autodetect the number of CPUs on the machine using
+  [`multiprocessing.cpu_count`](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.cpu_count).
+- `--cds`, controlling the minimum number of consecutive genes a BGC region
+  must have to be detected by GECCO (default is 3).
+- `--threshold`, controlling the minimum probability for a gene to be
+  considered part of a BGC region. Using a lower number will increase the
+  number (and possibly length) of predictions, but reduce accuracy.
 
-## Versioning
+<!-- ## 📖 Documentation -->
 
-As it is a good project management practice, we should follow
-[semantic versioning](https://semver.org/), so remember the following:
+## 💭 Feedback
 
-* As long as the model predict the same thing, retraining/updating the model
-  should be considered a non-breaking change, so you should bump the MINOR
-  version of the program.
-* Upgrading the internal HMMs could potentially change the output but won't
-  break the program, they should be treated as non-breaking change, so you
-  should bump the MINOR version of the program.
-* If the model changes prediction (e.g. predicted classes change), then you
-  should bump the MAJOR version of the program as it it a breaking change.
-* Changes in the code should be treated following semver the usual way.
-* Changed in the CLI should be treated as changed in the API (e.g. a new
-  CLI option or a new command bumps the MINOR version, removal of an option
-  bumps the MAJOR version).
+### ⚠️ Issue Tracker
 
+Found a bug ? Have an enhancement request ? Head over to the [GitHub issue
+tracker](https://github.com/zellerlab/GECCO/issues) if you need to report
+or ask something. If you are filing in on a bug, please include as much
+information as you can about the issue, and try to recreate the same bug
+in a simple, easily reproducible situation.
 
-### Upgrading the internal HMMs
+### 🏗️ Contributing
 
-To bump the version of the internal HMMs (for instance, to switch to a newer
-version of Pfam), you will need to do the following:
+Contributions are more than welcome! See [`CONTRIBUTING.md`](https://github.com/althonos/pyhmmer/blob/master/CONTRIBUTING.md)
+for more details.
 
-- edit the `setup.py` file with the new URL to the HMM file.
-- update the signature file in `gecco/data/hmms` with the MD5 checksum of the
-  new file (this can be found online or computed locally with the `md5sums`
-  command after having downloaded the file from a safe source).
+## ⚖️ License
 
-
-### Upgrading the internal CRF model
-
-After having trained a new version of the model, simply run the following command
-to update the internal GECCO model as well as the hash signature file:
-
-```console
-$ python setup.py update_model --model <path_to_new_crf.model>
-```
+This software is provided under the [GNU General Public License v3.0 *or later*](https://choosealicense.com/licenses/gpl-3.0/). GECCO is developped by the [Zeller Team](https://www.embl.de/research/units/scb/zeller/index.html)
+at the [European Molecular Biology Laboratory](https://www.embl.de/) in Heidelberg.
