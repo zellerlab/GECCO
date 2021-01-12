@@ -26,6 +26,7 @@ variables:
     - python -m coverage xml
     - python -m coverage report
   artifacts:
+    expire_in: 1 week
     reports:
       cobertura: coverage.xml
 
@@ -47,6 +48,13 @@ test:python3.8:
 test:python3.9:
   image: python:3.9
   <<: *test
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist/*.whl
+    reports:
+      cobertura: coverage.xml
+
 
 docs:
   image: python:3.9
