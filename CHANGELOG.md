@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...master
 
 ## [v0.5.0] - 2021-01-11
-[v0.4.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.5...v0.5.0
+[v0.5.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.5...v0.5.0
 ### Added
 - Explicit support for Python 3.9.
 ### Changed
