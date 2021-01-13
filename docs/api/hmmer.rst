@@ -1,5 +1,5 @@
-Type Prediction
-===============
+Domain Annotation
+=================
 
 .. currentmodule:: gecco.hmmer
 .. automodule:: gecco.hmmer

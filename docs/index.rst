@@ -13,6 +13,8 @@ Documentation
     :maxdepth: 1
 
     Installation <install>
+    Training <training>
+    Contributing <contributing>
 
 .. rubric:: Library
 

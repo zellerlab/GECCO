@@ -4,18 +4,18 @@ Installation
 PyPi
 ^^^^
 
-``GECCO`` is hosted on the EMBL Git server, but the easiest way to install it is
+GECCO is hosted on the EMBL Git server, but the easiest way to install it is
 to download the latest release from its `PyPi repository <https://pypi.python.org/pypi/gecco>`_.
 It will install all dependencies then install the ``gecco`` module:
 
 .. code:: console
 
-	$ pip install --user gecco
+	$ pip install gecco
 
 .. Conda
 .. ^^^^^
 ..
-.. Pronto is also available as a `recipe <https://anaconda.org/bioconda/GECCO>`_
+.. GECCO is also available as a `recipe <https://anaconda.org/bioconda/GECCO>`_
 .. in the `bioconda <https://bioconda.github.io/>`_ channel. To install, simply
 .. use the `conda` installer:
 ..

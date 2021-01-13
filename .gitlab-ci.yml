@@ -26,6 +26,7 @@ variables:
     - python -m coverage xml
     - python -m coverage report
   artifacts:
+    expire_in: 1 week
     reports:
       cobertura: coverage.xml
 
@@ -47,15 +48,22 @@ test:python3.8:
 test:python3.9:
   image: python:3.9
   <<: *test
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist/*.whl
+      - coverage.xml
+    reports:
+      cobertura: coverage.xml
 
 docs:
   image: python:3.9
   stage: pages
+  dependencies:
+    - test:python3.9
   before_script:
-    - python -m pip install -U wheel coverage tqdm pyhmmer
     - pip install -U -r docs/requirements.txt
-    - python setup.py build_data --inplace bdist_wheel
-    - python -m pip install --find-links=dist gecco
+    - pip install -U --find-links dist gecco[train]
   script:
     - sphinx-build -b html docs public
   artifacts:
@@ -97,6 +105,26 @@ lint:radon:
   script:
     - radon cc -a gecco
 
+deploy:codecov:
+  image: python:3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  before_script:
+    - pip install -U codecov
+  script:
+    - python -m codecov
+
+deploy:codacy:
+  image: python:3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  before_script:
+    - pip install -U codacy-coverage
+  script:
+    - python -m codacy -r coverage.xml
+
 deploy:changelog:
   image: ruby
   stage: deploy
@@ -104,3 +132,28 @@ deploy:changelog:
     - gem install chandler
   script:
     - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
+
+deploy:sdist:
+  image: python:3.9
+  stage: deploy
+  only:
+    - tags
+  before_script:
+    - python -m pip install -U wheel twine
+  script:
+    - python setup.py sdist
+    - twine check dist/*.tar.gz
+    - twine upload --repository testpypi --skip-existing dist/*.tar.gz
+
+deploy:wheel:
+  image: python:3.9
+  stage: deploy
+  dependencies:
+    - test:python3.9
+  only:
+    - tags
+  before_script:
+    - python -m pip install -U wheel twine
+  script:
+    - twine check dist/*.whl
+    - twine upload --repository testpypi dist/*.whl
