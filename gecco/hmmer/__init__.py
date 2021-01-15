@@ -208,7 +208,7 @@ class PyHMMER(object):
                 for hit in hits:
                     target_name = hit.name.decode('utf-8')
                     for domain in hit.domains:
-                        raw_acc = domain.alignment.hmm_name
+                        raw_acc = domain.alignment.hmm_accession
                         accession = self.hmm.relabel(raw_acc.decode('utf-8'))
                         entry = interpro.by_accession.get(accession)
 
