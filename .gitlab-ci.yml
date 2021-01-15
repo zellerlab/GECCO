@@ -156,4 +156,4 @@ deploy:wheel:
     - python -m pip install -U wheel twine
   script:
     - twine check dist/*.whl
-    - twine upload --repository testpypi dist/*.whl
+    # - twine upload --repository testpypi dist/*.whl

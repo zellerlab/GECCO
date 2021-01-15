@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.1...master
+
+## [v0.5.1] - 2021-01-15
+[v0.5.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...v0.5.1
+### Fixed 
+- `--hmm` flag being ignored in in `gecco run` command.
+- `PyHMMER` using HMM names instead of accessions, causing issues with Pfam HMMs.
 
 ## [v0.5.0] - 2021-01-11
 [v0.5.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.5...v0.5.0
