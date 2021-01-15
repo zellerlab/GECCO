@@ -64,6 +64,8 @@ class Run(Command):  # noqa: D101
     Parameters - Debug:
         --model <directory>           the path to an alternative CRF model
                                       to use (obtained with `gecco train`).
+        --hmm <hmm>                   the path to one or more alternative HMM
+                                      file to use (in HMMER format).
     """
 
     def _check(self) -> typing.Optional[int]:
@@ -95,7 +97,27 @@ class Run(Command):  # noqa: D101
             self.logger.error("could not locate input file {!r}", input)
             return 1
 
+        # check the HMMs exist
+        for hmm in self.args["--hmm"]:
+            if not os.path.exists(hmm):
+                self.logger.error("could not locate HMM file {!r}", hmm)
+                return 1
+
         return None
+
+    def _custom_hmms(self):
+        for path in self.args["--hmm"]:
+            base = os.path.basename(path)
+            if base.endswith(".gz"):
+                base, _ = os.path.splitext(base)
+            base, _ = os.path.splitext(base)
+            yield HMM(
+                id=base,
+                version="?",
+                url="?",
+                path=path,
+                relabel_with=r"s/([^\.]*)(\..*)?/\1/"
+            )
 
     def __call__(self) -> int:  # noqa: D102
         # Make output directory
@@ -132,7 +154,10 @@ class Run(Command):  # noqa: D101
             self.logger.debug("Finished running HMM {}", hmm.id)
 
         with multiprocessing.pool.ThreadPool(min(self.args["--jobs"], 2)) as pool:
-            pool.map(annotate, embedded_hmms())
+            if self.args["--hmm"]:
+                pool.map(annotate, self._custom_hmms())
+            else:
+                pool.map(annotate, embedded_hmms())
 
         # Count number of annotated domains
         count = sum(1 for gene in genes for domain in gene.protein.domains)
