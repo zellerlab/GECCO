@@ -90,7 +90,7 @@ class Run(Command):  # noqa: D101
             self.args["--threshold"] = float(self.args["--threshold"])
 
         # Check the `--cpu`flag
-        self.args["--jobs"] = int(self.args["--jobs"]) or multiprocessing.cpu_count()
+        self.args["--jobs"] = int(self.args["--jobs"])
 
         # Check the input exists
         if not os.path.exists(self.args["--genome"]):
@@ -146,18 +146,11 @@ class Run(Command):  # noqa: D101
         self.logger.info("Running domain annotation")
 
         # Run all HMMs over ORFs to annotate with protein domains
-        def annotate(hmm: HMM) -> None:
-            self.logger.debug(
-                "Starting annotation with HMM {} v{}", hmm.id, hmm.version
-            )
+        hmms = self._custom_hmms() if self.args["--hmm"] else embedded_hmms()
+        for hmm in hmms:
+            self.logger.debug("Starting annotation with HMM {} v{}", hmm.id, hmm.version)
             features = PyHMMER(hmm, self.args["--jobs"]).run(genes)
             self.logger.debug("Finished running HMM {}", hmm.id)
-
-        with multiprocessing.pool.ThreadPool(min(self.args["--jobs"], 2)) as pool:
-            if self.args["--hmm"]:
-                pool.map(annotate, self._custom_hmms())
-            else:
-                pool.map(annotate, embedded_hmms())
 
         # Count number of annotated domains
         count = sum(1 for gene in genes for domain in gene.protein.domains)
