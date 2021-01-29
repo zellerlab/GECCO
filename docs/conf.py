@@ -122,12 +122,14 @@ html_theme_options = {
     "navbar_pagenav": False,
     # A list of tuples containing pages or urls to link to.
     "navbar_links": [
-        ("GitHub", _parser.get("metadata", "home-page").strip(), True)
-    ] + [
-        (k, v, True)
-        for k, v in project_urls.items()
-        if k not in {"Documentation", "Changelog"}
+        ("GitHub", _parser.get("metadata", "home-page").strip(), True),
+        ("CI", project_urls["Builds"])
     ],
+    #  + [
+    #     (k, v, True)
+    #     for k, v in project_urls.items()
+    #     if k in {"Builds"}
+    # ],
     # Render admonition using panels instead of alerts (this is a PR under
     # review there: https://github.com/ryan-roemer/sphinx-bootstrap-theme/pull/199)
     # but hopefully it will get merged one day.
