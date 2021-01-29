@@ -182,15 +182,17 @@ class build_data(setuptools.Command):
             raise
 
     def download_hmm(self, output, domains, options):
-        base = "https://github.com/zellerlab/GECCO/releases/download/v{version}/{id}.hmm.gz"
+        base = "https://github.com/zellerlab/GECCO/releases/download/v{version}/{id}.h3m.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
         # attempt to use the GitHub releases URL, otherwise fallback to official URL
         try:
             self.announce("fetching {}".format(url), level=2)
             response = urllib.request.urlopen(url)
+            filtering = False
         except urllib.error.HTTPError:
             self.announce("using fallback {}".format(options["url"]), level=2)
             response = urllib.request.urlopen(options["url"])
+            filtering = True
         # use `tqdm` to make a progress bar
         pbar = tqdm.wrapattr(
             response,
@@ -200,13 +202,15 @@ class build_data(setuptools.Command):
             leave=False,
         )
         # download the HMM
-        with pbar as src:
-            with open(output, "wb") as dst:
-                nwritten = 0
-                for hmm in HMMFile(gzip.open(src)):
-                    if hmm.accession.split(b".")[0] in domains:
-                        hmm.write(dst, binary=True)
-                        nwritten += 1
+        with pbar as src_:
+            with gzip.open(src_) as src:
+                with open(output, "wb") as dst:
+                    if filtering:
+                        for hmm in HMMFile(src):
+                            if hmm.accession.split(b".")[0] in domains:
+                                hmm.write(dst, binary=True)
+                    else:
+                        shutil.copyfileobj(src, dst)
 
 
 class build(_build):

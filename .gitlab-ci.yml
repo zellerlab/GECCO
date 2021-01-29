@@ -143,7 +143,7 @@ deploy:sdist:
   script:
     - python setup.py sdist
     - twine check dist/*.tar.gz
-    - twine upload --repository testpypi --skip-existing dist/*.tar.gz
+    # - twine upload --repository testpypi --skip-existing dist/*.tar.gz
 
 deploy:wheel:
   image: python:3.9
