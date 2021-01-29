@@ -135,7 +135,7 @@ deploy:changelog:
     - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
 
 deploy:releases:
-  image: python3.9
+  image: python:3.9
   stage: deploy
   only:
     - tags
@@ -144,10 +144,9 @@ deploy:releases:
     - wget "https://github.com/github-release/github-release/releases/download/v0.10.0/linux-amd64-github-release.bz2" -O- | bunzip2 > ./github-release
     - chmod +x ./github-release
   script:
-    - python setup.py build_data --inplace
+    - python setup.py build_data --inplace --rebuild
   after_script:
-    - for hmm in gecco/hmmer/*.h3m; do gzip $hmm; done
-    - for hmm in gecco/hmmer/*.h3m; do gzip $hmm | ./github-release upload --user zellerlab --repo GECCO --tag $CI_COMMIT_TAG --name $(basename $hmm).gz --file -; done
+    - for hmm in gecco/hmmer/*.h3m; do gzip $hmm; ./github-release upload --user zellerlab --repo GECCO --tag "$CI_COMMIT_TAG" --name "$(basename $hmm).gz" --file "$hmm.gz" ; done
 
 deploy:sdist:
   image: python:3.9
