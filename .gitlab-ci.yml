@@ -33,127 +33,139 @@ variables:
 
 # --- Stages -------------------------------------------------------------------
 
-test:python3.6:
-  image: python:3.6
-  <<: *test
+# test:python3.6:
+#   image: python:3.6
+#   <<: *test
+#
+# test:python3.7:
+#   image: python:3.7
+#   <<: *test
+#
+# test:python3.8:
+#   image: python:3.8
+#   <<: *test
 
-test:python3.7:
-  image: python:3.7
-  <<: *test
+# test:python3.9:
+#   image: python:3.9
+#   <<: *test
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#       - dist/*.whl
+#       - coverage.xml
+#     reports:
+#       cobertura: coverage.xml
+#
+# docs:
+#   image: python:3.9
+#   stage: pages
+#   dependencies:
+#     - test:python3.9
+#   before_script:
+#     - pip install -U -r docs/requirements.txt
+#     - pip install -U --find-links dist gecco[train]
+#   script:
+#     - sphinx-build -b html docs public
+#   artifacts:
+#     paths:
+#       - public
 
-test:python3.8:
-  image: python:3.8
-  <<: *test
+# lint:pydocstyle:
+#   image: python:3.9
+#   stage: lint
+#   before_script:
+#     - pip install -U pydocstyle
+#   script:
+#     - pydocstyle gecco
+#
+# lint:mypy:
+#   image: python:3.9
+#   stage: lint
+#   allow_failure: true
+#   before_script:
+#     - pip install -U mypy
+#   script:
+#     - mypy gecco
+#
+# lint:pylint:
+#   image: python:3.9
+#   stage: lint
+#   allow_failure: true
+#   before_script:
+#     - pip install -U pylint
+#   script:
+#     - pylint gecco
+#
+# lint:radon:
+#   image: python:3.9
+#   stage: lint
+#   allow_failure: true
+#   before_script:
+#     - pip install -U radon
+#   script:
+#     - radon cc -a gecco
+#
+# deploy:codecov:
+#   image: python:3.9
+#   stage: deploy
+#   dependencies:
+#     - test:python3.9
+#   before_script:
+#     - pip install -U codecov
+#   script:
+#     - python -m codecov
+#
+# deploy:codacy:
+#   image: python:3.9
+#   stage: deploy
+#   dependencies:
+#     - test:python3.9
+#   before_script:
+#     - pip install -U codacy-coverage
+#   script:
+#     - python -m codacy -r coverage.xml
+#
+# deploy:changelog:
+#   image: ruby
+#   stage: deploy
+#   before_script:
+#     - gem install chandler
+#   script:
+#     - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
+#
+# deploy:sdist:
+#   image: python:3.9
+#   stage: deploy
+#   only:
+#     - tags
+#   before_script:
+#     - python -m pip install -U wheel twine
+#   script:
+#     - python setup.py sdist
+#     - twine check dist/*.tar.gz
+#     - twine upload --repository testpypi --skip-existing dist/*.tar.gz
+#
+# deploy:wheel:
+#   image: python:3.9
+#   stage: deploy
+#   dependencies:
+#     - test:python3.9
+#   only:
+#     - tags
+#   before_script:
+#     - python -m pip install -U wheel twine
+#   script:
+#     - twine check dist/*.whl
+#     # - twine upload --repository testpypi dist/*.whl
 
-test:python3.9:
-  image: python:3.9
-  <<: *test
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - dist/*.whl
-      - coverage.xml
-    reports:
-      cobertura: coverage.xml
-
-docs:
-  image: python:3.9
-  stage: pages
-  dependencies:
-    - test:python3.9
-  before_script:
-    - pip install -U -r docs/requirements.txt
-    - pip install -U --find-links dist gecco[train]
-  script:
-    - sphinx-build -b html docs public
-  artifacts:
-    paths:
-      - public
-
-lint:pydocstyle:
-  image: python:3.9
-  stage: lint
-  before_script:
-    - pip install -U pydocstyle
-  script:
-    - pydocstyle gecco
-
-lint:mypy:
-  image: python:3.9
-  stage: lint
-  allow_failure: true
-  before_script:
-    - pip install -U mypy
-  script:
-    - mypy gecco
-
-lint:pylint:
-  image: python:3.9
-  stage: lint
-  allow_failure: true
-  before_script:
-    - pip install -U pylint
-  script:
-    - pylint gecco
-
-lint:radon:
-  image: python:3.9
-  stage: lint
-  allow_failure: true
-  before_script:
-    - pip install -U radon
-  script:
-    - radon cc -a gecco
-
-deploy:codecov:
+deploy:docs:
   image: python:3.9
   stage: deploy
-  dependencies:
-    - test:python3.9
+  # dependencies:
+  #   - docs
   before_script:
-    - pip install -U codecov
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
-    - python -m codecov
-
-deploy:codacy:
-  image: python:3.9
-  stage: deploy
-  dependencies:
-    - test:python3.9
-  before_script:
-    - pip install -U codacy-coverage
-  script:
-    - python -m codacy -r coverage.xml
-
-deploy:changelog:
-  image: ruby
-  stage: deploy
-  before_script:
-    - gem install chandler
-  script:
-    - chandler push --github="zellerlab/GECCO" --changelog="CHANGELOG.md"
-
-deploy:sdist:
-  image: python:3.9
-  stage: deploy
-  only:
-    - tags
-  before_script:
-    - python -m pip install -U wheel twine
-  script:
-    - python setup.py sdist
-    - twine check dist/*.tar.gz
-    - twine upload --repository testpypi --skip-existing dist/*.tar.gz
-
-deploy:wheel:
-  image: python:3.9
-  stage: deploy
-  dependencies:
-    - test:python3.9
-  only:
-    - tags
-  before_script:
-    - python -m pip install -U wheel twine
-  script:
-    - twine check dist/*.whl
-    # - twine upload --repository testpypi dist/*.whl
+    - ssh larralde@congo.embl.de "ls /congo/data/larralde"
