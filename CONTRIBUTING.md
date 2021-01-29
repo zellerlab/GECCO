@@ -1,4 +1,4 @@
-# Contributing to GECCO
+# Contributing
 
 For bug fixes or new features, please file an issue before submitting a pull request.
 If the change is not trivial, it may be best to wait for feedback.
@@ -38,7 +38,7 @@ To bump the version of the internal HMMs (for instance, to switch to a newer
 version of Pfam), simply edit the INI file for that HMM in the
 ``gecco/hmmer`` folder.
 
-The simply clean and rebuild data files to download the latest version of
+Then simply clean and rebuild data files to download the latest version of
 the HMMs:
 
 ```console
