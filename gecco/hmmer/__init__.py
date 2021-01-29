@@ -85,6 +85,7 @@ class HMM(typing.NamedTuple):
     url: str
     path: str
     relabel_with: Optional[str] = None
+    md5: Optional[str] = None
 
     def relabel(self, domain: str) -> str:
         """Rename a domain obtained by this HMM to the right accession.

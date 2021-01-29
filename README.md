@@ -35,8 +35,10 @@ Use `pip` to install GECCO on your machine:
 $ pip install https://github.com/zellerlab/GECCO/archive/master.zip
 ```
 
-This will download GECCO, its dependencies, and the data needed to run
-predictions. Once done, you will have a ``gecco`` command in your $PATH.
+This will install GECCO, its dependencies, and the data needed to run
+predictions. This requires around 100MB of data to be downloaded, so
+it could take some time depending on your connection. Once done, you will
+have a ``gecco`` command available in your $PATH.
 
 *Note that GECCO uses [HMMER3](http://hmmer.org/), which can only run
 on PowerPC and and recent x86-64 machines running a POSIX operating system.

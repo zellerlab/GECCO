@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import ssl
+import struct
 import sys
 import tarfile
 import urllib.request
@@ -111,8 +112,13 @@ class update_model(setuptools.Command):
         with gzip.open(path, "wt") as dest:
             json.dump(entries, dest)
 
+        # Rebuild the HMMs using the new domains from the model
+        build_data = self.get_finalized_command("build_data")
+        build_data.force = build_data.rebuild = True
+        build_data.run()
+
     def download_interpro_entries(self, db):
-        next = "https://www.ebi.ac.uk:443/interpro/api/entry/all/{}/?page_size=200".format(db)
+        next = f"https://www.ebi.ac.uk:443/interpro/api/entry/all/{db}/?page_size=200"
         entries = []
         context = ssl._create_unverified_context()
         with tqdm(desc=db, leave=False) as pbar:
@@ -132,11 +138,16 @@ class build_data(setuptools.Command):
 
     description = "download the HMM libraries used by GECCO to annotate proteins"
     user_options = [
-        ("inplace", "i", "ignore build-lib and put data alongside your Python code")
+        ("force", "f", "force downloading the files even if they exist"),
+        ("inplace", "i", "ignore build-lib and put data alongside your Python code"),
+        ("rebuild", "r", "rebuild the HMM from the source instead of getting "
+                         "the pre-filtered HMM files from GitHub"),
     ]
 
     def initialize_options(self):
+        self.force = False
         self.inplace = False
+        self.rebuild = False
 
     def finalize_options(self):
         _build_py = self.get_finalized_command("build_py")
@@ -146,6 +157,7 @@ class build_data(setuptools.Command):
         self.announce(msg, level=2)
 
     def run(self):
+        # make sure the build/lib/ folder exists
         self.mkpath(self.build_lib)
 
         # Check `tqdm` and `pyhmmer` are installed
@@ -156,7 +168,7 @@ class build_data(setuptools.Command):
 
         # Load domain whitelist from the type classifier data
         domains_file = os.path.join("gecco", "types", "domains.tsv")
-        self.info("loading domain accesssions from {}".format(domains_file))
+        self.info(f"loading domain accesssions from {domains_file}")
         with open(domains_file, "rb") as f:
             domains = [line.strip() for line in f]
 
@@ -164,35 +176,52 @@ class build_data(setuptools.Command):
         for in_ in glob.iglob(os.path.join("gecco", "hmmer", "*.ini")):
             local = os.path.join(self.build_lib, in_).replace(".ini", ".h3m")
             self.mkpath(os.path.dirname(local))
-            self.make_file([in_], local, self.download, (in_, domains))
+            self.download(in_, local, domains)
             if self.inplace:
                 copy = in_.replace(".ini", ".h3m")
                 self.make_file([local], copy, shutil.copy, (local, copy))
 
-    def download(self, in_, domains):
+    def download(self, in_, local, domains):
+        # read the configuration file for each HMM database
         cfg = configparser.ConfigParser()
         cfg.read(in_)
-        out = os.path.join(self.build_lib, in_.replace(".ini", ".h3m"))
+        options = dict(cfg.items("hmm"))
 
+        # download the HMM to `local`, and delete the file if any error
+        # or interruption happens during the download
         try:
-            self.download_hmm(out, domains, dict(cfg.items("hmm")))
-        except:
-            if os.path.exists(out):
-                os.remove(out)
+            self.make_file([in_], local, self.download_hmm, (local, domains, options))
+        except BaseException:
+            if os.path.exists(local):
+                os.remove(local)
             raise
 
+        # update the MD5 if the HMMs are being rebuilt, otherwise
+        # check the hashes are consistent
+        if self.rebuild:
+            self._rebuild_checksum(in_, local, cfg)
+        else:
+            self._validate_checksum(local, options)
+
     def download_hmm(self, output, domains, options):
+        # try getting the GitHub artifacts first, unless asked to rebuild
+        if not self.rebuild:
+            try:
+                self._download_release_hmm(output, domains, options)
+            except urllib.error.HTTPError:
+                pass
+            else:
+                return
+        # fallback to filtering the HMMs from their release location
+        self._rebuild_hmm(output, domains, options)
+
+    def _download_release_hmm(self, output, domains, options):
+        # build the GitHub releases URL
         base = "https://github.com/zellerlab/GECCO/releases/download/v{version}/{id}.h3m.gz"
         url = base.format(id=options["id"], version=self.distribution.get_version())
-        # attempt to use the GitHub releases URL, otherwise fallback to official URL
-        try:
-            self.announce("fetching {}".format(url), level=2)
-            response = urllib.request.urlopen(url)
-            filtering = False
-        except urllib.error.HTTPError:
-            self.announce("using fallback {}".format(options["url"]), level=2)
-            response = urllib.request.urlopen(options["url"])
-            filtering = True
+        # fetch the resource
+        self.info(f"fetching {url}")
+        response = urllib.request.urlopen(url)
         # use `tqdm` to make a progress bar
         pbar = tqdm.wrapattr(
             response,
@@ -201,16 +230,61 @@ class build_data(setuptools.Command):
             desc=os.path.basename(output),
             leave=False,
         )
-        # download the HMM
-        with pbar as src_:
-            with gzip.open(src_) as src:
-                with open(output, "wb") as dst:
-                    if filtering:
-                        for hmm in HMMFile(src):
-                            if hmm.accession.split(b".")[0] in domains:
-                                hmm.write(dst, binary=True)
-                    else:
-                        shutil.copyfileobj(src, dst)
+        # download to `output`
+        with contextlib.ExitStack() as ctx:
+            dl = ctx.enter_context(pbar)
+            src = ctx.enter_context(gzip.open(dl))
+            dst = ctx.enter_context(open(output, "wb"))
+            shutil.copyfileobj(src, dst)
+
+    def _rebuild_hmm(self, output, domains, options):
+        # fetch the resource from the URL in the ".ini" files
+        self.info(f"using fallback {options['url']}")
+        response = urllib.request.urlopen(options["url"])
+        # use `tqdm` to make a progress bar
+        pbar = tqdm.wrapattr(
+            response,
+            "read",
+            total=int(response.headers["Content-Length"]),
+            desc=os.path.basename(output),
+            leave=False,
+        )
+        # download to `output`
+        nsource = 0
+        nwritten = 0
+        with contextlib.ExitStack() as ctx:
+            dl = ctx.enter_context(pbar)
+            src = ctx.enter_context(gzip.open(dl))
+            dst = ctx.enter_context(open(output, "wb"))
+            for hmm in HMMFile(src):
+                nsource += 1
+                if hmm.accession.split(b".")[0] in domains:
+                    nwritten += 1
+                    hmm.write(dst, binary=True)
+        # log number of HMMs kept in final files
+        self.info(f"kept {nwritten} HMMs out of {nsource} in the source file")
+
+    def _checksum(self, path):
+        hasher = hashlib.md5()
+        with HMMFile(path) as hmm_file:
+            for hmm in hmm_file:
+                hasher.update(struct.pack("<I", hmm.checksum))
+        return hasher.hexdigest()
+
+    def _validate_checksum(self, local, options):
+        self.info(f"checking HMM/MD5 signature of {local}")
+        md5 = self._checksum(local)
+        if md5 != options["md5"]:
+            self.info("local HMM/MD5 does not match the expected HMM/MD5 hash")
+            self.info(f"(expected {options['md5']}, found {md5}")
+            self.info("rerun `python setup.py build_data --force`")
+            raise ValueError("HMM/MD5 hash mismatch")
+
+    def _rebuild_checksum(self, in_, local, cfg):
+        self.info(f"updating HMM/MD5 signature in {in_}")
+        cfg.set("hmm", "md5", self._checksum(local))
+        with open(in_, "w") as f:
+            cfg.write(f)
 
 
 class build(_build):
