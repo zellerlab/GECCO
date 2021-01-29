@@ -38,7 +38,7 @@ def setup(app):
 import gecco
 
 project = 'GECCO'
-copyright = '2020, {}'.format(gecco.__author__)
+copyright = '2020-{}, Zeller group, EMBL'.format(datetime.datetime.now().year)
 author = gecco.__author__
 
 # The parsed semantic version
@@ -122,7 +122,7 @@ html_theme_options = {
     "navbar_pagenav": False,
     # A list of tuples containing pages or urls to link to.
     "navbar_links": [
-        ("GitLab", _parser.get("metadata", "home-page").strip(), True)
+        ("GitHub", _parser.get("metadata", "home-page").strip(), True)
     ] + [
         (k, v, True)
         for k, v in project_urls.items()

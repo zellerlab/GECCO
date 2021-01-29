@@ -9,7 +9,8 @@ dependencies:
 
 .. code-block:: console
 
-  $ pip install gecco[train]
+  $ git clone https://github.com/zellerlab/GECCO
+  $ pip install ./GECCO[train]
 
 This will install additional Python packages, such as `pandas <https://pandas.pydata.org/>`_
 which is needed to process the feature tables, or `fisher <https://pypy.org/project/fisher>`_
