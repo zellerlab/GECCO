@@ -1,6 +1,12 @@
-<img align="left" width="100" height="100" src="static/gecco-square.png">
+<img align="right" width="180" height="180" src="static/gecco-square.png">
 
 # Hi, I'm GECCO!
+
+## 🦎 ️Overview
+
+GECCO (Gene Cluster prediction with Conditional Random Fields) is a fast and
+scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs)
+in genomic and metagenomic data using Conditional Random Fields (CRFs).
 
 [![GitLabCI](https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&style=flat-square&maxAge=600)](https://git.embl.de/grp-zeller/GECCO)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
@@ -10,14 +16,6 @@
 [![Mirror](https://img.shields.io/badge/mirror-EMBL-009f4d?style=flat-square&maxAge=2678400)](https://git.embl.de/grp-zeller/GECCO/)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md)
 [![Issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
-
-
-## 🦎 ️Overview
-
-GECCO (Gene Cluster prediction with Conditional Random Fields) is a fast and
-scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs)
-in genomic and metagenomic data using Conditional Random Fields (CRFs).
-
 
 ## 🔧 Installing GECCO
 
