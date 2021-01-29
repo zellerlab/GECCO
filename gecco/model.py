@@ -125,7 +125,7 @@ class Domain:
 
         """
         stride = 1 if protein_coordinates else 3
-        loc = FeatureLocation(0, (self.end - self.start)*stride)
+        loc = FeatureLocation((self.start-1)*stride, self.end*stride)
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("standard_name", self.name)
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
@@ -207,8 +207,7 @@ class Gene:
         """
         # NB(@althonos): we use inclusive 1-based ranges in the data model
         # but Biopython expects 0-based ranges with exclusive ends
-        end = self.end - self.start + 1
-        loc = FeatureLocation(start=0, end=end, strand=int(self.strand))
+        loc = FeatureLocation(start=self.start-1, end=self.end, strand=int(self.strand))
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
@@ -361,9 +360,8 @@ class Cluster:
         for gene in self.genes:
             # write gene as a /cds GenBank record
             cds = gene.to_seq_feature()
-            cds.location += gene.start - self.start
             bgc.features.append(cds)
-            # # write domains as /misc_feature annotations
+            # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
                 misc = domain.to_seq_feature(protein_coordinates=False)
                 misc.location += cds.location.start
