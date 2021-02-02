@@ -44,7 +44,7 @@ author = gecco.__author__
 # The parsed semantic version
 semver = semantic_version.Version.coerce(gecco.__version__)
 # The short X.Y version
-version = "{v.major}.{v.minor}.{v.patch}".format(v=semver)
+version = "v{v.major}.{v.minor}.{v.patch}".format(v=semver)
 # The full version, including alpha/beta/rc tags
 release = str(semver)
 
@@ -122,8 +122,7 @@ html_theme_options = {
     "navbar_pagenav": False,
     # A list of tuples containing pages or urls to link to.
     "navbar_links": [
-        ("GitHub", _parser.get("metadata", "home-page").strip(), True),
-        ("CI", project_urls["Builds"])
+        ("Repository", _parser.get("metadata", "home-page").strip(), True),
     ],
     #  + [
     #     (k, v, True)
@@ -164,6 +163,9 @@ html_logo = os.path.join("_static", "img", "gecco.png")
 # use this as the icon for tabs, windows and bookmarks. It should be a
 # Windows-style icon file (.ico), which is 16x16 or 32x32 pixels large.
 html_favicon = os.path.join("_static", "img", "gecco.ico")
+
+# Hide the `source` button in the navbar.
+html_show_sourcelink = False
 
 # -- Options for imgmath extension -------------------------------------------
 
