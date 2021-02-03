@@ -7,6 +7,7 @@ API Reference
    model
    orf
    hmmer
+   interpro
    crf
    refine
    types
@@ -20,11 +21,14 @@ Data Model
 .. autosummary::
    :nosignatures:
 
+   ProductType
    Strand
    Domain
    Protein
    Gene
    Cluster
+   ClusterTable
+   FeatureTable
 
 
 ORF Extraction
@@ -46,8 +50,9 @@ Domain Annotation
 
 .. autosummary::
    :nosignatures:
-
+   
    HMMER
+   PyHMMER
 
 BGC Detection
 -------------
@@ -80,3 +85,15 @@ Type Prediction
    :nosignatures:
 
    TypeClassifier
+
+
+InterPro Metadata
+-----------------
+
+.. currentmodule:: gecco.interpro
+
+.. autosummary::
+   :nosignatures:
+
+   InterPro
+   InterProEntry

@@ -9,3 +9,6 @@ Domain Annotation
 
 .. autoclass:: HMMER
    :members:
+
+.. autoclass:: PyHMMER
+   :members:

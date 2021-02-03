@@ -5,6 +5,8 @@ Data Model
 .. automodule:: gecco.model
 
 
+.. autoclass:: Strand
+
 .. autoclass:: Domain
 
 .. autoclass:: Protein

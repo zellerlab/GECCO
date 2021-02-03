@@ -5,5 +5,5 @@ BGC Detection
 .. automodule:: gecco.crf
 
 
-.. autoclass:: ClusterCRF
+.. autoclass:: ClusterCRF(object)
    :members:
