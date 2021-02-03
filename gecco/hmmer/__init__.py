@@ -214,7 +214,8 @@ class PyHMMER(DomainAnnotator):
 
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
-            hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=self.cpus, callback=callback)
+            cpus = 0 if self.cpus is None else self.cpus
+            hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=cpus, callback=callback)
 
             # Load InterPro metadata for the annotation
             interpro = InterPro.load()
