@@ -1,5 +1,6 @@
 """Compatibility wrapper for HMMER binaries and output.
 """
+import abc
 import collections
 import configparser
 import contextlib
@@ -14,6 +15,7 @@ import typing
 from typing import Callable, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
 import pkg_resources
+import pyhmmer
 from Bio import SeqIO
 
 from .._meta import requires
@@ -103,11 +105,9 @@ class HMM(typing.NamedTuple):
         return regex.sub(after, domain)
 
 
-class HMMER(BinaryRunner):
-    """A wrapper for HMMER that scans a HMM library against protein sequences.
+class DomainAnnotator(metaclass=typing.ABCMeta):
+    """An abstract class for annotating genes with protein domains.
     """
-
-    BINARY = "hmmsearch"
 
     def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
         """Prepare a new HMMER annotation handler with the given ``hmms``.
@@ -122,14 +122,29 @@ class HMMER(BinaryRunner):
         self.hmm = hmm
         self.cpus = cpus
 
+    @abc.abstractmethod
     def run(self, genes: Iterable[Gene]) -> List[Gene]:
-        """Run HMMER on proteins of ``genes`` and update them with domains.
+        """Run annotation on proteins of ``genes`` and update their domains.
 
         Arguments:
             genes (iterable of `~gecco.model.Gene`): An iterable that yield
                 genes to annotate with ``self.hmm``.
 
         """
+        return NotImplemented
+
+
+class HMMER(DomainAnnotator):
+    """A wrapper for HMMER that uses the ``hmmsearch`` binary.
+    """
+
+    BINARY = "hmmsearch"
+
+    def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
+        DomainAnnotator.__init__(self, hmm, cpus)
+        BinaryRunner.__init__(self)
+
+    def run(self, genes: Iterable[Gene]) -> List[Gene]:
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
@@ -179,11 +194,10 @@ class HMMER(BinaryRunner):
         return list(gene_index.values())
 
 
-class PyHMMER(HMMER):
-    """An HMMER annotator that uses `pyhmmer` rather than the HMMER binaries.
+class PyHMMER(DomainAnnotator):
+    """A domain annotator that uses `pyhmmer.hmmer.hmmsearch`.
     """
 
-    @requires("pyhmmer")
     def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]] = None) -> List[Gene]:
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])

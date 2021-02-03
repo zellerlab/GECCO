@@ -7,8 +7,14 @@ Domain Annotation
 
 .. autofunction:: embedded_hmms
 
-.. autoclass:: HMMER(object)
+.. autoclass:: HMM(object)
    :members:
 
-.. autoclass:: PyHMMER(HMMER)
+.. autoclass:: DomainAnnotator(object)
+   :members:
+
+.. autoclass:: HMMER(DomainAnnotator)
+   :members:
+
+.. autoclass:: PyHMMER(DomainAnnotator)
    :members:
