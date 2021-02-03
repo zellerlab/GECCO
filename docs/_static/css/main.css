@@ -22,4 +22,16 @@ span.navbar-version {
 
 a.navbar-brand {
     font-weight: bold;
+    padding-top: 8px;
+    padding-bottom: 5px;
+}
+
+.navbar .nav > li > a {
+    color: white;
+    text-transform: none;
+    font-size: 14px;
+}
+
+.navbar-brand img {
+    margin-right: 10px;
 }
