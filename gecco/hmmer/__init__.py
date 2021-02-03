@@ -105,7 +105,7 @@ class HMM(typing.NamedTuple):
         return regex.sub(after, domain)
 
 
-class DomainAnnotator(metaclass=typing.ABCMeta):
+class DomainAnnotator(metaclass=abc.ABCMeta):
     """An abstract class for annotating genes with protein domains.
     """
 
