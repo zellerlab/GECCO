@@ -43,7 +43,12 @@ from .cv import LeaveOneGroupOut
 from .select import fisher_significance
 
 
+__all__ = ["ClusterCRF"]
+
+
 class ClusterCRF(object):
+    """A wrapper for `sklearn_crfsuite.CRF` to work with the GECCO data model.
+    """
 
     @classmethod
     def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":

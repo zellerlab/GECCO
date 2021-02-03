@@ -50,7 +50,7 @@ Domain Annotation
 
 .. autosummary::
    :nosignatures:
-   
+
    HMMER
    PyHMMER
 
@@ -84,6 +84,7 @@ Type Prediction
 .. autosummary::
    :nosignatures:
 
+   TypeBinarizer
    TypeClassifier
 
 

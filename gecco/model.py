@@ -25,6 +25,18 @@ from ._base import Dumpable
 from ._meta import requires
 
 
+__all__ = [
+    "ProductType",
+    "Strand",
+    "Domain",
+    "Protein",
+    "Gene",
+    "Cluster",
+    "FeatureTable",
+    "ClusterTable"
+]
+
+
 # fmt: off
 class ProductType(enum.IntFlag):
     """A flag to declare the type of product synthesized by a gene cluster.

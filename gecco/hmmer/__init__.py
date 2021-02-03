@@ -27,6 +27,9 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T", bound="DomainRow")
 
 
+__all__ = ["DomainRow", "HMM", "HMMER", "PyHMMER", "embedded_hmms"]
+
+
 class DomainRow(typing.NamedTuple):
     """A single row in a domain table created by ``hmmsearch``.
 
@@ -176,11 +179,9 @@ class HMMER(BinaryRunner):
         return list(gene_index.values())
 
 
-class PyHMMER(object):
-
-    def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
-        self.hmm = hmm
-        self.cpus = cpus
+class PyHMMER(HMMER):
+    """An HMMER annotator that uses `pyhmmer` rather than the HMMER binaries.
+    """
 
     @requires("pyhmmer")
     def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]] = None) -> List[Gene]:
@@ -230,7 +231,6 @@ class PyHMMER(object):
 
         # return the updated list of genes that was given in argument
         return list(gene_index.values())
-
 
 
 def embedded_hmms() -> Iterator[HMM]:

@@ -17,7 +17,12 @@ import sklearn.preprocessing
 from ..model import ProductType, Cluster
 
 
+__all__ = ["TypeBinarizer", "TypeClassifier"]
+
+
 class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
+    """A `MultiLabelBinarizer` working with `ProductType` instances.
+    """
 
     def __init__(self):
         self.classes_ = sorted(x for x in ProductType.__members__.values() if x)
@@ -39,6 +44,8 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
 
 
 class TypeClassifier(object):
+    """A wrapper to predict the type of a `~gecco.model.Cluster`.
+    """
 
     @classmethod
     def trained(cls, model_path: Optional[str] = None) -> "TypeClassifier":

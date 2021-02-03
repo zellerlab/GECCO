@@ -7,8 +7,8 @@ Domain Annotation
 
 .. autofunction:: embedded_hmms
 
-.. autoclass:: HMMER
+.. autoclass:: HMMER(object)
    :members:
 
-.. autoclass:: PyHMMER
+.. autoclass:: PyHMMER(HMMER)
    :members:

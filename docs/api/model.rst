@@ -5,12 +5,33 @@ Data Model
 .. automodule:: gecco.model
 
 
-.. autoclass:: Strand
+Python Layer
+------------
 
-.. autoclass:: Domain
+.. autoclass:: ProductType(enum.IntFlag)
+   :members:
 
-.. autoclass:: Protein
+.. autoclass:: Strand(enum.IntEnum)
+   :members:
 
-.. autoclass:: Gene
+.. autoclass:: Domain(object)
+   :members:
 
-.. autoclass:: Cluster
+.. autoclass:: Protein(object)
+   :members:
+
+.. autoclass:: Gene(object)
+   :members:
+
+.. autoclass:: Cluster(object)
+   :members:
+
+
+Report Tables
+-------------
+
+.. autoclass:: ClusterTable(collections.Sized)
+   :members:
+
+.. autoclass:: FeatureTable(collections.Sized)
+   :members:

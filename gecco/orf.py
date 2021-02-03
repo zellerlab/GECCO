@@ -24,6 +24,9 @@ if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
 
 
+__all__ = ["ORFFinder", "PyrodigalFinder"]
+
+
 class ORFFinder(metaclass=abc.ABCMeta):
     """An abstract base class to provide a generic ORF finder.
     """

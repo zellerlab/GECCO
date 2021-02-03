@@ -9,6 +9,9 @@ from typing import Dict, List, Optional
 import pkg_resources
 
 
+__all__ = ["InterProEntry", "InterPro"]
+
+
 @dataclass
 class InterProEntry:
     """A single domain entry in the InterPro database.

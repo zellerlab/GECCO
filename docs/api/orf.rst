@@ -5,8 +5,8 @@ ORF Extraction
 .. automodule:: gecco.orf
 
 
-.. autoclass:: ORFFinder
+.. autoclass:: ORFFinder(object)
    :members:
 
-.. autoclass:: PyrodigalFinder
+.. autoclass:: PyrodigalFinder(ORFFinder)
    :members:

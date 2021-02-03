@@ -14,6 +14,9 @@ from Bio.SeqRecord import SeqRecord
 from .model import Cluster, Domain, Gene, Protein, Strand
 
 
+__all__ = ["BIO_PFAMS", "GeneGrouper", "ClusterRefiner"]
+
+
 # fmt: off
 # `set` of `str`: A set of domains from Pfam considered 'biosynthetic' by AntiSMASH.
 BIO_PFAMS = frozenset({

@@ -5,5 +5,5 @@ BGC Extraction
 .. automodule:: gecco.refine
 
 
-.. autoclass:: ClusterRefiner
+.. autoclass:: ClusterRefiner(object)
    :members:
