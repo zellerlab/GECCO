@@ -372,6 +372,7 @@ class Cluster:
         for gene in self.genes:
             # write gene as a /cds GenBank record
             cds = gene.to_seq_feature()
+            cds.location += -self.start
             bgc.features.append(cds)
             # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
