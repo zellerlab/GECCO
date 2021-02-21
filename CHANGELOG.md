@@ -5,10 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.3...master
+
+## [v0.5.3] - 2021-02-21
+[v0.5.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.2...v0.5.3
+### Fixed
+- Coordinates of genes in output GenBank files.
+- Potential issue with the number of CPUs in `PyHMMER.run`.
+### Changed
+- Bump required `pyrodigal` version to `v0.4.2` to fix buffer overflow.
 
 ## [v0.5.2] - 2021-01-29
-[v0.5.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.1...v0.5.2
+[v0.5.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.1...v0.5.2
 ### Added
 - Support for downloading HMM files directly from GitHub releases assets.
 - Validation of filtered HMMs with MD5 checksum.
@@ -16,7 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Invalid coordinates of protein domains in GenBank output files.
 - `gecco.interpro` module not being added to wheel distribution.
 ### Changed
-- Bump required `pyhmmer` version to`v0.2.1`.
+- Bump required `pyhmmer` version to `v0.2.1`.
 
 ## [v0.5.1] - 2021-01-15
 [v0.5.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...v0.5.1
