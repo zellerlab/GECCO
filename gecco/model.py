@@ -219,7 +219,7 @@ class Gene:
         """
         # NB(@althonos): we use inclusive 1-based ranges in the data model
         # but Biopython expects 0-based ranges with exclusive ends
-        loc = FeatureLocation(start=self.start-1, end=self.end, strand=int(self.strand))
+        loc = FeatureLocation(start=self.start, end=self.end+1, strand=int(self.strand))
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
