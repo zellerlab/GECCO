@@ -10,7 +10,9 @@ import random
 import sys
 import textwrap
 import typing
+from typing import Any, Dict, Mapping, List, Optional, TextIO
 
+import rich.console
 
 from ._base import Command
 from ._main import Main
@@ -34,6 +36,19 @@ class Help(Command):  # noqa: D101
                                    for a given subcommand.
     """
 
+    def __init__(
+        self,
+        argv: Optional[List[str]] = None,
+        stream: Optional[TextIO] = None,
+        logger: Optional[logging.Logger] = None,
+        options: Optional[Mapping[str, Any]] = None,
+        config: Optional[Dict[Any, Any]] = None,
+    ) -> None:
+        super().__init__(argv, stream, logger, options, config)
+        self.console = rich.console.Console(
+            file=sys.stdout if self._stream is None else self.stream,
+        )
+
     def __call__(self) -> int:  # noqa: D102
         # Get the subcommand class
         if self.args["<cmd>"] is not None:
@@ -48,5 +63,5 @@ class Help(Command):  # noqa: D101
 
         # Render the help message
         doc = Main.doc if subcmd_cls is None else subcmd_cls.doc
-        print(textwrap.dedent(doc).lstrip(), file=self._stream or sys.stdout)
+        self.console.print(textwrap.dedent(doc).lstrip())
         return 0
