@@ -35,6 +35,7 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
         self, logger: logging.Logger, extra: Optional[Dict[str, object]] = None
     ) -> None:
         super(BraceAdapter, self).__init__(logger, extra or {})
+        self.handlers = self.logger.handlers
 
     @property
     def level(self) -> int:
@@ -48,22 +49,22 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
     def notice(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.NOTICE):
             msg, kw = self.process(msg, kwargs)
-            self.logger._log(verboselogs.NOTICE, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.NOTICE, self.Message(msg, args), (), **kw)
 
     def spam(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SPAM):
             msg, kw = self.process(msg, kwargs)
-            self.logger._log(verboselogs.SPAM, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.SPAM, self.Message(msg, args), (), **kw)
 
     def verbose(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.VERBOSE):
             msg, kw = self.process(msg, kwargs)
-            self.logger._log(verboselogs.VERBOSE, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.VERBOSE, self.Message(msg, args), (), **kw)
 
     def success(self, msg: str, *args: object, **kwargs: Any) -> None:
         if self.isEnabledFor(verboselogs.SUCCESS):
             msg, kw = self.process(msg, kwargs)
-            self.logger._log(verboselogs.SUCCESS, self.Message(msg, args), **kw)
+            self.logger._log(verboselogs.SUCCESS, self.Message(msg, args), (), **kw)
 
 
 def wrap_warnings(logger: logging.Logger) -> Callable[["_F"], "_F"]:
@@ -171,3 +172,13 @@ def guess_sequences_format(path: str) -> Optional[str]:
         return "genbank"
     else:
         return None
+
+
+def in_context(func):
+
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        with contextlib.ExitStack() as ctx:
+            func(*args, ctx, **kwargs)
+
+    return newfunc
