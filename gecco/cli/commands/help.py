@@ -36,19 +36,6 @@ class Help(Command):  # noqa: D101
                                    for a given subcommand.
     """
 
-    def __init__(
-        self,
-        argv: Optional[List[str]] = None,
-        stream: Optional[TextIO] = None,
-        logger: Optional[logging.Logger] = None,
-        options: Optional[Mapping[str, Any]] = None,
-        config: Optional[Dict[Any, Any]] = None,
-    ) -> None:
-        super().__init__(argv, stream, logger, options, config)
-        self.console = rich.console.Console(
-            file=sys.stdout if self._stream is None else self.stream,
-        )
-
     def __call__(self) -> int:  # noqa: D102
         # Get the subcommand class
         if self.args["<cmd>"] is not None:
@@ -58,10 +45,10 @@ class Help(Command):  # noqa: D101
 
         # Exit if no known command was found
         if self.args["<cmd>"] is not None and subcmd_cls is None:
-            self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
+            self.error("Unknown subcommand", repr(self.args["<cmd>"]))
             return 1
 
         # Render the help message
         doc = Main.doc if subcmd_cls is None else subcmd_cls.doc
-        self.console.print(textwrap.dedent(doc).lstrip())
+        rich.print(textwrap.dedent(doc).lstrip(), file=self._stream)
         return 0

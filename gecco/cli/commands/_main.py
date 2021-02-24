@@ -4,15 +4,17 @@
 import sys
 import textwrap
 import typing
+import warnings
 from typing import Mapping, Optional, Type
 
 import better_exceptions
 import docopt
 import operator
 import pkg_resources
+import rich.traceback
 
 from ... import __version__
-from .._utils import classproperty, wrap_warnings
+from .._utils import classproperty
 from . import __name__ as __parent__
 from ._base import Command
 
@@ -49,8 +51,8 @@ class Main(Command):
         gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
-            gecco [-v | -vv | -q | -l <level>] [options] (-h | --help) [<cmd>]
-            gecco [-v | -vv | -q | -l <level>] [options] <cmd> [<args>...]
+            gecco [-v | -vv | -q | -qq] [options] (-h | --help) [<cmd>]
+            gecco [-v | -vv | -q | -qq] [options] <cmd> [<args>...]
 
         Commands:
         {commands}
@@ -59,9 +61,10 @@ class Main(Command):
             -h, --help                 show the message for ``gecco`` or
                                        for a given subcommand.
             -q, --quiet                silence any output other than errors
-                                       (corresponds to the log level ERROR).
-            -v, --verbose              control the verbosity of the output
-                                       (corresponds to the log level DEBUG).
+                                       (-qq silences everything).
+            -v, --verbose              increase verbosity (-v is minimal,
+                                       -vv is verbose, and -vvv shows
+                                       debug information).
             -V, --version              show the program version and exit.
 
         Parameters - Debug:
@@ -78,16 +81,17 @@ class Main(Command):
 
     def __call__(self) -> int:
         # Assert CLI arguments were parsed successfully
-        if isinstance(self.args, docopt.DocoptExit):
-            print(self.args, file=self.stream)
-            return 1
+        retcode = self._check()
+        if retcode is not None:
+            return retcode
 
         # Get the subcommand class
+        subcmd_name = self.args["<cmd>"]
         subcmd_cls = self._get_subcommand(self.args["<cmd>"])
 
         # Exit if no known command was found
-        if self.args["<cmd>"] is not None and subcmd_cls is None:
-            self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
+        if subcmd_name is not None and subcmd_cls is None:
+            self.error("Unknown subcommand", repr(subcmd_name))
             return 1
 
         # Print a help message if asked for
@@ -97,7 +101,7 @@ class Main(Command):
             or "--help" in self.args["<args>"]
         ):
             subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
-                argv=["help"] + [self.args["<cmd>"]],
+                argv=["help"] + [subcmd_name],
                 stream=self._stream,
                 logger=self.logger,
                 options=self.args,
@@ -106,20 +110,19 @@ class Main(Command):
 
         # Print version information
         elif self.args["--version"]:
-            print("gecco", __version__)
+            self.console.print("gecco", __version__)
             return 0
 
         # Initialize the command if is valid
         else:
-            subcmd = wrap_warnings(self.logger)(  # type: ignore
-                typing.cast(Type[Command], subcmd_cls)(
-                    argv=[self.args["<cmd>"]] + self.args["<args>"],
-                    stream=self._stream,
-                    logger=self.logger,
-                    options=self.args,
-                    config=self.config,
-                )
+            subcmd = typing.cast(Type[Command], subcmd_cls)(
+                argv=[self.args["<cmd>"]] + self.args["<args>"],
+                stream=self._stream,
+                options=self.args,
+                config=self.config,
             )
+            subcmd.verbose = self.verbose
+            subcmd.quiet = self.quiet
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
@@ -127,15 +130,17 @@ class Main(Command):
             if exitcode is None:
                 exitcode = subcmd()
         except KeyboardInterrupt:
-            self.logger.error("Interrupted")
+            self.error("interrupted")
             return 2
         except Exception as e:
-            self.logger.critical("{}", e)
-            if self.args["--traceback"]:
-                print(
-                    better_exceptions.format_exception(type(e), e, e.__traceback__),
-                    file=sys.stderr,
-                )
+            self.error(
+                "An unexpected error occurred. Consider opening"
+                " a new issue on the bug tracker"
+                " (https://github.com/zellerlab/GECCO/issues/new) if"
+                " it persists, including the traceback below:"
+            )
+            traceback = rich.traceback.Traceback.from_exception(type(e), e, e.__traceback__)
+            self.console.print(traceback)
             # return errno if exception has any
             return typing.cast(int, getattr(e, "errno", 1))
         else:

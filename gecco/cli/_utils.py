@@ -17,6 +17,10 @@ if typing.TYPE_CHECKING:
     _S = typing.TypeVar("_S")
     _T = typing.TypeVar("_T")
     _F = typing.TypeVar("_F", bound=Callable[..., "_T"])
+    ShowWarning = typing.Callable[
+        [str, Type[Warning], str, int, Optional[TextIO], Optional[str]],
+        None
+    ]
 
 
 class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
@@ -67,58 +71,16 @@ class BraceAdapter(logging.LoggerAdapter, verboselogs.VerboseLogger):
             self.logger._log(verboselogs.SUCCESS, self.Message(msg, args), (), **kw)
 
 
-def wrap_warnings(logger: logging.Logger) -> Callable[["_F"], "_F"]:
-    """Have the function patch `warnings.showwarning` with the given logger.
-
-    Arguments:
-        logger (~logging.Logger): the logger to wrap warnings with when
-            the decorated function is called.
-
-    Returns:
-        `function`: a decorator function that will wrap a callable and
-        redirect any warning raised by that callable to the given logger.
-
-    Example:
-        >>> logger = logging.getLogger()
-        >>> @wrap_warnings(logger)
-        ... def divide_by_zero(x):
-        ...     return numpy.array(x) / 0
-
+@contextlib.contextmanager
+def patch_showwarnings(new_showwarning: "ShowWarning") -> Iterator[None]:
+    """Make a context patching `warnings.showwarning` with the given function.
     """
-
-    class _WarningsWrapper(object):
-        def __init__(self, logger: logging.Logger, func: Callable[..., "_T"]):
-            self.logger = logger
-            self.func = func
-            functools.update_wrapper(self, func)
-
-        def showwarning(
-            self,
-            message: str,
-            category: Type[Warning],
-            filename: str,
-            lineno: int,
-            file: Optional[TextIO] = None,
-            line: Optional[str] = None,
-        ) -> None:
-            for line in filter(str.strip, str(message).splitlines()):
-                self.logger.warning(line.strip())
-
-        def __call__(self, *args: Any, **kwargs: Any) -> "_T":
-            old_showwarning = warnings.showwarning
-            warnings.showwarning = self.showwarning
-            try:
-                return self.func(*args, **kwargs)
-            finally:
-                warnings.showwarning = old_showwarning
-
-        def __getattr__(self, name: Any) -> Any:
-            return getattr(self.func, name)
-
-    def decorator(func: Callable[..., "_T"]) -> Callable[..., "_T"]:
-        return _WarningsWrapper(logger, func)
-
-    return decorator  # type: ignore
+    old_showwarning = warnings.showwarning
+    try:
+        warnings.showwarning = new_showwarning
+        yield
+    finally:
+        warnings.showwarning = old_showwarning
 
 
 @contextlib.contextmanager
