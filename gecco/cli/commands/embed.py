@@ -1,6 +1,7 @@
 """Implementation of the ``gecco embed`` subcommand.
 """
 
+import contextlib
 import csv
 import itertools
 import logging
@@ -60,7 +61,7 @@ class Embed(Command):  # noqa: D101
     def _check(self) -> typing.Optional[int]:
         super()._check()
         try:
-            self.skip = self._check_flag("--skip", int, lambda x: x > 0, "positive integer")
+            self.skip = self._check_flag("--skip", int, lambda x: x >= 0, "positive or null integer")
             self.min_size = self._check_flag("--min-size", int, lambda x: x >= 0, "positive or null integer")
             self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
@@ -77,7 +78,7 @@ class Embed(Command):  # noqa: D101
         return pandas.read_table(path, dtype={"domain": str})
 
     def _read_no_bgc(self):
-        self.info("Reading", "non-BGC feature table")
+        self.info("Reading", "non-BGC features")
 
         # Read the non-BGC table and assign the Y column to `0`
         _jobs = os.cpu_count() if not self.jobs else self.jobs
@@ -86,7 +87,7 @@ class Embed(Command):  # noqa: D101
             no_bgc_df = pandas.concat(rows).assign(bgc_probability="0")
 
         # sort and reshape
-        self.info("Sorting", "non-BGC feature table", level=2)
+        self.info("Sorting", "non-BGC features by genomic coordinates", level=2)
         no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return [
             s
@@ -95,17 +96,17 @@ class Embed(Command):  # noqa: D101
         ]
 
     def _read_bgc(self):
-        self.info("Reading", "BGC feature table")
+        self.info("Reading", "BGC features")
 
         # Read the BGC table, assign the Y column to `1`
         _jobs = os.cpu_count() if not self.jobs else self.jobs
         with multiprocessing.pool.ThreadPool(_jobs) as pool:
-            rows = pool.map(read_table, self.bgc)
+            rows = pool.map(self._read_table, self.bgc)
             bgc_df = pandas.concat(rows).assign(bgc_probability="1")
             bgc_df["BGC_id"] = bgc_df.protein_id.str.split("|").str[0]
 
         # sort and reshape
-        self.info("Sorting", "non-BGC feature table", level=2)
+        self.info("Sorting", "BGC features by genomic coordinates", level=2)
         bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
         return [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
@@ -153,8 +154,8 @@ class Embed(Command):  # noqa: D101
     def _make_embeddings(self, no_bgc_list, bgc_list):
         _jobs = os.cpu_count() if not self.jobs else self.jobs
         with multiprocessing.pool.ThreadPool(_jobs) as pool:
-            it = zip(itertools.islice(no_bgc_list, self.skips, None), bgc_list)
-            embeddings = pandas.concat(pool.starmap(embed, it))
+            it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
+            embeddings = pandas.concat(pool.starmap(self._embed, it))
 
         embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return embeddings
@@ -204,8 +205,9 @@ class Embed(Command):  # noqa: D101
     # ---
 
     @in_context
-    def execute(self) -> int:  # noqa: D102
+    def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
+            self._check()
             no_bgc_list = self._read_no_bgc()
             bgc_list = self._read_bgc()
             self._check_count(no_bgc_list, bgc_list)
