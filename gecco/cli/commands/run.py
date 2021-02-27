@@ -108,7 +108,7 @@ class Run(Command):  # noqa: D101
         super()._check()
         try:
             self.cds = self._check_flag("--cds", int, lambda x: x > 0, hint="positive integer")
-            self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="number between 0 and 1")
+            self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
             if self.args["--threshold"] is None:
                 self.threshold = 0.4 if self.args["--postproc"] == "gecco" else 0.6
             else:
@@ -304,7 +304,7 @@ class Run(Command):  # noqa: D101
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
             # attempt to create the output directory
-            retcode = self.make_output_directory()
+            self.make_output_directory()
             # load sequences and extract genes
             sequences = self.load_sequences()
             genes = self.extract_genes(sequences)
