@@ -1,6 +1,7 @@
 """Implementation of the ``gecco cv`` subcommand.
 """
 
+import contextlib
 import copy
 import functools
 import itertools
@@ -9,12 +10,14 @@ import operator
 import multiprocessing
 import random
 import typing
-from typing import List
+from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-import tqdm
+import rich.progress
 import sklearn.model_selection
 
 from ._base import Command
+from ._error import CommandExit, InvalidArgument
+from .._utils import in_context, patch_showwarnings
 from ...model import ClusterTable, FeatureTable, ProductType
 from ...crf import ClusterCRF
 from ...crf.cv import LeaveOneGroupOut
@@ -37,16 +40,17 @@ class Cv(Command):  # noqa: D101
         Arguments:
             -f <data>, --features <table>   a domain annotation table, used to
                                             labeled as BGCs and non-BGCs.
-            -c <data>, --clusters <table>   a cluster annotation table, use to
-                                            stratify clusters by type in LOTO
-                                            mode.
+            -c <data>, --clusters <table>   a cluster annotation table, used
+                                            to stratify clusters by type in
+                                            LOTO mode.
 
         Parameters:
-            -o <out>, --output <out>        the name of the output cross-validation
-                                            table. [default: cv.tsv]
+            -o <out>, --output <out>        the name of the output file where
+                                            the cross-validation table will be
+                                            written. [default: cv.tsv]
             -j <jobs>, --jobs <jobs>        the number of CPUs to use for
-                                            multithreading. Use 0 to use all of the
-                                            available CPUs. [default: 0]
+                                            multithreading. Use 0 to use all
+                                            the available CPUs. [default: 0]
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>          the e-value cutoff for domains to
@@ -70,104 +74,99 @@ class Cv(Command):  # noqa: D101
 
         """
 
+    def __init__(
+        self,
+        argv: Optional[List[str]] = None,
+        stream: Optional[TextIO] = None,
+        options: Optional[Mapping[str, Any]] = None,
+        config: Optional[Dict[Any, Any]] = None,
+    ) -> None:
+        super().__init__(argv, stream, options, config)
+        self.progress = rich.progress.Progress(
+            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
+            "[progress.description]{task.description}",
+            rich.progress.BarColumn(bar_width=60),
+            "[progress.completed]{task.completed}/{task.total}",
+            "[progress.completed]{task.fields[unit]}",
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            rich.progress.TimeElapsedColumn(),
+            rich.progress.TimeRemainingColumn(),
+            console=self.console,
+            disable=self.quiet > 0,
+        )
+        self.console = self.progress.console
+
     def _check(self) -> typing.Optional[int]:
-        retcode = super()._check()
-        if retcode is not None:
-            return retcode
-
-        # Check the inputs exist
-        for input_ in filter(None, (self.args["--features"], self.args["--clusters"])):
-            if not os.path.exists(input_):
-                self.logger.error("could not locate input file: {!r}", input_)
-                return 1
-
-        # Check the `--feature-type`
-        type_ = self.args["--feature-type"]
-        if type_ not in {"single", "overlap", "group"}:
-            self.logger.error("Invalid value for `--feature-type`: {}", type_)
-            return 1
-
-        # Check value of numeric arguments
-        self.args["--overlap"] = int(self.args["--overlap"])
-        self.args["--c1"] = float(self.args["--c1"])
-        self.args["--c2"] = float(self.args["--c2"])
-        self.args["--splits"] = int(self.args["--splits"])
-        self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
-        if e_filter < 0 or e_filter > 1:
-            self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
-            return 1
-        if self.args["--select"] is not None:
-            self.args["--select"] = float(self.args["--select"])
-
-        # Check the `--jobs`flag
-        self.args["--jobs"] = jobs = int(self.args["--jobs"])
-        if jobs == 0:
-            self.args["--jobs"] = multiprocessing.cpu_count()
-
-        return None
-
-    def __call__(self) -> int:  # noqa: D102
-        seqs = self._load_sequences()
-
-        if self.args["loto"]:
-            splits = self._loto_splits(seqs)
-        else:
-            splits = self._kfold_splits(seqs)
-
-        self.logger.info("Performing cross-validation")
-        for i, (train_indices, test_indices) in enumerate(tqdm.tqdm(splits)):
-            # extract train data
-            train_data = [gene for i in train_indices for gene in seqs[i]]
-
-            # extract test data and erase existing probabilities
-            test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
-            for gene in test_data:
-                gene.protein.domains = [d.with_probability(None) for d in gene.protein.domains]
-
-            # fit and predict the CRF for the current fold
-            crf = ClusterCRF(
-                self.args["--feature-type"],
-                algorithm="lbfgs",
-                overlap=self.args["--overlap"],
-                c1=self.args["--c1"],
-                c2=self.args["--c2"],
+        super()._check()
+        try:
+            self.feature_type = self._check_flag(
+                "--feature-type",
+                str,
+                lambda x: x in {"single", "overlap", "group"},
+                hint="'single', 'overlap' or 'group'"
             )
-            crf.fit(train_data, jobs=self.args["--jobs"], select=self.args["--select"])
-            new_genes = crf.predict_probabilities(test_data, jobs=self.args["--jobs"])
+            self.overlap = self._check_flag(
+                "--overlap",
+                int,
+                lambda x: x > 0,
+                hint="positive integer",
+            )
+            self.c1 = self._check_flag("--c1", float, hint="real number")
+            self.c2 = self._check_flag("--c2", float, hint="real number")
+            self.splits = self._check_flag("--splits", int, lambda x: x>1, hint="integer greater than 1")
+            self.e_filter = self._check_flag(
+                "--e-filter",
+                float,
+                lambda x: 0 <= x <= 1,
+                hint="real number between 0 and 1"
+            )
+            self.select = self._check_flag(
+                "--select",
+                lambda x: x if x is None else float(x),
+                lambda x: x is None or 0 <= x <= 1,
+                hint="real number between 0 and 1"
+            )
+            self.jobs = self._check_flag(
+                "--jobs",
+                int,
+                lambda x: x >= 0,
+                hint="positive or null integer"
+            )
+            self.features = self._check_flag("--features")
+            self.loto = self.args["loto"]
+            self.output = self.args["--output"]
+        except InvalidArgument:
+            raise CommandExit(1)
 
-            with open(self.args["--output"], "a" if i else "w") as out:
-                frame = FeatureTable.from_genes(new_genes).to_dataframe()
-                frame.assign(fold=i).to_csv(out, header=i==0, sep="\t", index=False)
+    # --
 
-        return 0
+    def load_features(self):
+        self.info("Loading", "features table from file", repr(self.features))
+        with open(self.features) as in_:
+            return FeatureTable.load(in_)
 
-    def _load_sequences(self):
-        self.logger.info("Loading the feature table")
-        with open(self.args["--features"]) as in_:
-            table = FeatureTable.load(in_)
-
-        self.logger.info("Converting data to genes")
-        gene_count = len(set(table.protein_id))
-        genes = list(tqdm.tqdm(table.to_genes(), total=gene_count, leave=False))
-
-        self.logger.info("Sorting genes by location")
+    def convert_to_genes(self, features):
+        self.info("Converting", "features to genes")
+        genes = list(features.to_genes())
+        self.info("Sorting", "genes by genomic coordinates")
         genes.sort(key=operator.attrgetter("source.id", "start", "end"))
+        self.info("Sorting", "domains by protein coordinates")
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
+        return genes
 
-        self.logger.info("Grouping genes by source sequence")
+    def group_genes(self, genes):
+        self.info("Grouping", "genes by source sequence")
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
-
         if self.args["--shuffle"]:
-            self.logger.info("Shuffling training data sequences")
+            self.info("Shuffling training data sequences")
             random.shuffle(seqs)
-
         return seqs
 
-    def _loto_splits(self, seqs):
+    def loto_splits(self, seqs):
         self.logger.info("Loading the clusters table")
-        with open(self.args["--clusters"]) as in_:
+        with open(self.clusters) as in_:
             table = ClusterTable.load(in_)
             index = { row.sequence_id: row.type for row in table }
             if len(index) != len(table):
@@ -184,6 +183,67 @@ class Cv(Command):  # noqa: D101
 
         return list(LeaveOneGroupOut().split(seqs, groups=groups))
 
-    def _kfold_splits(self, seqs):
-        k = self.args["--splits"]
-        return list(sklearn.model_selection.KFold(k).split(seqs))
+    def kfold_splits(self, seqs):
+        return list(sklearn.model_selection.KFold(self.splits).split(seqs))
+
+    def get_train_data(self, train_indices, seqs):
+        # extract train data
+        return [gene for i in train_indices for gene in seqs[i]]
+
+    def get_test_data(self, test_indices, seqs):
+        # make a clean copy of the test data without gene probabilities
+        test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
+        for gene in test_data:
+            gene.protein.domains = [d.with_probability(None) for d in gene.protein.domains]
+        return test_data
+
+    def fit_predict(self, train_data, test_data):
+        # fit and predict the CRF for the current fold
+        crf = ClusterCRF(
+            self.feature_type,
+            algorithm="lbfgs",
+            overlap=self.overlap,
+            c1=self.c1,
+            c2=self.c2,
+        )
+        crf.fit(train_data, cpus=self.jobs, select=self.select)
+        return crf.predict_probabilities(test_data, cpus=self.jobs)
+
+    def write_fold(self, fold, genes, append=False):
+        frame = FeatureTable.from_genes(genes).to_dataframe()
+        with open(self.output, "a" if append else "w") as out:
+            frame.assign(fold=fold).to_csv(out, header=not append, sep="\t", index=False)
+
+    # --
+
+    @in_context
+    def __call__(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
+        try:
+            self._check()
+            ctx.enter_context(self.progress)
+            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            # load features
+            features = self.load_features()
+            self.success("Loaded", len(features), "feature annotations")
+            genes = self.convert_to_genes(features)
+            self.success("Recoverd", len(genes), "genes from the feature annotations")
+            seqs = self.group_genes(genes)
+            self.success("Grouped", "genes into", len(seqs), "sequences")
+            # split CV folds
+            if self.loto:
+                splits = self.loto_splits(seqs)
+            else:
+                splits = self.kfold_splits(seqs)
+            # run CV
+            unit = "fold" if len(splits) == 1 else "folds"
+            task = self.progress.add_task(description="Cross-Validation", total=len(splits), unit=unit)
+            self.info("Performing cross-validation")
+            for i, (train_indices, test_indices) in enumerate(self.progress.track(splits, task_id=task)):
+                train_data = self.get_train_data(train_indices, seqs)
+                test_data = self.get_test_data(test_indices, seqs)
+                new_genes = self.fit_predict(train_data, test_data)
+                self.write_fold(i+1, genes, append=i==0)
+        except CommandExit as cexit:
+            return cexit.code
+        else:
+            return 0

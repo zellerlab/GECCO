@@ -235,7 +235,10 @@ class Run(Command):  # noqa: D101
         self.info("Predicting", "cluster probabilitites with the CRF model", level=1)
         unit = "genes" if len(genes) > 1 else "gene"
         task = self.progress.add_task("Prediction", total=len(genes), unit=unit)
-        return list(crf.predict_probabilities(self.progress.track(genes, task_id=task)))
+        return list(crf.predict_probabilities(
+            self.progress.track(genes, task_id=task),
+            cpus=self.jobs
+        ))
 
     def write_feature_table(self, genes):
         base, _ = os.path.splitext(os.path.basename(self.genome))

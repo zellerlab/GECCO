@@ -1,6 +1,7 @@
 """Implementation of the ``gecco train`` subcommand.
 """
 
+import contextlib
 import csv
 import hashlib
 import io
@@ -12,15 +13,17 @@ import operator
 import pickle
 import random
 import typing
+from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
 import numpy
+import rich.progress
 import scipy.sparse
-import tqdm
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from ._base import Command
-from ._error import CommandExit
+from ._error import CommandExit, InvalidArgument
+from .._utils import in_context, patch_showwarnings
 from ...model import FeatureTable, ClusterTable, Cluster
 from ...crf import ClusterCRF
 from ...refine import ClusterRefiner
@@ -51,8 +54,8 @@ class Train(Command):  # noqa: D101
             -o <out>, --output-dir <out>    the directory to use for the model
                                             files. [default: CRF]
             -j <jobs>, --jobs <jobs>        the number of CPUs to use for
-                                            multithreading. Use 0 to use all of the
-                                            available CPUs. [default: 0]
+                                            multithreading. Use 0 to use all
+                                            the available CPUs. [default: 0]
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>          the e-value cutoff for domains to
@@ -76,6 +79,28 @@ class Train(Command):  # noqa: D101
                                             to select from the training data.
 
         """
+
+    def __init__(
+        self,
+        argv: Optional[List[str]] = None,
+        stream: Optional[TextIO] = None,
+        options: Optional[Mapping[str, Any]] = None,
+        config: Optional[Dict[Any, Any]] = None,
+    ) -> None:
+        super().__init__(argv, stream, options, config)
+        self.progress = rich.progress.Progress(
+            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
+            "[progress.description]{task.description}",
+            rich.progress.BarColumn(bar_width=60),
+            "[progress.completed]{task.completed}/{task.total}",
+            "[progress.completed]{task.fields[unit]}",
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            rich.progress.TimeElapsedColumn(),
+            rich.progress.TimeRemainingColumn(),
+            console=self.console,
+            disable=self.quiet > 0,
+        )
+        self.console = self.progress.console
 
     def _check(self) -> typing.Optional[int]:
         super()._check()
@@ -156,7 +181,17 @@ class Train(Command):  # noqa: D101
 
     def convert_to_genes(self, features):
         self.info("Converting", "features to genes")
-        genes = list(features.to_genes())
+
+        gene_count = len(set(features.protein_id))
+        unit = "gene" if gene_count == 1 else "genes"
+        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit)
+
+        genes = list(self.progress.track(
+            features.to_genes(),
+            total=gene_count,
+            task_id=task
+        ))
+
         self.info("Sorting", "genes by genomic coordinates")
         genes.sort(key=operator.attrgetter("source.id", "start", "end"))
         self.info("Sorting", "domains by protein coordinates")
@@ -166,7 +201,7 @@ class Train(Command):  # noqa: D101
 
     def fit_model(self, genes):
         self.info("Creating" f"the CRF in {self.feature_type} mode", level=2)
-        self.info("Using" "hyperparameters C1={self.c1}, C2={self.c2}", level=2)
+        self.info("Using" f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",
@@ -175,7 +210,7 @@ class Train(Command):  # noqa: D101
             c2=self.c2,
         )
         self.info("Fitting", "the CRF model to the training data")
-        crf.fit(genes, select=self.select, shuffle=not self.no_shuffle)
+        crf.fit(genes, select=self.select, shuffle=not self.no_shuffle, cpus=self.jobs)
         return crf
 
     def save_model(self, crf):
@@ -212,9 +247,10 @@ class Train(Command):  # noqa: D101
 
     def load_clusters(self, genes):
         self.info("Loading", "clusters table from file", repr(self.clusters))
+        index = { g.id: g for g in genes }
         with open(self.clusters) as f:
             clusters = [
-                Cluster(c.bgc_id, [g for g in genes if g.id in c.proteins], c.type)
+                Cluster(c.bgc_id, [index[p] for p in c.proteins if p in index ], c.type)
                 for c in ClusterTable.load(f)
             ]
         clusters.sort(key=operator.attrgetter("id"))
@@ -244,9 +280,12 @@ class Train(Command):  # noqa: D101
 
     # ---
 
-    def __call__(self) -> int:  # noqa: D102
+    @in_context
+    def __call__(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             self._check()
+            ctx.enter_context(self.progress)
+            ctx.enter_context(patch_showwarnings(self._showwarnings))
             # attempt to create the output directory
             self.make_output_directory()
             # load features
@@ -262,6 +301,7 @@ class Train(Command):  # noqa: D101
             # load clusters
             clusters = self.load_clusters(genes)
             self.save_domain_compositions(crf, clusters)
+            self.success("Finished", "training new CRF model", level=0)
         except CommandExit as cexit:
             return cexit.code
         else:

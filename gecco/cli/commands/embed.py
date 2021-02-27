@@ -14,7 +14,6 @@ import warnings
 
 import numpy
 import pandas
-import tqdm
 
 from ._base import Command
 from .._utils import numpy_error_context
@@ -66,7 +65,7 @@ class Embed(Command):  # noqa: D101
         self.args["--min-size"] = int(self.args["--min-size"])
         self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
         if e_filter < 0 or e_filter > 1:
-            self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
+            self.error("Invalid value for `--e-filter`: {}", e_filter)
             return 1
 
         # Check the `--jobs`flag
@@ -77,24 +76,24 @@ class Embed(Command):  # noqa: D101
         # Check the input exists
         for input_ in itertools.chain(self.args["--bgc"], self.args["--no-bgc"]):
             if not os.path.exists(input_):
-                self.logger.error("could not locate input file: {!r}", input_)
+                self.error("Could not locate input file: {!r}", input_)
                 return 1
 
         return None
 
     def __call__(self) -> int:  # noqa: D102
         # Load input
-        self.logger.info("Reading BGC and non-BGC feature tables")
+        self.info("Reading", "BGC and non-BGC feature tables")
 
         def read_table(path: str) -> "pandas.DataFrame":
-            self.logger.debug("Reading table from {!r}", path)
+            self.info("Reading", "table from", repr(path), level=2)
             return pandas.read_table(path, dtype={"domain": str})
 
         # Read the non-BGC table, assign the Y column to `0`, sort and reshape
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             rows = pool.map(read_table, self.args["--no-bgc"])
             no_bgc_df = pandas.concat(rows).assign(BGC="0")
-        self.logger.debug("Sorting non-BGC table")
+        self.info("Sorting", "non-BGC table", level=2)
         no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         no_bgc_list = [
             s
@@ -107,7 +106,7 @@ class Embed(Command):  # noqa: D101
             rows = pool.map(read_table, self.args["--bgc"])
             bgc_df = pandas.concat(rows).assign(BGC="1")
             bgc_df["BGC_id"] = bgc_df.protein_id.str.split("|").str[0]
-        self.logger.debug("Sorting BGC table")
+        self.info("Sorting", "BGC table", level=2)
         bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
         bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
 
@@ -118,11 +117,11 @@ class Embed(Command):  # noqa: D101
             warnings.warn(msg.format(no_bgc_count, bgc_count))
 
         # Make a progress bar if we are printing to a terminal
-        self.logger.info("Creating the embeddings")
-        if self.stream.isatty() and self.logger.level != 0:
-            pbar = tqdm.tqdm(total=min(len(no_bgc_list), len(bgc_list)), leave=False)
-        else:
-            pbar = None
+        self.info("Creating the embeddings")
+        # if self.stream.isatty() and self.logger.level != 0:
+        #     pbar = tqdm.tqdm(total=min(len(no_bgc_list), len(bgc_list)), leave=False)
+        # else:
+        #     pbar = None
 
         # Make the embeddings
         def embed(
@@ -156,23 +155,22 @@ class Embed(Command):  # noqa: D101
                     rev_i_Evalue=1 - embed["i_Evalue"],
                     log_i_Evalue=-numpy.log10(embed["i_Evalue"]),
                 )
-            # Update the progressbar, if any
-            if pbar is not None:
-                pbar.update(1)
+            # # Update the progressbar, if any
+            # if pbar is not None:
+            #     pbar.update(1)
             return embed
 
         with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
             it = zip(itertools.islice(no_bgc_list, self.args["--skip"], None), bgc_list)
             embeddings = pandas.concat(pool.starmap(embed, it))
-        if pbar is not None:
-            pbar.close()
+        # if pbar is not None:
+        #     pbar.close()
 
         # Write the resulting table
         embeddings.sort_values(
             by=["sequence_id", "start", "domain_start"], inplace=True
         )
-        self.logger.info("Writing embedding table")
+        self.info("Writing", "embedding table to file", repr(self.args["--output"]))
         out_file = self.args["--output"]
-        self.logger.debug("Writing embedding table to {!r}", out_file)
         embeddings.to_csv(out_file, sep="\t", index=False)
         return 0
