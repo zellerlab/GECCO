@@ -1,6 +1,7 @@
 """Implementation of the main ``gecco`` command.
 """
 
+import signal
 import sys
 import textwrap
 import typing
@@ -98,7 +99,11 @@ class Main(Command):
 
         # Get the subcommand class
         subcmd_name = self.args["<cmd>"]
-        subcmd_cls = self._get_subcommand(self.args["<cmd>"])
+        try:
+            subcmd_cls = self._get_subcommand(subcmd_name)
+        except pkg_resources.DistributionNotFound as dnf:
+            self.error("The", repr(subcmd_name), "subcommand requires package", dnf.req)
+            return 1
 
         # Exit if no known command was found
         if subcmd_name is not None and subcmd_cls is None:
@@ -141,7 +146,7 @@ class Main(Command):
             return sysexit.code
         except KeyboardInterrupt:
             self.error("Interrupted")
-            return 2
+            return -signal.SIGINT
         except Exception as e:
             self.error(
                 "An unexpected error occurred. Consider opening"
