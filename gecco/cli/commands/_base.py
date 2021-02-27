@@ -24,16 +24,24 @@ class Command(metaclass=abc.ABCMeta):
 
     # -- Abstract methods ----------------------------------------------------
 
-    doc: ClassVar[str] = NotImplemented
     summary: ClassVar[str] = NotImplemented
 
     @abc.abstractmethod
-    def __call__(self) -> int:
+    def execute(self) -> int:
+        """Execute the command.
+
+        Returns:
+            `int`: The exit code for the command, with 0 on success, and any
+            other number on error.
+
+        """
         return NotImplemented  # type: ignore
 
     @classmethod
     @abc.abstractmethod
     def doc(cls, fast: bool = False) -> str:
+        """Get the help message for the command.
+        """
         return NotImplemented  # type: ignore
 
     # -- Concrete methods ----------------------------------------------------

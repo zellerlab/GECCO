@@ -24,7 +24,7 @@ class Help(Command):  # noqa: D101
     summary = "display the help message of another subcommand."
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         return f"""
         gecco help - {cls.summary}
 
@@ -40,7 +40,7 @@ class Help(Command):  # noqa: D101
                                        for a given subcommand.
         """
 
-    def __call__(self) -> int:  # noqa: D102
+    def execute(self) -> int:  # noqa: D102
         # Get the subcommand class
         if self.args["<cmd>"] is not None:
             subcmd_cls = Main._get_subcommand(self.args["<cmd>"])

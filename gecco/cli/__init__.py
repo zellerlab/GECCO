@@ -11,5 +11,4 @@ if typing.TYPE_CHECKING:
 def main(argv: Optional[List[str]] = None, stream: Optional[TextIO] = None) -> int:
     from .commands._main import Main
 
-    _main = Main(argv, stream)
-    return _main()
+    return Main(argv, stream).execute()

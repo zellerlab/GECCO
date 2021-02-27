@@ -28,7 +28,7 @@ class Cv(Command):  # noqa: D101
     summary = "perform cross validation on a training set."
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         return f"""
         gecco cv  - {cls.summary}
 
@@ -80,7 +80,7 @@ class Cv(Command):  # noqa: D101
         stream: Optional[TextIO] = None,
         options: Optional[Mapping[str, Any]] = None,
         config: Optional[Dict[Any, Any]] = None,
-    ) -> None:
+    ) -> None:  # noqa: D107
         super().__init__(argv, stream, options, config)
         self.progress = rich.progress.Progress(
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
@@ -140,12 +140,12 @@ class Cv(Command):  # noqa: D101
 
     # --
 
-    def load_features(self):
+    def _load_features(self):
         self.info("Loading", "features table from file", repr(self.features))
         with open(self.features) as in_:
             return FeatureTable.load(in_)
 
-    def convert_to_genes(self, features):
+    def _convert_to_genes(self, features):
         self.info("Converting", "features to genes")
         genes = list(features.to_genes())
         self.info("Sorting", "genes by genomic coordinates")
@@ -155,7 +155,7 @@ class Cv(Command):  # noqa: D101
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
         return genes
 
-    def group_genes(self, genes):
+    def _group_genes(self, genes):
         self.info("Grouping", "genes by source sequence")
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
@@ -164,7 +164,7 @@ class Cv(Command):  # noqa: D101
             random.shuffle(seqs)
         return seqs
 
-    def loto_splits(self, seqs):
+    def _loto_splits(self, seqs):
         self.logger.info("Loading the clusters table")
         with open(self.clusters) as in_:
             table = ClusterTable.load(in_)
@@ -183,21 +183,21 @@ class Cv(Command):  # noqa: D101
 
         return list(LeaveOneGroupOut().split(seqs, groups=groups))
 
-    def kfold_splits(self, seqs):
+    def _kfold_splits(self, seqs):
         return list(sklearn.model_selection.KFold(self.splits).split(seqs))
 
-    def get_train_data(self, train_indices, seqs):
+    def _get_train_data(self, train_indices, seqs):
         # extract train data
         return [gene for i in train_indices for gene in seqs[i]]
 
-    def get_test_data(self, test_indices, seqs):
+    def _get_test_data(self, test_indices, seqs):
         # make a clean copy of the test data without gene probabilities
         test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
         for gene in test_data:
             gene.protein.domains = [d.with_probability(None) for d in gene.protein.domains]
         return test_data
 
-    def fit_predict(self, train_data, test_data):
+    def _fit_predict(self, train_data, test_data):
         # fit and predict the CRF for the current fold
         crf = ClusterCRF(
             self.feature_type,
@@ -209,7 +209,7 @@ class Cv(Command):  # noqa: D101
         crf.fit(train_data, cpus=self.jobs, select=self.select)
         return crf.predict_probabilities(test_data, cpus=self.jobs)
 
-    def write_fold(self, fold, genes, append=False):
+    def _write_fold(self, fold, genes, append=False):
         frame = FeatureTable.from_genes(genes).to_dataframe()
         with open(self.output, "a" if append else "w") as out:
             frame.assign(fold=fold).to_csv(out, header=not append, sep="\t", index=False)
@@ -217,32 +217,32 @@ class Cv(Command):  # noqa: D101
     # --
 
     @in_context
-    def __call__(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
+    def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
             # load features
-            features = self.load_features()
+            features = self._load_features()
             self.success("Loaded", len(features), "feature annotations")
-            genes = self.convert_to_genes(features)
+            genes = self._convert_to_genes(features)
             self.success("Recoverd", len(genes), "genes from the feature annotations")
-            seqs = self.group_genes(genes)
+            seqs = self._group_genes(genes)
             self.success("Grouped", "genes into", len(seqs), "sequences")
             # split CV folds
             if self.loto:
-                splits = self.loto_splits(seqs)
+                splits = self._loto_splits(seqs)
             else:
-                splits = self.kfold_splits(seqs)
+                splits = self._kfold_splits(seqs)
             # run CV
             unit = "fold" if len(splits) == 1 else "folds"
             task = self.progress.add_task(description="Cross-Validation", total=len(splits), unit=unit)
             self.info("Performing cross-validation")
             for i, (train_indices, test_indices) in enumerate(self.progress.track(splits, task_id=task)):
-                train_data = self.get_train_data(train_indices, seqs)
-                test_data = self.get_test_data(test_indices, seqs)
-                new_genes = self.fit_predict(train_data, test_data)
-                self.write_fold(i+1, genes, append=i==0)
+                train_data = self._get_train_data(train_indices, seqs)
+                test_data = self._get_test_data(test_indices, seqs)
+                new_genes = self._fit_predict(train_data, test_data)
+                self._write_fold(i+1, genes, append=i==0)
         except CommandExit as cexit:
             return cexit.code
         else:

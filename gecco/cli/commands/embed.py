@@ -25,7 +25,7 @@ class Embed(Command):  # noqa: D101
     summary = "embed BGC annotations into non-BGC contigs for training."
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         return f"""
         gecco embed - {cls.summary}
 
@@ -81,7 +81,7 @@ class Embed(Command):  # noqa: D101
 
         return None
 
-    def __call__(self) -> int:  # noqa: D102
+    def execute(self) -> int:  # noqa: D102
         # Load input
         self.info("Reading", "BGC and non-BGC feature tables")
 

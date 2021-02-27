@@ -45,7 +45,7 @@ class Main(Command):
         return None
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         if fast:
             commands = (f"    {cmd}" for cmd in cls._get_subcommand_names())
         else:
@@ -87,12 +87,9 @@ class Main(Command):
             .format(commands="\n".join(commands))
         )
 
-
-        return self._doc().format(commands)
-
     _options_first = True
 
-    def __call__(self) -> int:
+    def execute(self) -> int:
         # Assert CLI arguments were parsed successfully
         try:
             self._check()
@@ -139,7 +136,7 @@ class Main(Command):
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            return subcmd()
+            return subcmd.execute()
         except CommandExit as sysexit:
             return sysexit.code
         except KeyboardInterrupt:

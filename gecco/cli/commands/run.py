@@ -36,7 +36,7 @@ class Run(Command):  # noqa: D101
     summary = "predict BGC from one or several contigs."
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         return f"""
         gecco run - {cls.summary}
 
@@ -88,7 +88,7 @@ class Run(Command):  # noqa: D101
         stream: Optional[TextIO] = None,
         options: Optional[Mapping[str, Any]] = None,
         config: Optional[Dict[Any, Any]] = None,
-    ) -> None:
+    ) -> None:  # noqa: D107
         super().__init__(argv, stream, options, config)
         self.progress = rich.progress.Progress(
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
@@ -139,7 +139,7 @@ class Run(Command):  # noqa: D101
 
     # ---
 
-    def make_output_directory(self) -> None:
+    def _make_output_directory(self) -> None:
         # Make output directory
         self.info("Using", "output folder", repr(self.output_dir), level=1)
         try:
@@ -155,7 +155,7 @@ class Run(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-    def load_sequences(self):
+    def _load_sequences(self):
         if self.format is not None:
             format = self.format
             self.info("Using", "user-provided sequence format", repr(format), level=2)
@@ -177,7 +177,7 @@ class Run(Command):  # noqa: D101
             self.success("Found", len(sequences), "sequences", level=1)
             return sequences
 
-    def extract_genes(self, sequences):
+    def _extract_genes(self, sequences):
         self.info("Extracting", "genes from input sequences", level=1)
         orf_finder = PyrodigalFinder(metagenome=True, cpus=self.jobs)
 
@@ -190,7 +190,7 @@ class Run(Command):  # noqa: D101
 
         return list(orf_finder.find_genes(sequences, progress=callback))
 
-    def annotate_domains(self, genes):
+    def _annotate_domains(self, genes):
         self.info("Running", "HMMER domain annotation", level=1)
 
         # Run all HMMs over ORFs to annotate with protein domains
@@ -225,7 +225,7 @@ class Run(Command):  # noqa: D101
 
         return genes
 
-    def predict_probabilities(self, genes):
+    def _predict_probabilities(self, genes):
         if self.model is None:
             self.info("Loading", "embedded CRF pre-trained model", level=1)
         else:
@@ -240,14 +240,14 @@ class Run(Command):  # noqa: D101
             cpus=self.jobs
         ))
 
-    def write_feature_table(self, genes):
+    def _write_feature_table(self, genes):
         base, _ = os.path.splitext(os.path.basename(self.genome))
         pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
         self.info("Writing", "feature table to", repr(pred_out), level=1)
         with open(pred_out, "w") as f:
             FeatureTable.from_genes(genes).dump(f)
 
-    def extract_clusters(self, genes):
+    def _extract_clusters(self, genes):
         self.info("Extracting", "predicted biosynthetic regions", level=1)
         refiner = ClusterRefiner(self.threshold, self.postproc, self.cds)
 
@@ -262,7 +262,7 @@ class Run(Command):  # noqa: D101
 
         return clusters
 
-    def predict_types(self, clusters):
+    def _predict_types(self, clusters):
         self.info("Predicting", "BGC types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"
@@ -283,14 +283,14 @@ class Run(Command):  # noqa: D101
 
         return clusters_new
 
-    def write_cluster_table(self, clusters):
+    def _write_cluster_table(self, clusters):
         base, _ = os.path.splitext(os.path.basename(self.genome))
         cluster_out = os.path.join(self.output_dir, f"{base}.clusters.tsv")
         self.info("Writing", "cluster table to", repr(cluster_out), level=1)
         with open(cluster_out, "w") as out:
             ClusterTable.from_clusters(clusters).dump(out)
 
-    def write_clusters(self, clusters):
+    def _write_clusters(self, clusters):
         for cluster in clusters:
             gbk_out = os.path.join(self.output_dir, f"{cluster.id}.gbk")
             self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
@@ -299,7 +299,7 @@ class Run(Command):  # noqa: D101
     # ---
 
     @in_context
-    def __call__(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
+    def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             # check the CLI arguments were fine
             self._check()
@@ -307,32 +307,32 @@ class Run(Command):  # noqa: D101
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
             # attempt to create the output directory
-            self.make_output_directory()
+            self._make_output_directory()
             # load sequences and extract genes
-            sequences = self.load_sequences()
-            genes = self.extract_genes(sequences)
+            sequences = self._load_sequences()
+            genes = self._extract_genes(sequences)
             if genes:
                 self.success("Found", "a total of", len(genes), "genes", level=1)
             else:
                 self.warn("No genes were found")
                 return 0
             # annotate domains and predict probabilities
-            genes = self.annotate_domains(genes)
-            genes = self.predict_probabilities(genes)
-            self.write_feature_table(genes)
+            genes = self._annotate_domains(genes)
+            genes = self._predict_probabilities(genes)
+            self._write_feature_table(genes)
             # extract clusters from probability vector
-            clusters = self.extract_clusters(genes)
+            clusters = self._extract_clusters(genes)
             if clusters:
                 self.success("Found", len(clusters), "potential gene clusters", level=1)
             else:
                 self.warn("No gene clusters were found")
                 return 0
             # predict types for putative clusters
-            clusters = self.predict_types(clusters)
+            clusters = self._predict_types(clusters)
             # write results
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
-            self.write_cluster_table(clusters)
-            self.write_clusters(clusters)
+            self._write_cluster_table(clusters)
+            self._write_clusters(clusters)
             self.success("Found", len(clusters), "biosynthetic gene clusters", level=0)
         except CommandExit as cexit:
             return cexit.code

@@ -35,7 +35,7 @@ class Train(Command):  # noqa: D101
     summary = "train the CRF model on an embedded feature table."
 
     @classmethod
-    def doc(cls, fast=False):
+    def doc(cls, fast=False):  # noqa: D102
         return f"""
         gecco train - {cls.summary}
 
@@ -86,7 +86,7 @@ class Train(Command):  # noqa: D101
         stream: Optional[TextIO] = None,
         options: Optional[Mapping[str, Any]] = None,
         config: Optional[Dict[Any, Any]] = None,
-    ) -> None:
+    ) -> None:  # noqa: D107
         super().__init__(argv, stream, options, config)
         self.progress = rich.progress.Progress(
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
@@ -153,7 +153,7 @@ class Train(Command):  # noqa: D101
 
     # ---
 
-    def make_output_directory(self) -> None:
+    def _make_output_directory(self) -> None:
         # Make output directory
         self.info("Using", "output folder", repr(self.output_dir), level=1)
         try:
@@ -174,12 +174,12 @@ class Train(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-    def load_features(self):
+    def _load_features(self):
         self.info("Loading", "features table from file", repr(self.features))
         with open(self.features) as in_:
             return FeatureTable.load(in_)
 
-    def convert_to_genes(self, features):
+    def _convert_to_genes(self, features):
         self.info("Converting", "features to genes")
 
         gene_count = len(set(features.protein_id))
@@ -199,7 +199,7 @@ class Train(Command):  # noqa: D101
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
         return genes
 
-    def fit_model(self, genes):
+    def _fit_model(self, genes):
         self.info("Creating" f"the CRF in {self.feature_type} mode", level=2)
         self.info("Using" f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
         crf = ClusterCRF(
@@ -213,7 +213,7 @@ class Train(Command):  # noqa: D101
         crf.fit(genes, select=self.select, shuffle=not self.no_shuffle, cpus=self.jobs)
         return crf
 
-    def save_model(self, crf):
+    def _save_model(self, crf):
         model_out = os.path.join(self.output_dir, "model.pkl")
         self.info("Pickling", "the model to", repr(model_out))
         with open(model_out, "wb") as out:
@@ -229,7 +229,7 @@ class Train(Command):  # noqa: D101
         with open(f"{model_out}.md5", "w") as out_hash:
             out_hash.write(hasher.hexdigest())
 
-    def save_transitions(self, crf):
+    def _save_transitions(self, crf):
         self.info("Writing", "CRF transitions weights")
         with open(os.path.join(self.output_dir, "model.trans.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
@@ -237,7 +237,7 @@ class Train(Command):  # noqa: D101
             for labels, weight in crf.model.transition_features_.items():
                 writer.writerow([*labels, weight])
 
-    def save_weights(self, crf):
+    def _save_weights(self, crf):
         self.info("Writing", "state weights")
         with open(os.path.join(self.output_dir, "model.state.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
@@ -245,7 +245,7 @@ class Train(Command):  # noqa: D101
             for attrs, weight in crf.model.state_features_.items():
                 writer.writerow([*attrs, weight])
 
-    def load_clusters(self, genes):
+    def _load_clusters(self, genes):
         self.info("Loading", "clusters table from file", repr(self.clusters))
         index = { g.id: g for g in genes }
         with open(self.clusters) as f:
@@ -256,7 +256,7 @@ class Train(Command):  # noqa: D101
         clusters.sort(key=operator.attrgetter("id"))
         return clusters
 
-    def save_domain_compositions(self, crf, clusters):
+    def _save_domain_compositions(self, crf, clusters):
         self.info("Finding", "the array of possible protein domains", level=2)
         if crf.significant_features is not None:
             all_possible = sorted(crf.significant_features)
@@ -281,26 +281,26 @@ class Train(Command):  # noqa: D101
     # ---
 
     @in_context
-    def __call__(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
+    def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
             # attempt to create the output directory
-            self.make_output_directory()
+            self._make_output_directory()
             # load features
-            features = self.load_features()
-            genes = self.convert_to_genes(features)
+            features = self._load_features()
+            genes = self._convert_to_genes(features)
             del features
             # fit CRF
-            crf = self.fit_model(genes)
+            crf = self._fit_model(genes)
             # save model
-            self.save_model(crf)
-            self.save_transitions(crf)
-            self.save_weights(crf)
+            self._save_model(crf)
+            self._save_transitions(crf)
+            self._save_weights(crf)
             # load clusters
-            clusters = self.load_clusters(genes)
-            self.save_domain_compositions(crf, clusters)
+            clusters = self._load_clusters(genes)
+            self._save_domain_compositions(crf, clusters)
             self.success("Finished", "training new CRF model", level=0)
         except CommandExit as cexit:
             return cexit.code
