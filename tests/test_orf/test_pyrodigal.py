@@ -52,4 +52,4 @@ class TestPyrodigalFinder(unittest.TestCase):
         finder = PyrodigalFinder(cpus=1)
         genes = list(finder.find_genes([self.genome], progress=progress))
 
-        progress.assert_called_with(self.genome, 1)
+        progress.assert_called_with(self.genome, 10, 1)

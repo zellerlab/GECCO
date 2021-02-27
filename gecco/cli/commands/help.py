@@ -13,6 +13,7 @@ import typing
 from typing import Any, Dict, Mapping, List, Optional, TextIO
 
 import rich.console
+import rich.text
 
 from ._base import Command
 from ._main import Main
@@ -21,20 +22,23 @@ from ._main import Main
 class Help(Command):  # noqa: D101
 
     summary = "display the help message of another subcommand."
-    doc = f"""
-    gecco help - {summary}
 
-    Usage:
-        gecco help (-h | --help)
-        gecco help [<cmd>]
+    @classmethod
+    def doc(cls, fast=False):
+        return f"""
+        gecco help - {cls.summary}
 
-    Arguments:
-        <cmd>                      a command to get the help message of.
+        Usage:
+            gecco help (-h | --help)
+            gecco help [<cmd>]
 
-    Parameters:
-        -h, --help                 show the message for ``gecco`` or
-                                   for a given subcommand.
-    """
+        Arguments:
+            <cmd>                      a command to get the help message of.
+
+        Parameters:
+            -h, --help                 show the message for ``gecco`` or
+                                       for a given subcommand.
+        """
 
     def __call__(self) -> int:  # noqa: D102
         # Get the subcommand class
@@ -49,6 +53,7 @@ class Help(Command):  # noqa: D101
             return 1
 
         # Render the help message
-        doc = Main.doc if subcmd_cls is None else subcmd_cls.doc
-        rich.print(textwrap.dedent(doc).lstrip(), file=self._stream)
+        doc = Main.doc() if subcmd_cls is None else subcmd_cls.doc()
+        text = rich.text.Text(textwrap.dedent(doc).lstrip())
+        rich.print(text, file=self._stream)
         return 0

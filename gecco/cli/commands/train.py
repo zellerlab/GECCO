@@ -28,49 +28,52 @@ from ...hmmer import HMMER
 class Train(Command):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
-    doc = f"""
-    gecco train - {summary}
 
-    Usage:
-        gecco train (-h | --help)
-        gecco train --features <table> --clusters <table> [options]
+    @classmethod
+    def doc(cls, fast=False):
+        return f"""
+        gecco train - {cls.summary}
 
-    Arguments:
-        -f <data>, --features <table>   a domain annotation table, used to
-                                        train the CRF model.
-        -c <data>, --clusters <table>   a cluster annotation table, used to
-                                        extract the domain composition for
-                                        the type classifier.
+        Usage:
+            gecco train (-h | --help)
+            gecco train --features <table> --clusters <table> [options]
 
-    Parameters:
-        -o <out>, --output-dir <out>    the directory to use for the model
-                                        files. [default: CRF]
-        -j <jobs>, --jobs <jobs>        the number of CPUs to use for
-                                        multithreading. Use 0 to use all of the
-                                        available CPUs. [default: 0]
+        Arguments:
+            -f <data>, --features <table>   a domain annotation table, used to
+                                            train the CRF model.
+            -c <data>, --clusters <table>   a cluster annotation table, used to
+                                            extract the domain composition for
+                                            the type classifier.
 
-    Parameters - Domain Annotation:
-        -e <e>, --e-filter <e>          the e-value cutoff for domains to
-                                        be included [default: 1e-5]
+        Parameters:
+            -o <out>, --output-dir <out>    the directory to use for the model
+                                            files. [default: CRF]
+            -j <jobs>, --jobs <jobs>        the number of CPUs to use for
+                                            multithreading. Use 0 to use all of the
+                                            available CPUs. [default: 0]
 
-    Parameters - Training:
-        --c1 <C1>                       parameter for L1 regularisation.
-                                        [default: 0.15]
-        --c2 <C2>                       parameter for L2 regularisation.
-                                        [default: 0.15]
-        --feature-type <type>           how features should be extracted
-                                        (single, overlap, or group).
-                                        [default: group]
-        --truncate <N>                  the maximum number of rows to use from
-                                        the training set.
-        --overlap <N>                   how much overlap to consider if
-                                        features overlap. [default: 2]
-        --no-shuffle                    disable shuffling of the data before
-                                        fitting the model.
-        --select <N>                    fraction of most significant features
-                                        to select from the training data.
+        Parameters - Domain Annotation:
+            -e <e>, --e-filter <e>          the e-value cutoff for domains to
+                                            be included [default: 1e-5]
 
-    """
+        Parameters - Training:
+            --c1 <C1>                       parameter for L1 regularisation.
+                                            [default: 0.15]
+            --c2 <C2>                       parameter for L2 regularisation.
+                                            [default: 0.15]
+            --feature-type <type>           how features should be extracted
+                                            (single, overlap, or group).
+                                            [default: group]
+            --truncate <N>                  the maximum number of rows to use from
+                                            the training set.
+            --overlap <N>                   how much overlap to consider if
+                                            features overlap. [default: 2]
+            --no-shuffle                    disable shuffling of the data before
+                                            fitting the model.
+            --select <N>                    fraction of most significant features
+                                            to select from the training data.
+
+        """
 
     def _check(self) -> typing.Optional[int]:
         retcode = super()._check()

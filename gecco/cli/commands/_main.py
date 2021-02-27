@@ -17,11 +17,16 @@ from ... import __version__
 from .._utils import classproperty
 from . import __name__ as __parent__
 from ._base import Command
+from ._error import CommandExit
 
 
 class Main(Command):
     """The *main* command launched before processing subcommands.
     """
+
+    @classmethod
+    def _get_subcommand_names(cls) -> Mapping[str, Type[Command]]:
+        return [cmd.name for cmd in pkg_resources.iter_entry_points(__parent__)]
 
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
@@ -35,16 +40,22 @@ class Main(Command):
 
     @classmethod
     def _get_subcommand(cls, name: str) -> Optional[Type[Command]]:
-        return cls._get_subcommands().get(name)
+        for cmd in pkg_resources.iter_entry_points(__parent__):
+            if cmd.name == name:
+                return cmd.load()
+        return None
 
-    @classproperty
-    def doc(cls) -> str:  # type: ignore
-        commands = (
-            "    {:12}{}".format(name, typing.cast(Command, cmd).summary)
-            for name, cmd in sorted(
-                cls._get_subcommands().items(), key=operator.itemgetter(0)
+    @classmethod
+    def doc(cls, fast=False):
+        if fast:
+            commands = (f"    {cmd}" for cmd in cls._get_subcommand_names())
+        else:
+            commands = (
+                "    {:12}{}".format(name, typing.cast(Command, cmd).summary)
+                for name, cmd in sorted(
+                    cls._get_subcommands().items(), key=operator.itemgetter(0)
+                )
             )
-        )
         return (
             textwrap.dedent(
                 """
@@ -77,13 +88,17 @@ class Main(Command):
             .format(commands="\n".join(commands))
         )
 
+
+        return self._doc().format(commands)
+
     _options_first = True
 
     def __call__(self) -> int:
         # Assert CLI arguments were parsed successfully
-        retcode = self._check()
-        if retcode is not None:
-            return retcode
+        try:
+            self._check()
+        except CommandExit as cexit:
+            return cexit.code
 
         # Get the subcommand class
         subcmd_name = self.args["<cmd>"]
@@ -103,7 +118,6 @@ class Main(Command):
             subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
                 argv=["help"] + [subcmd_name],
                 stream=self._stream,
-                logger=self.logger,
                 options=self.args,
                 config=self.config,
             )
@@ -126,11 +140,11 @@ class Main(Command):
 
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            exitcode = subcmd._check()
-            if exitcode is None:
-                exitcode = subcmd()
+            return subcmd()
+        except CommandExit as sysexit:
+            return sysexit.code
         except KeyboardInterrupt:
-            self.error("interrupted")
+            self.error("Interrupted")
             return 2
         except Exception as e:
             self.error(
@@ -143,5 +157,3 @@ class Main(Command):
             self.console.print(traceback)
             # return errno if exception has any
             return typing.cast(int, getattr(e, "errno", 1))
-        else:
-            return exitcode

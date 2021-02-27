@@ -141,6 +141,6 @@ def in_context(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
         with contextlib.ExitStack() as ctx:
-            func(*args, ctx, **kwargs)
+            return func(*args, ctx, **kwargs)
 
     return newfunc

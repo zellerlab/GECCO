@@ -23,49 +23,52 @@ from ...crf.cv import LeaveOneGroupOut
 class Cv(Command):  # noqa: D101
 
     summary = "perform cross validation on a training set."
-    doc = f"""
-    gecco cv  - {summary}
 
-    Usage:
-        gecco cv (-h | --help)
-        gecco cv kfold -f <table> [-c <data>] [options]
-        gecco cv loto  -f <table>  -c <data>  [options]
+    @classmethod
+    def doc(cls, fast=False):
+        return f"""
+        gecco cv  - {cls.summary}
 
-    Arguments:
-        -f <data>, --features <table>   a domain annotation table, used to
-                                        labeled as BGCs and non-BGCs.
-        -c <data>, --clusters <table>   a cluster annotation table, use to
-                                        stratify clusters by type in LOTO
-                                        mode.
+        Usage:
+            gecco cv (-h | --help)
+            gecco cv kfold -f <table> [-c <data>] [options]
+            gecco cv loto  -f <table>  -c <data>  [options]
 
-    Parameters:
-        -o <out>, --output <out>        the name of the output cross-validation
-                                        table. [default: cv.tsv]
-        -j <jobs>, --jobs <jobs>        the number of CPUs to use for
-                                        multithreading. Use 0 to use all of the
-                                        available CPUs. [default: 0]
+        Arguments:
+            -f <data>, --features <table>   a domain annotation table, used to
+                                            labeled as BGCs and non-BGCs.
+            -c <data>, --clusters <table>   a cluster annotation table, use to
+                                            stratify clusters by type in LOTO
+                                            mode.
 
-    Parameters - Domain Annotation:
-        -e <e>, --e-filter <e>          the e-value cutoff for domains to
-                                        be included [default: 1e-5]
+        Parameters:
+            -o <out>, --output <out>        the name of the output cross-validation
+                                            table. [default: cv.tsv]
+            -j <jobs>, --jobs <jobs>        the number of CPUs to use for
+                                            multithreading. Use 0 to use all of the
+                                            available CPUs. [default: 0]
 
-    Parameters - Training:
-        --c1 <C1>                       parameter for L1 regularisation.
-                                        [default: 0.15]
-        --c2 <C2>                       parameter for L2 regularisation.
-                                        [default: 0.15]
-        --feature-type <type>           how features should be extracted
-                                        (single, overlap, or group).
-                                        [default: group]
-        --overlap <N>                   how much overlap to consider if
-                                        features overlap. [default: 2]
-        --splits <N>                    number of folds for cross-validation
-                                        (if running `kfold`). [default: 10]
-        --select <N>                    fraction of most significant features
-                                        to select from the training data.
-        --shuffle                       enable shuffling of stratified rows.
+        Parameters - Domain Annotation:
+            -e <e>, --e-filter <e>          the e-value cutoff for domains to
+                                            be included [default: 1e-5]
 
-    """
+        Parameters - Training:
+            --c1 <C1>                       parameter for L1 regularisation.
+                                            [default: 0.15]
+            --c2 <C2>                       parameter for L2 regularisation.
+                                            [default: 0.15]
+            --feature-type <type>           how features should be extracted
+                                            (single, overlap, or group).
+                                            [default: group]
+            --overlap <N>                   how much overlap to consider if
+                                            features overlap. [default: 2]
+            --splits <N>                    number of folds for cross-validation
+                                            (if running `kfold`). [default: 10]
+            --select <N>                    fraction of most significant features
+                                            to select from the training data.
+            --shuffle                       enable shuffling of stratified rows.
+
+        """
 
     def _check(self) -> typing.Optional[int]:
         retcode = super()._check()

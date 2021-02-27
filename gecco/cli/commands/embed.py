@@ -24,34 +24,37 @@ from ...hmmer import HMMER
 class Embed(Command):  # noqa: D101
 
     summary = "embed BGC annotations into non-BGC contigs for training."
-    doc = f"""
-    gecco embed - {summary}
 
-    Usage:
-        gecco embed (-h | --help)
-        gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
+    @classmethod
+    def doc(cls, fast=False):
+        return f"""
+        gecco embed - {cls.summary}
 
-    Arguments:
-        --bgc <data>                  the path to the annotation table
-                                      containing BGC-only training instances.
-        --no-bgc <data>               the path to the annotation table
-                                      containing non-BGC training instances.
+        Usage:
+            gecco embed (-h | --help)
+            gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
 
-    Parameters:
-        -o <out>, --output <out>      the file in which to write the
-                                      resulting embedding table.
-                                      [default: features.tsv]
-        --min-size <N>                the minimum size for padding sequences.
-                                      [default: 500]
-        -e <e>, --e-filter <e>        the e-value cutoff for domains to be
-                                      included. [default: 1e-5]
-        -j <jobs>, --jobs <jobs>      the number of CPUs to use for
-                                      multithreading. Use 0 to use all of the
-                                      available CPUs. [default: 0]
-        --skip <N>                    skip the first N contigs while creating
-                                      the embedding. [default: 0]
+        Arguments:
+            --bgc <data>                  the path to the annotation table
+                                          containing BGC-only training instances.
+            --no-bgc <data>               the path to the annotation table
+                                          containing non-BGC training instances.
 
-    """
+        Parameters:
+            -o <out>, --output <out>      the file in which to write the
+                                          resulting embedding table.
+                                          [default: features.tsv]
+            --min-size <N>                the minimum size for padding sequences.
+                                          [default: 500]
+            -e <e>, --e-filter <e>        the e-value cutoff for domains to be
+                                          included. [default: 1e-5]
+            -j <jobs>, --jobs <jobs>      the number of CPUs to use for
+                                          multithreading. Use 0 to use all of the
+                                          available CPUs. [default: 0]
+            --skip <N>                    skip the first N contigs while creating
+                                          the embedding. [default: 0]
+
+        """
 
     def _check(self) -> typing.Optional[int]:
         retcode = super()._check()

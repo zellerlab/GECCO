@@ -26,7 +26,7 @@ class TestCommand(object):
         self.assertEqual(retcode, 0)
         self.assertMultiLineEqual(
             stderr.getvalue().strip(),
-            textwrap.dedent(self.command_type.doc).strip()
+            textwrap.dedent(self.command_type.doc()).strip()
         )
 
     def test_help_stdout(self):
@@ -38,5 +38,5 @@ class TestCommand(object):
             self.assertEqual(retcode, 0)
             self.assertMultiLineEqual(
                 stdout.getvalue().strip(),
-                textwrap.dedent(self.command_type.doc).strip()
+                textwrap.dedent(self.command_type.doc()).strip()
             )
