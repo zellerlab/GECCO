@@ -138,9 +138,10 @@ class ClusterCRF(object):
             **kwargs,
         )
 
-    def predict_probabilities(self, genes: Iterable[Gene], *, jobs: Optional[int] = None) -> List[Gene]:
+    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
         """
+        _cpus = os.cpu_count() if not cpus else cpus
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
@@ -158,7 +159,7 @@ class ClusterCRF(object):
             raise ValueError("invalid feature type")
 
         # proces each sequence / group in parallel
-        with OrderedPoolWrapper(self.pool_factory(jobs)) as pool:
+        with OrderedPoolWrapper(self.pool_factory(_cpus)) as pool:
             # extract features in parallel and predict cluster probabilities
             marginals = self.model.predict_marginals(pool.map(extract, seqs))
             # Annotate the genes with the predicted probabilities
@@ -168,7 +169,8 @@ class ClusterCRF(object):
         # probabilities set
         return list(itertools.chain.from_iterable(annotated_seqs)) # type: ignore
 
-    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, jobs: Optional[int] = None) -> None:
+    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, cpus: Optional[int] = None) -> None:
+        _cpus = os.cpu_count() if not cpus else cpus
         # select the feature extraction method
         if self.feature_type == "group":
             extract_features = features.extract_features_group
@@ -207,7 +209,7 @@ class ClusterCRF(object):
                     ]
 
         # proces each sequence / group in parallel
-        with OrderedPoolWrapper(self.pool_factory(jobs)) as pool:
+        with OrderedPoolWrapper(self.pool_factory(_cpus)) as pool:
             # extract features in parallel and predict cluster probabilities
             X = pool.map(extract_features, seqs)
             Y = pool.map(extract_labels, seqs)
