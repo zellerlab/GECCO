@@ -7,7 +7,6 @@ import typing
 import warnings
 from typing import Mapping, Optional, Type
 
-import better_exceptions
 import docopt
 import operator
 import pkg_resources

@@ -9,14 +9,11 @@ import textwrap
 import typing
 from typing import Any, ClassVar, Callable, Optional, List, Mapping, Dict, TextIO, Type
 
-import coloredlogs
 import docopt
 import rich.console
 import rich.logging
-import verboselogs
 
 from ... import __version__, __name__ as __progname__
-from .._utils import BraceAdapter
 from ._error import CommandExit, InvalidArgument
 
 _T = typing.TypeVar("_T")
