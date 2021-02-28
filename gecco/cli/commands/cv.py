@@ -123,7 +123,15 @@ class Cv(Command):  # noqa: D101
 
     def _convert_to_genes(self, features):
         self.info("Converting", "features to genes")
-        genes = list(features.to_genes())
+        gene_count = len(set(features.protein_id))
+        unit = "gene" if gene_count == 1 else "genes"
+        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit)
+        genes = list(self.progress.track(
+            features.to_genes(),
+            total=gene_count,
+            task_id=task
+        ))
+
         self.info("Sorting", "genes by genomic coordinates")
         genes.sort(key=operator.attrgetter("source.id", "start", "end"))
         self.info("Sorting", "domains by protein coordinates")
