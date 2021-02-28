@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.5...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.0...master
+
+## [v0.6.0] - 2021-02-28
+[v0.6.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.5...v0.6.0
+### Changed
+- Updated internal model with a cleaned-up version of the MIBiG-2.0
+  Pfam-33.1/Tigrfam-15.0 embedding.
+- Updated internal InterPro catalog.
+### Fixed
+- Features not being grouped together in `gecco cv` and `gecco train`
+  when provided with a feature table where rows were not sorted by 
+  protein IDs.
 
 ## [v0.5.5] - 2021-02-28
 [v0.5.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.4...v0.5.5
