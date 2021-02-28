@@ -1,6 +1,7 @@
 """Implementation of the ``gecco embed`` subcommand.
 """
 
+import contextlib
 import csv
 import itertools
 import logging
@@ -9,167 +10,223 @@ import multiprocessing.pool
 import os
 import pickle
 import random
+import signal
 import typing
 import warnings
 
 import numpy
 import pandas
-import tqdm
 
-from ._base import Command
-from .._utils import numpy_error_context
+from ._base import Command, InvalidArgument, CommandExit
+from .._utils import numpy_error_context, in_context, patch_showwarnings
 from ...hmmer import HMMER
 
 
 class Embed(Command):  # noqa: D101
 
     summary = "embed BGC annotations into non-BGC contigs for training."
-    doc = f"""
-    gecco embed - {summary}
 
-    Usage:
-        gecco embed (-h | --help)
-        gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
+    @classmethod
+    def doc(cls, fast=False):  # noqa: D102
+        return f"""
+        gecco embed - {cls.summary}
 
-    Arguments:
-        --bgc <data>                  the path to the annotation table
-                                      containing BGC-only training instances.
-        --no-bgc <data>               the path to the annotation table
-                                      containing non-BGC training instances.
+        Usage:
+            gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
 
-    Parameters:
-        -o <out>, --output <out>      the file in which to write the
-                                      resulting embedding table.
-                                      [default: features.tsv]
-        --min-size <N>                the minimum size for padding sequences.
-                                      [default: 500]
-        -e <e>, --e-filter <e>        the e-value cutoff for domains to be
-                                      included. [default: 1e-5]
-        -j <jobs>, --jobs <jobs>      the number of CPUs to use for
-                                      multithreading. Use 0 to use all of the
-                                      available CPUs. [default: 0]
-        --skip <N>                    skip the first N contigs while creating
-                                      the embedding. [default: 0]
+        Arguments:
+            --bgc <data>                  the path to the annotation table
+                                          containing BGC-only training instances.
+            --no-bgc <data>               the path to the annotation table
+                                          containing non-BGC training instances.
 
-    """
+        Parameters:
+            -o <out>, --output <out>      the prefix used for the output files
+                                          (which will be ``<prefix>.features.tsv``
+                                          and ``<prefix>.clusters.tsv``).
+                                          [default: embedding]
+            --min-size <N>                the minimum size for padding sequences.
+                                          [default: 500]
+            -e <e>, --e-filter <e>        the e-value cutoff for domains to be
+                                          included. [default: 1e-5]
+            -j <jobs>, --jobs <jobs>      the number of CPUs to use for
+                                          multithreading. Use 0 to use all of the
+                                          available CPUs. [default: 0]
+            --skip <N>                    skip the first N contigs while creating
+                                          the embedding. [default: 0]
+
+        """
 
     def _check(self) -> typing.Optional[int]:
-        retcode = super()._check()
-        if retcode is not None:
-            return retcode
+        super()._check()
+        try:
+            self.skip = self._check_flag("--skip", int, lambda x: x >= 0, "positive or null integer")
+            self.min_size = self._check_flag("--min-size", int, lambda x: x >= 0, "positive or null integer")
+            self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
+            self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
+            self.bgc = self.args["--bgc"]
+            self.no_bgc = self.args["--no-bgc"]
+            self.output = self.args["--output"]
+        except InvalidArgument:
+            raise CommandExit(1)
 
-        # Check value of numeric arguments
-        self.args["--skip"] = int(self.args["--skip"])
-        self.args["--min-size"] = int(self.args["--min-size"])
-        self.args["--e-filter"] = e_filter = float(self.args["--e-filter"])
-        if e_filter < 0 or e_filter > 1:
-            self.logger.error("Invalid value for `--e-filter`: {}", e_filter)
-            return 1
+    # ---
 
-        # Check the `--jobs`flag
-        self.args["--jobs"] = jobs = int(self.args["--jobs"])
-        if jobs == 0:
-            self.args["--jobs"] = multiprocessing.cpu_count()
+    def _read_table(self, path: str) -> "pandas.DataFrame":
+        self.info("Reading", "table from", repr(path), level=2)
+        return pandas.read_table(path, dtype={"domain": str})
 
-        # Check the input exists
-        for input_ in itertools.chain(self.args["--bgc"], self.args["--no-bgc"]):
-            if not os.path.exists(input_):
-                self.logger.error("could not locate input file: {!r}", input_)
-                return 1
+    def _read_no_bgc(self):
+        self.info("Reading", "non-BGC features")
 
-        return None
+        # Read the non-BGC table and assign the Y column to `0`
+        _jobs = os.cpu_count() if not self.jobs else self.jobs
+        with multiprocessing.pool.ThreadPool(_jobs) as pool:
+            rows = pool.map(self._read_table, self.no_bgc)
+            no_bgc_df = pandas.concat(rows).assign(bgc_probability=0.0)
 
-    def __call__(self) -> int:  # noqa: D102
-        # Load input
-        self.logger.info("Reading BGC and non-BGC feature tables")
-
-        def read_table(path: str) -> "pandas.DataFrame":
-            self.logger.debug("Reading table from {!r}", path)
-            return pandas.read_table(path, dtype={"domain": str})
-
-        # Read the non-BGC table, assign the Y column to `0`, sort and reshape
-        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            rows = pool.map(read_table, self.args["--no-bgc"])
-            no_bgc_df = pandas.concat(rows).assign(BGC="0")
-        self.logger.debug("Sorting non-BGC table")
+        # sort and reshape
+        self.info("Sorting", "non-BGC features by genomic coordinates", level=2)
         no_bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
-        no_bgc_list = [
+        return [
             s
-            for _, s in no_bgc_df.groupby("sequence_id", sort=False)
-            if s.shape[0] > self.args["--min-size"]
+            for _, s in no_bgc_df.groupby("sequence_id", sort=True)
+            if s.shape[0] > self.min_size
         ]
 
-        # Read the BGC table, assign the Y column to `1`, and sort
-        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            rows = pool.map(read_table, self.args["--bgc"])
-            bgc_df = pandas.concat(rows).assign(BGC="1")
-            bgc_df["BGC_id"] = bgc_df.protein_id.str.split("|").str[0]
-        self.logger.debug("Sorting BGC table")
-        bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
-        bgc_list = [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
+    def _read_bgc(self):
+        self.info("Reading", "BGC features")
 
-        # Check we have enough non-BGC contigs to fit the BGCs into
-        no_bgc_count, bgc_count = len(no_bgc_list) - self.args["--skip"], len(bgc_list)
+        # Read the BGC table, assign the Y column to `1`
+        _jobs = os.cpu_count() if not self.jobs else self.jobs
+        with multiprocessing.pool.ThreadPool(_jobs) as pool:
+            rows = pool.map(self._read_table, self.bgc)
+            bgc_df = pandas.concat(rows).assign(bgc_probability=1.0)
+
+        # sort and reshape
+        self.info("Sorting", "BGC features by genomic coordinates", level=2)
+        bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
+        return [s for _, s in bgc_df.groupby("sequence_id", sort=True)]
+
+    def _check_count(self, no_bgc_list, bgc_list):
+        no_bgc_count, bgc_count = len(no_bgc_list) - self.skip, len(bgc_list)
         if no_bgc_count < bgc_count:
-            msg = "Not enough non-BGC sequences to fit the BGCS: {} / {}"
-            warnings.warn(msg.format(no_bgc_count, bgc_count))
+            self.warn("Not enough non-BGC sequences to embed BGCs:", no_bgc_count, bgc_count)
 
-        # Make a progress bar if we are printing to a terminal
-        self.logger.info("Creating the embeddings")
-        if self.stream.isatty() and self.logger.level != 0:
-            pbar = tqdm.tqdm(total=min(len(no_bgc_list), len(bgc_list)), leave=False)
-        else:
-            pbar = None
-
-        # Make the embeddings
-        def embed(
-            no_bgc: "pandas.DataFrame", bgc: "pandas.DataFrame"
-        ) -> "pandas.DataFrame":
-            by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
-            # cut the input in half to insert the bgc in the middle
-            index_half = len(by_prots) // 2
-            before, after = by_prots[:index_half], by_prots[index_half:]
-            # compute offsets
-            insert_position = (before[-1].end.max() + after[0].start.min()) // 2
-            bgc_length = bgc.end.max() - bgc.start.min()
-            # update offsets
-            bgc = bgc.assign(
-                start=bgc.start + insert_position, end=bgc.end + insert_position
-            )
-            after = [
-                x.assign(start=x.start + bgc_length, end=x.end + bgc_length)
-                for x in after
-            ]
-            # concat the embedding together and filter by e_value
-            embed = pandas.concat(before + [bgc] + after, sort=False)
-            embed = embed.reset_index(drop=True)
-            embed = embed[embed["i_Evalue"] < self.args["--e-filter"]]
-            # add additional columns based on info from BGC and non-BGC
-            with numpy_error_context(divide="ignore"):
-                embed = embed.assign(
-                    sequence_id=no_bgc["sequence_id"].apply(lambda x: x).values[0],
-                    BGC_id=bgc["BGC_id"].values[0],
-                    pseudo_pos=range(len(embed)),
-                    rev_i_Evalue=1 - embed["i_Evalue"],
-                    log_i_Evalue=-numpy.log10(embed["i_Evalue"]),
-                )
-            # Update the progressbar, if any
-            if pbar is not None:
-                pbar.update(1)
-            return embed
-
-        with multiprocessing.pool.ThreadPool(self.args["--jobs"]) as pool:
-            it = zip(itertools.islice(no_bgc_list, self.args["--skip"], None), bgc_list)
-            embeddings = pandas.concat(pool.starmap(embed, it))
-        if pbar is not None:
-            pbar.close()
-
-        # Write the resulting table
-        embeddings.sort_values(
-            by=["sequence_id", "start", "domain_start"], inplace=True
+    def _embed(
+        self,
+        no_bgc: "pandas.DataFrame",
+        bgc: "pandas.DataFrame",
+    ) -> "pandas.DataFrame":
+        by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
+        # cut the input in half to insert the bgc in the middle
+        index_half = len(by_prots) // 2
+        before, after = by_prots[:index_half], by_prots[index_half:]
+        # find the position at which the BGC is being inserted
+        insert_position = (before[-1].end.values[0] + after[0].start.values[0]) // 2
+        bgc_length = bgc.end.max() - bgc.start.min()
+        bgc = bgc.assign(
+            start=bgc.start - bgc.start.min() + insert_position,
+            end=bgc.end - bgc.start.min() + insert_position,
         )
-        self.logger.info("Writing embedding table")
-        out_file = self.args["--output"]
-        self.logger.debug("Writing embedding table to {!r}", out_file)
-        embeddings.to_csv(out_file, sep="\t", index=False)
-        return 0
+        # shift all the 3' genes after the BGC
+        after = [
+            x.assign(start=x.start + bgc_length, end=x.end + bgc_length)
+            for x in after
+        ]
+        # concat the embedding together and filter by e_value
+        embed = pandas.concat(before + [bgc] + after, sort=False)
+        embed = embed.reset_index(drop=True)
+        embed = embed[embed["i_evalue"] < self.e_filter]
+        # add additional columns based on info from BGC and non-BGC
+        with numpy_error_context(divide="ignore"):
+            bgc_id = bgc["sequence_id"].values[0]
+            sequence_id = no_bgc["sequence_id"].apply(lambda x: x).values[0]
+            embed = embed.assign(sequence_id=sequence_id, BGC_id=bgc_id)
+        # return the embedding
+        self.success("Finished", "embedding", repr(bgc_id), "into", repr(sequence_id), level=2)
+        return embed
+
+    def _make_embeddings(self, no_bgc_list, bgc_list):
+        self.info("Embedding", len(bgc_list), "BGCs into", len(no_bgc_list), "contigs")
+        _jobs = os.cpu_count() if not self.jobs else self.jobs
+
+        unit = "BGC" if len(bgc_list) == 1 else "BGCs"
+        task = self.progress.add_task("Embedding", unit=unit, total=len(bgc_list))
+
+        it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
+        embeddings = pandas.concat([
+            self._embed(*args)
+            for args in self.progress.track(it, task_id=task, total=len(bgc_list))
+        ])
+
+        embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
+        return embeddings
+
+    def _write_clusters(self, embeddings):
+        self.info("Writing", "clusters table to file", repr(f"{self.output}.clusters.tsv"))
+        with open(f"{self.output}.clusters.tsv", "w") as f:
+            writer = csv.writer(f, dialect="excel-tab")
+            writer.writerow([
+                "sequence_id", "bgc_id", "start", "end", "average_p", "max_p",
+                "type", "alkaloid_probability", "polyketide_probability",
+                "ripp_probability", "saccharide_probability",
+                "terpene_probability", "nrp_probability",
+                "other_probability", "proteins", "domains"
+            ])
+            positives = embeddings[embeddings.bgc_probability == 1.0]
+            for sequence_id, domains in positives.groupby("sequence_id"):
+                # ty = domains.BGC_type.values[0]
+                writer.writerow([
+                    sequence_id,
+                    domains.BGC_id.values[0],
+                    domains.start.min(),
+                    domains.end.max(),
+                    domains.bgc_probability.values[0],
+                    domains.bgc_probability.values[0],
+                    "Unknown",
+                    # int("Alkaloid" in ty),
+                    # int("Polyketide" in ty),
+                    # int("RiPP" in ty),
+                    # int("Saccharide" in ty),
+                    # int("Terpene" in ty),
+                    # int("NRP" in ty),
+                    # int("Other" in ty),
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                    ";".join(sorted(set(domains.protein_id))),
+                    ";".join(sorted(set(domains.domain)))
+                ])
+
+    def _write_features(self, embeddings):
+        self.info("Writing", "features table to file", repr(f"{self.output}.features.tsv"))
+        hmm_mapping = dict(PF="Pfam", TI="Tigrfam", PT="Panther", SM="smCOGs", RF="Resfams")
+        columns = [
+            'sequence_id', 'protein_id', 'start', 'end', 'strand', 'domain',
+            'hmm', 'i_evalue', 'domain_start', 'domain_end', 'bgc_probability'
+        ]
+        embeddings[columns].to_csv(f"{self.output}.features.tsv", sep="\t", index=False)
+
+    # ---
+
+    def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
+        try:
+            # check arguments and enter context
+            self._check()
+            ctx.enter_context(self.progress)
+            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            # load inputs
+            no_bgc_list = self._read_no_bgc()
+            bgc_list = self._read_bgc()
+            self._check_count(no_bgc_list, bgc_list)
+            # make embeddings
+            embeddings = self._make_embeddings(no_bgc_list, bgc_list)
+            # write outputs
+            self._write_features(embeddings)
+            self._write_clusters(embeddings)
+        except CommandExit as cexit:
+            return cexit.code
+        except KeyboardInterrupt:
+            self.error("Interrupted")
+            return -signal.SIGINT
+        else:
+            return 0

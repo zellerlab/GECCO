@@ -351,7 +351,7 @@ class Cluster:
         bgc.annotations = self.source.annotations.copy()
         bgc.annotations["topology"] = "linear"
         bgc.annotations["molecule_type"] = "DNA"
-        bgc.annotations.setdefault("comment", []).append(f"Detected with GECCO v{__version__}")
+        #bgc.annotations.setdefault("comment", []).append(f"Detected with GECCO v{__version__}")
 
         # add GECCO-specific annotations as a structured comment
         structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())

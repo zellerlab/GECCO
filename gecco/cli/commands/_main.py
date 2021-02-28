@@ -1,25 +1,32 @@
 """Implementation of the main ``gecco`` command.
 """
 
+import contextlib
+import signal
 import sys
 import textwrap
 import typing
+import warnings
 from typing import Mapping, Optional, Type
 
-import better_exceptions
 import docopt
 import operator
 import pkg_resources
+import rich.traceback
 
 from ... import __version__
-from .._utils import classproperty, wrap_warnings
+from .._utils import in_context, patch_showwarnings
 from . import __name__ as __parent__
-from ._base import Command
+from ._base import Command, CommandExit, InvalidArgument
 
 
 class Main(Command):
     """The *main* command launched before processing subcommands.
     """
+
+    @classmethod
+    def _get_subcommand_names(cls) -> Mapping[str, Type[Command]]:
+        return [cmd.name for cmd in pkg_resources.iter_entry_points(__parent__)]
 
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
@@ -32,25 +39,34 @@ class Main(Command):
         return commands
 
     @classmethod
-    def _get_subcommand(cls, name: str) -> Optional[Type[Command]]:
-        return cls._get_subcommands().get(name)
+    def _get_subcommand_by_name(cls, name: str) -> Optional[Type[Command]]:
+        for cmd in pkg_resources.iter_entry_points(__parent__):
+            if cmd.name == name:
+                return cmd.load()
+        return None
 
-    @classproperty
-    def doc(cls) -> str:  # type: ignore
-        commands = (
-            "    {:12}{}".format(name, typing.cast(Command, cmd).summary)
-            for name, cmd in sorted(
-                cls._get_subcommands().items(), key=operator.itemgetter(0)
+    # --
+
+    @classmethod
+    def doc(cls, fast=False):  # noqa: D102
+        if fast:
+            commands = (f"    {cmd}" for cmd in cls._get_subcommand_names())
+        else:
+            commands = (
+                "    {:12}{}".format(name, typing.cast(Command, cmd).summary)
+                for name, cmd in sorted(
+                    cls._get_subcommands().items(), key=operator.itemgetter(0)
+                )
             )
-        )
         return (
             textwrap.dedent(
                 """
         gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
-            gecco [-v | -vv | -q | -l <level>] [options] (-h | --help) [<cmd>]
-            gecco [-v | -vv | -q | -l <level>] [options] <cmd> [<args>...]
+            gecco [-v | -vv | -q | -qq] <cmd> [<args>...]
+            gecco --version
+            gecco --help [<cmd>]
 
         Commands:
         {commands}
@@ -59,15 +75,12 @@ class Main(Command):
             -h, --help                 show the message for ``gecco`` or
                                        for a given subcommand.
             -q, --quiet                silence any output other than errors
-                                       (corresponds to the log level ERROR).
-            -v, --verbose              control the verbosity of the output
-                                       (corresponds to the log level DEBUG).
+                                       (-qq silences everything).
+            -v, --verbose              increase verbosity (-v is minimal,
+                                       -vv is verbose, and -vvv shows
+                                       debug information).
             -V, --version              show the program version and exit.
 
-        Parameters - Debug:
-            --traceback                display full traceback on error.
-            -l <level>, --log <level>  the level of log message to display.
-                                       [available: DEBUG, INFO, WARNING, ERROR]
         """
             )
             .lstrip()
@@ -76,67 +89,68 @@ class Main(Command):
 
     _options_first = True
 
-    def __call__(self) -> int:
-        # Assert CLI arguments were parsed successfully
-        if isinstance(self.args, docopt.DocoptExit):
-            print(self.args, file=self.stream)
-            return 1
+    # --
 
-        # Get the subcommand class
-        subcmd_cls = self._get_subcommand(self.args["<cmd>"])
+    def execute(self, ctx: contextlib.ExitStack) -> int:
+        # Run the app, elegantly catching any interrupts or exceptions
+        try:
+            # check arguments and enter context
+            self._check()
+            ctx.enter_context(patch_showwarnings(self._showwarnings))
 
-        # Exit if no known command was found
-        if self.args["<cmd>"] is not None and subcmd_cls is None:
-            self.logger.error("Unknown subcommand: {!r}", self.args["<cmd>"])
-            return 1
+            # Get the subcommand class
+            subcmd_name = self.args["<cmd>"]
+            try:
+                subcmd_cls = self._get_subcommand_by_name(subcmd_name)
+            except pkg_resources.DistributionNotFound as dnf:
+                self.error("The", repr(subcmd_name), "subcommand requires package", dnf.req)
+                return 1
 
-        # Print a help message if asked for
-        if (
-            self.args["--help"]
-            or "-h" in self.args["<args>"]
-            or "--help" in self.args["<args>"]
-        ):
-            subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
-                argv=["help"] + [self.args["<cmd>"]],
-                stream=self._stream,
-                logger=self.logger,
-                options=self.args,
-                config=self.config,
-            )
-
-        # Print version information
-        elif self.args["--version"]:
-            print("gecco", __version__)
-            return 0
-
-        # Initialize the command if is valid
-        else:
-            subcmd = wrap_warnings(self.logger)(  # type: ignore
-                typing.cast(Type[Command], subcmd_cls)(
-                    argv=[self.args["<cmd>"]] + self.args["<args>"],
+            # exit if no known command was found
+            if subcmd_name is not None and subcmd_cls is None:
+                self.error("Unknown subcommand", repr(subcmd_name))
+                return 1
+            # if a help message was required, delegate to the `gecco help` command
+            if (
+                self.args["--help"]
+                or "-h" in self.args["<args>"]
+                or "--help" in self.args["<args>"]
+            ):
+                subcmd = typing.cast(Type[Command], self._get_subcommand_by_name("help"))(
+                    argv=["help"] + [subcmd_name],
                     stream=self._stream,
-                    logger=self.logger,
                     options=self.args,
                     config=self.config,
                 )
-            )
-
-        # Run the app, elegantly catching any interrupts or exceptions
-        try:
-            exitcode = subcmd._check()
-            if exitcode is None:
-                exitcode = subcmd()
-        except KeyboardInterrupt:
-            self.logger.error("Interrupted")
-            return 2
-        except Exception as e:
-            self.logger.critical("{}", e)
-            if self.args["--traceback"]:
-                print(
-                    better_exceptions.format_exception(type(e), e, e.__traceback__),
-                    file=sys.stderr,
+            # print version information if `--version` in flags
+            elif self.args["--version"]:
+                self.console.print("gecco", __version__)
+                return 0
+            # initialize the command if is valid
+            else:
+                subcmd = typing.cast(Type[Command], subcmd_cls)(
+                    argv=[self.args["<cmd>"]] + self.args["<args>"],
+                    stream=self._stream,
+                    options=self.args,
+                    config=self.config,
                 )
+                subcmd.verbose = self.verbose
+                subcmd.quiet = self.quiet
+            # run the subcommand
+            return subcmd.execute(ctx)
+        except CommandExit as sysexit:
+            return sysexit.code
+        except KeyboardInterrupt:
+            self.error("Interrupted")
+            return -signal.SIGINT
+        except Exception as e:
+            self.error(
+                "An unexpected error occurred. Consider opening"
+                " a new issue on the bug tracker"
+                " (https://github.com/zellerlab/GECCO/issues/new) if"
+                " it persists, including the traceback below:"
+            )
+            traceback = rich.traceback.Traceback.from_exception(type(e), e, e.__traceback__)
+            self.console.print(traceback)
             # return errno if exception has any
             return typing.cast(int, getattr(e, "errno", 1))
-        else:
-            return exitcode

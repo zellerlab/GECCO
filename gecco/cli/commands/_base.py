@@ -1,18 +1,35 @@
 # coding: utf-8
 import abc
+import contextlib
+import datetime
 import logging
+import os
+import socket
 import sys
 import textwrap
 import typing
-from typing import Any, ClassVar, Optional, List, Mapping, Dict, TextIO
+from typing import Any, ClassVar, Callable, Optional, List, Mapping, Dict, TextIO, Type
 
-import coloredlogs
 import docopt
-import verboselogs
+import rich.console
+import rich.progress
+import rich.logging
 
 from ... import __version__, __name__ as __progname__
-from .._utils import BraceAdapter
 
+_T = typing.TypeVar("_T")
+
+
+class InvalidArgument(ValueError):
+    """An error to mark an invalid value was passed to a CLI flag.
+    """
+
+class CommandExit(Exception):
+    """An error to request immediate exit from a function.
+    """
+
+    def __init__(self, code):
+        self.code = code
 
 class Command(metaclass=abc.ABCMeta):
     """An abstract base class for ``gecco`` subcommands.
@@ -20,11 +37,24 @@ class Command(metaclass=abc.ABCMeta):
 
     # -- Abstract methods ----------------------------------------------------
 
-    doc: ClassVar[str] = NotImplemented
     summary: ClassVar[str] = NotImplemented
 
     @abc.abstractmethod
-    def __call__(self) -> int:
+    def execute(self, ctx: contextlib.ExitStack) -> int:
+        """Execute the command.
+
+        Returns:
+            `int`: The exit code for the command, with 0 on success, and any
+            other number on error.
+
+        """
+        return NotImplemented  # type: ignore
+
+    @classmethod
+    @abc.abstractmethod
+    def doc(cls, fast: bool = False) -> str:
+        """Get the help message for the command.
+        """
         return NotImplemented  # type: ignore
 
     # -- Concrete methods ----------------------------------------------------
@@ -36,11 +66,9 @@ class Command(metaclass=abc.ABCMeta):
         self,
         argv: Optional[List[str]] = None,
         stream: Optional[TextIO] = None,
-        logger: Optional[logging.Logger] = None,
         options: Optional[Mapping[str, Any]] = None,
         config: Optional[Dict[Any, Any]] = None,
     ) -> None:
-
         self._stream: Optional[TextIO] = stream
         self.argv = argv
         self.stream: TextIO = stream or sys.stderr
@@ -48,49 +76,122 @@ class Command(metaclass=abc.ABCMeta):
         self.pool = None
         self.config = config
 
+        self._hostname = socket.gethostname()
+        self._pid = os.getpid()
+
         # Parse command line arguments
         try:
             self.args = docopt.docopt(
-                textwrap.dedent(self.doc).lstrip(),
+                textwrap.dedent(self.doc(fast=True)).lstrip(),
                 help=False,
                 argv=argv,
                 version=self._version,
                 options_first=self._options_first,
             )
-            loglevel = self._get_log_level()
+            self.verbose = self.args.get("--verbose", 0)
+            self.quiet = self.args.get("--quiet", 0)
         except docopt.DocoptExit as de:
             self.args = de
-            loglevel = None
+            self.level = 0
+            self.quiet = 0
 
-        # Create a new colored logger if needed
-        if logger is None:
-            logger = verboselogs.VerboseLogger(__progname__)
-            loglevel = (loglevel or "INFO").upper()
-            coloredlogs.install(
-                logger=logger,
-                level=int(loglevel) if loglevel.isdigit() else loglevel,
-                stream=self.stream,
-            )
+        self.progress = rich.progress.Progress(
+            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
+            "[progress.description]{task.description}",
+            rich.progress.BarColumn(bar_width=60),
+            "[progress.completed]{task.completed}/{task.total}",
+            "[progress.completed]{task.fields[unit]}",
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            rich.progress.TimeElapsedColumn(),
+            rich.progress.TimeRemainingColumn(),
+            console=rich.console.Console(file=self.stream),
+            disable=self.quiet > 0,
+        )
+        self.console = self.progress.console
 
-        # Use a loggin adapter to use new-style formatting
-        self.logger = BraceAdapter(logger)
-
-    def _check(self) -> Optional[int]:
+    def _check(self) -> None:
         # Assert CLI arguments were parsed Successfully
         if isinstance(self.args, docopt.DocoptExit):
-            print(self.args, file=self.stream)
-            return 1
-        # Display help if needed
-        elif self.args["--help"]:
-            print(textwrap.dedent(self.doc).lstrip())
-            return 0
-        else:
-            return None
+            self.console.print(self.args)#, file=self.stream)
+            raise CommandExit(1)
+        return None
 
-    def _get_log_level(self) -> Optional[str]:
-        if self.args.get("--verbose"):
-            return "VERBOSE" if self.args.get("--verbose") == 1 else "DEBUG"
-        elif self.args.get("--quiet"):
-            return "ERROR"
+    def _check_flag(
+        self,
+        name: str,
+        convert: Optional[Callable[[str], _T]] = None,
+        check: Optional[Callable[[_T], bool]] = None,
+        message: Optional[str] = None,
+        hint: Optional[str] = None,
+    ) -> _T:
+        _convert = (lambda x: x) if convert is None else convert
+        _check = (lambda x: True) if check is None else check
+        try:
+            value = _convert(self.args[name])
+            if not _check(value):
+                raise ValueError(self.args[name])
+        except Exception as err:
+            if hint is None:
+                self.error(f"Invalid value for argument [purple]{name}[/]:", repr(self.args[name]))
+            else:
+                self.error(f"Invalid value for argument [purple]{name}[/]:", repr(self.args[name]), f"(expected {hint})")
+            raise InvalidArgument(self.args[name]) from err
         else:
-            return typing.cast(Optional[str], self.args.get("--log"))
+            return value
+
+    # -- Logging methods -----------------------------------------------------
+
+    def error(self, message, *args, level=0):
+        if self.quiet <= 2 and level <= self.verbose:
+            self.console.print(
+                *self._logprefix(),
+                "[bold red]FAIL[/]",
+                message,
+                *args,
+            )
+
+    def info(self, verb, *args, level=1):
+        if self.quiet == 0 and level <= self.verbose:
+            self.console.print(
+                *self._logprefix(),
+                f"[bold blue]INFO[/]",
+                verb,
+                *args,
+            )
+
+    def success(self, verb, *args, level=1):
+        if self.quiet == 0 and level <= self.verbose:
+            self.console.print(
+                *self._logprefix(),
+                f"[bold green]  OK[/]",
+                verb,
+                *args,
+            )
+
+    def warn(self, verb, *args, level=0):
+        if self.quiet <= 1 and level <= self.verbose:
+            self.console.print(
+                *self._logprefix(),
+                "[bold yellow]WARN[/]",
+                verb,
+                *args
+            )
+
+    def _logprefix(self):
+        return [
+            f"[dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]",
+            f"[dim purple]{self._hostname}[/]",
+            f"[dim]{__progname__}[[default dim]{self._pid}[/]][/]",
+        ]
+
+    def _showwarnings(
+        self,
+        message: str,
+        category: Type[Warning],
+        filename: str,
+        lineno: int,
+        file: Optional[TextIO] = None,
+        line: Optional[str] = None,
+    ) -> None:
+        for line in filter(str.strip, str(message).splitlines()):
+            self.warn(line.strip())

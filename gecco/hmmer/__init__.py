@@ -198,7 +198,11 @@ class PyHMMER(DomainAnnotator):
     """A domain annotator that uses `pyhmmer.hmmer.hmmsearch`.
     """
 
-    def run(self, genes: Iterable[Gene], callback: Optional[Callable[..., None]] = None) -> List[Gene]:
+    def run(
+        self,
+        genes: Iterable[Gene],
+        progress: Optional[Callable[[pyhmmer.plan7.HMM, int], None]] = None
+    ) -> List[Gene]:
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
@@ -215,7 +219,7 @@ class PyHMMER(DomainAnnotator):
         # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
             cpus = 0 if self.cpus is None else self.cpus
-            hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=cpus, callback=callback)
+            hmms_hits = pyhmmer.hmmsearch(hmm_file, esl_sqs, cpus=cpus, callback=progress)
 
             # Load InterPro metadata for the annotation
             interpro = InterPro.load()

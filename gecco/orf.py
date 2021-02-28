@@ -56,7 +56,7 @@ class PyrodigalFinder(ORFFinder):
     class _Worker(threading.Thread):
 
         @staticmethod
-        def _none_callback(record, total):
+        def _none_callback(record, found, total):
             pass
 
         def __init__(
@@ -100,7 +100,7 @@ class PyrodigalFinder(ORFFinder):
                     ))
 
                 self.record_queue.task_done()
-                self.callback(record, self.record_count.value)
+                self.callback(record, len(orfs), self.record_count.value)
 
     def __init__(self, metagenome: bool = True, cpus: int = 0) -> None:
         """Create a new `PyrodigalFinder` instance.

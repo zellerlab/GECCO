@@ -49,12 +49,12 @@ class TestRun(TestCommand, unittest.TestCase):
         #_concat = mock.Mock(return_value=feats_df)
         with contextlib.ExitStack() as stack:
             stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.HMMER, "run", new=_run)
+                mock.patch.object(gecco.cli.commands.run.PyHMMER, "run", new=_run)
             )
             stack.enter_context(
                 mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
             )
-            argv = ["-vv", "--traceback", "run", "--genome", sequence, "--output", self.tmpdir]
+            argv = ["-vv", "run", "--genome", sequence, "--output", self.tmpdir]
             with io.StringIO() as stderr:
                 retcode = main(argv, stream=stderr)
                 self.assertEqual(retcode, 0, stderr.getvalue())
