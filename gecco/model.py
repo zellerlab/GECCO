@@ -1,6 +1,7 @@
 """Data layer classes storing information needed for BGC detection.
 """
 
+import collections
 import csv
 import datetime
 import enum
@@ -467,8 +468,17 @@ class FeatureTable(Dumpable, Sized):
         built for each gene of size ``gene.end``, so that each gene can still
         be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
         """
-        for _, group in itertools.groupby(self, key=operator.attrgetter("protein_id")):
-            rows = list(group)
+        # group rows by protein/gene ID
+        protein_indices = collections.defaultdict(list)
+        for i, protein_id in enumerate(self.protein_id):
+            protein_indices[protein_id].append(i)
+        # yield genes in order
+        for protein_id in sorted(protein_indices):
+            rows = [self[i] for i in protein_indices[protein_id]]
+            assert all(x.sequence_id == rows[0].sequence_id for x in rows)
+            assert all(x.protein_id == rows[0].protein_id for x in rows)
+            assert all(x.start == rows[0].start for x in rows)
+            assert all(x.end == rows[0].end for x in rows)
             source = SeqRecord(id=rows[0].sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
             protein = Protein(rows[0].protein_id, seq=None)
