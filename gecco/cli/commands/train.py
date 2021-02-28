@@ -51,7 +51,7 @@ class Train(Command):  # noqa: D101
 
         Parameters:
             -o <out>, --output-dir <out>    the directory to use for the model
-                                            files. [default: CRF]
+                                            files. [default: model]
             -j <jobs>, --jobs <jobs>        the number of CPUs to use for
                                             multithreading. Use 0 to use all
                                             the available CPUs. [default: 0]
