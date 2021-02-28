@@ -22,8 +22,7 @@ import scipy.sparse
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from ._base import Command
-from ._error import CommandExit, InvalidArgument
+from ._base import Command, CommandExit, InvalidArgument
 from .._utils import in_context, patch_showwarnings
 from ...model import FeatureTable, ClusterTable, Cluster
 from ...crf import ClusterCRF
@@ -41,7 +40,6 @@ class Train(Command):  # noqa: D101
         gecco train - {cls.summary}
 
         Usage:
-            gecco train (-h | --help)
             gecco train --features <table> --clusters <table> [options]
 
         Arguments:

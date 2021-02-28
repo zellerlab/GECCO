@@ -17,8 +17,7 @@ import rich.traceback
 from ... import __version__
 from .._utils import in_context, patch_showwarnings
 from . import __name__ as __parent__
-from ._base import Command
-from ._error import CommandExit
+from ._base import Command, CommandExit, InvalidArgument
 
 
 class Main(Command):

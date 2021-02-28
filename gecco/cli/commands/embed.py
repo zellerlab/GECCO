@@ -17,8 +17,7 @@ import warnings
 import numpy
 import pandas
 
-from ._base import Command
-from ._error import InvalidArgument, CommandExit
+from ._base import Command, InvalidArgument, CommandExit
 from .._utils import numpy_error_context, in_context, patch_showwarnings
 from ...hmmer import HMMER
 
@@ -33,7 +32,6 @@ class Embed(Command):  # noqa: D101
         gecco embed - {cls.summary}
 
         Usage:
-            gecco embed (-h | --help)
             gecco embed [--bgc <data>]... [--no-bgc <data>]... [options]
 
         Arguments:

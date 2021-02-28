@@ -15,8 +15,7 @@ from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 import rich.progress
 import sklearn.model_selection
 
-from ._base import Command
-from ._error import CommandExit, InvalidArgument
+from ._base import Command, CommandExit, InvalidArgument
 from .._utils import in_context, patch_showwarnings
 from ...model import ClusterTable, FeatureTable, ProductType
 from ...crf import ClusterCRF
@@ -33,7 +32,6 @@ class Cv(Command):  # noqa: D101
         gecco cv  - {cls.summary}
 
         Usage:
-            gecco cv (-h | --help)
             gecco cv kfold -f <table> [-c <data>] [options]
             gecco cv loto  -f <table>  -c <data>  [options]
 

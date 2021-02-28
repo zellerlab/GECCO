@@ -17,8 +17,7 @@ import rich.console
 import rich.text
 
 from .._utils import in_context, patch_showwarnings
-from ._error import CommandExit
-from ._base import Command
+from ._base import Command, CommandExit
 from ._main import Main
 
 
@@ -32,7 +31,6 @@ class Help(Command):  # noqa: D101
         gecco help - {cls.summary}
 
         Usage:
-            gecco help (-h | --help)
             gecco help [<cmd>]
 
         Arguments:

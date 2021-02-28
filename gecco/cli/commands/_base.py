@@ -16,9 +16,20 @@ import rich.progress
 import rich.logging
 
 from ... import __version__, __name__ as __progname__
-from ._error import CommandExit, InvalidArgument
 
 _T = typing.TypeVar("_T")
+
+
+class InvalidArgument(ValueError):
+    """An error to mark an invalid value was passed to a CLI flag.
+    """
+
+class CommandExit(Exception):
+    """An error to request immediate exit from a function.
+    """
+
+    def __init__(self, code):
+        self.code = code
 
 class Command(metaclass=abc.ABCMeta):
     """An abstract base class for ``gecco`` subcommands.
