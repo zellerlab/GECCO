@@ -122,18 +122,18 @@ class Embed(Command):  # noqa: D101
         bgc: "pandas.DataFrame",
         task: "rich.progress.TaskID"
     ) -> "pandas.DataFrame":
-        by_prots = [s for _, s in no_bgc.sort_values("start").groupby("protein_id", sort=False)]
+        by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
         # cut the input in half to insert the bgc in the middle
         index_half = len(by_prots) // 2
         before, after = by_prots[:index_half], by_prots[index_half:]
-        # compute offsets
-        insert_position = (  max([b.end.max() for b in before]) + min([a.start.min() for a in after])) // 2
+        # find the position at which the BGC is being inserted
+        insert_position = (before[-1].end.values[0] + after[0].start.values[0]) // 2
         bgc_length = bgc.end.max() - bgc.start.min()
-        # update offsets
         bgc = bgc.assign(
-            start=bgc.start + insert_position - bgc_length,
-            end=bgc.end + insert_position,
+            start=bgc.start - bgc.start.min() + insert_position,
+            end=bgc.end - bgc.start.min() + insert_position,
         )
+        # shift all the 3' genes after the BGC
         after = [
             x.assign(start=x.start + bgc_length, end=x.end + bgc_length)
             for x in after
@@ -146,13 +146,7 @@ class Embed(Command):  # noqa: D101
         with numpy_error_context(divide="ignore"):
             bgc_id = bgc["BGC_id"].values[0]
             sequence_id = no_bgc["sequence_id"].apply(lambda x: x).values[0]
-            embed = embed.assign(
-                sequence_id=sequence_id,
-                BGC_id=bgc_id,
-                pseudo_pos=range(len(embed)),
-                rev_i_Evalue=1 - embed["i_evalue"],
-                log_i_Evalue=-numpy.log10(embed["i_evalue"]),
-            )
+            embed = embed.assign(sequence_id=sequence_id, BGC_id=bgc_id)
         # return the embedding
         self.success("Finished", "embedding", repr(bgc_id), "into", repr(sequence_id), level=2)
         self.progress.update(task_id=task, advance=1, refresh=1)
