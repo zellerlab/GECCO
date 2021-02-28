@@ -1,5 +1,6 @@
 # coding: utf-8
 import abc
+import contextlib
 import datetime
 import logging
 import os
@@ -11,6 +12,7 @@ from typing import Any, ClassVar, Callable, Optional, List, Mapping, Dict, TextI
 
 import docopt
 import rich.console
+import rich.progress
 import rich.logging
 
 from ... import __version__, __name__ as __progname__
@@ -27,7 +29,7 @@ class Command(metaclass=abc.ABCMeta):
     summary: ClassVar[str] = NotImplemented
 
     @abc.abstractmethod
-    def execute(self) -> int:
+    def execute(self, ctx: contextlib.ExitStack) -> int:
         """Execute the command.
 
         Returns:
@@ -62,7 +64,6 @@ class Command(metaclass=abc.ABCMeta):
         self.options = options or dict()
         self.pool = None
         self.config = config
-        self.console = rich.console.Console(file=self.stream)
 
         self._hostname = socket.gethostname()
         self._pid = os.getpid()
@@ -82,6 +83,20 @@ class Command(metaclass=abc.ABCMeta):
             self.args = de
             self.level = 0
             self.quiet = 0
+
+        self.progress = rich.progress.Progress(
+            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
+            "[progress.description]{task.description}",
+            rich.progress.BarColumn(bar_width=60),
+            "[progress.completed]{task.completed}/{task.total}",
+            "[progress.completed]{task.fields[unit]}",
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            rich.progress.TimeElapsedColumn(),
+            rich.progress.TimeRemainingColumn(),
+            console=rich.console.Console(file=self.stream),
+            disable=self.quiet > 0,
+        )
+        self.console = self.progress.console
 
     def _check(self) -> None:
         # Assert CLI arguments were parsed Successfully
@@ -153,7 +168,7 @@ class Command(metaclass=abc.ABCMeta):
 
     def _logprefix(self):
         return [
-            f"[dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%m:%S')}[/]",
+            f"[dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]",
             f"[dim purple]{self._hostname}[/]",
             f"[dim]{__progname__}[[default dim]{self._pid}[/]][/]",
         ]

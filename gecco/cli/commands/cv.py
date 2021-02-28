@@ -74,28 +74,6 @@ class Cv(Command):  # noqa: D101
 
         """
 
-    def __init__(
-        self,
-        argv: Optional[List[str]] = None,
-        stream: Optional[TextIO] = None,
-        options: Optional[Mapping[str, Any]] = None,
-        config: Optional[Dict[Any, Any]] = None,
-    ) -> None:  # noqa: D107
-        super().__init__(argv, stream, options, config)
-        self.progress = rich.progress.Progress(
-            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
-            "[progress.description]{task.description}",
-            rich.progress.BarColumn(bar_width=60),
-            "[progress.completed]{task.completed}/{task.total}",
-            "[progress.completed]{task.fields[unit]}",
-            "[progress.percentage]{task.percentage:>3.0f}%",
-            rich.progress.TimeElapsedColumn(),
-            rich.progress.TimeRemainingColumn(),
-            console=self.console,
-            disable=self.quiet > 0,
-        )
-        self.console = self.progress.console
-
     def _check(self) -> typing.Optional[int]:
         super()._check()
         try:
@@ -216,9 +194,9 @@ class Cv(Command):  # noqa: D101
 
     # --
 
-    @in_context
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
+            # check arguments and enter context
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
@@ -245,5 +223,8 @@ class Cv(Command):  # noqa: D101
                 self._write_fold(i+1, genes, append=i==0)
         except CommandExit as cexit:
             return cexit.code
+        except KeyboardInterrupt:
+            self.error("Interrupted")
+            return -signal.SIGINT
         else:
             return 0

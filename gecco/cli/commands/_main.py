@@ -1,6 +1,7 @@
 """Implementation of the main ``gecco`` command.
 """
 
+import contextlib
 import signal
 import sys
 import textwrap
@@ -14,7 +15,7 @@ import pkg_resources
 import rich.traceback
 
 from ... import __version__
-from .._utils import classproperty
+from .._utils import in_context, patch_showwarnings
 from . import __name__ as __parent__
 from ._base import Command
 from ._error import CommandExit
@@ -39,11 +40,13 @@ class Main(Command):
         return commands
 
     @classmethod
-    def _get_subcommand(cls, name: str) -> Optional[Type[Command]]:
+    def _get_subcommand_by_name(cls, name: str) -> Optional[Type[Command]]:
         for cmd in pkg_resources.iter_entry_points(__parent__):
             if cmd.name == name:
                 return cmd.load()
         return None
+
+    # --
 
     @classmethod
     def doc(cls, fast=False):  # noqa: D102
@@ -90,58 +93,55 @@ class Main(Command):
 
     _options_first = True
 
-    def execute(self) -> int:
-        # Assert CLI arguments were parsed successfully
-        try:
-            self._check()
-        except CommandExit as cexit:
-            return cexit.code
+    # --
 
-        # Get the subcommand class
-        subcmd_name = self.args["<cmd>"]
-        try:
-            subcmd_cls = self._get_subcommand(subcmd_name)
-        except pkg_resources.DistributionNotFound as dnf:
-            self.error("The", repr(subcmd_name), "subcommand requires package", dnf.req)
-            return 1
-
-        # Exit if no known command was found
-        if subcmd_name is not None and subcmd_cls is None:
-            self.error("Unknown subcommand", repr(subcmd_name))
-            return 1
-
-        # Print a help message if asked for
-        if (
-            self.args["--help"]
-            or "-h" in self.args["<args>"]
-            or "--help" in self.args["<args>"]
-        ):
-            subcmd = typing.cast(Type[Command], self._get_subcommand("help"))(
-                argv=["help"] + [subcmd_name],
-                stream=self._stream,
-                options=self.args,
-                config=self.config,
-            )
-
-        # Print version information
-        elif self.args["--version"]:
-            self.console.print("gecco", __version__)
-            return 0
-
-        # Initialize the command if is valid
-        else:
-            subcmd = typing.cast(Type[Command], subcmd_cls)(
-                argv=[self.args["<cmd>"]] + self.args["<args>"],
-                stream=self._stream,
-                options=self.args,
-                config=self.config,
-            )
-            subcmd.verbose = self.verbose
-            subcmd.quiet = self.quiet
-
+    def execute(self, ctx: contextlib.ExitStack) -> int:
         # Run the app, elegantly catching any interrupts or exceptions
         try:
-            return subcmd.execute()
+            # check arguments and enter context
+            self._check()
+            ctx.enter_context(patch_showwarnings(self._showwarnings))
+
+            # Get the subcommand class
+            subcmd_name = self.args["<cmd>"]
+            try:
+                subcmd_cls = self._get_subcommand_by_name(subcmd_name)
+            except pkg_resources.DistributionNotFound as dnf:
+                self.error("The", repr(subcmd_name), "subcommand requires package", dnf.req)
+                return 1
+
+            # exit if no known command was found
+            if subcmd_name is not None and subcmd_cls is None:
+                self.error("Unknown subcommand", repr(subcmd_name))
+                return 1
+            # if a help message was required, delegate to the `gecco help` command
+            if (
+                self.args["--help"]
+                or "-h" in self.args["<args>"]
+                or "--help" in self.args["<args>"]
+            ):
+                subcmd = typing.cast(Type[Command], self._get_subcommand_by_name("help"))(
+                    argv=["help"] + [subcmd_name],
+                    stream=self._stream,
+                    options=self.args,
+                    config=self.config,
+                )
+            # print version information if `--version` in flags
+            elif self.args["--version"]:
+                self.console.print("gecco", __version__)
+                return 0
+            # initialize the command if is valid
+            else:
+                subcmd = typing.cast(Type[Command], subcmd_cls)(
+                    argv=[self.args["<cmd>"]] + self.args["<args>"],
+                    stream=self._stream,
+                    options=self.args,
+                    config=self.config,
+                )
+                subcmd.verbose = self.verbose
+                subcmd.quiet = self.quiet
+            # run the subcommand
+            return subcmd.execute(ctx)
         except CommandExit as sysexit:
             return sysexit.code
         except KeyboardInterrupt:
