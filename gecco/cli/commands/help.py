@@ -58,7 +58,8 @@ class Help(Command):  # noqa: D101
             # Render the help message
             doc = Main.doc() if subcmd_cls is None else subcmd_cls.doc()
             text = rich.text.Text(textwrap.dedent(doc).lstrip())
-            rich.print(text, file=self._stream)
+            console = rich.console.Console(file=self._stream, soft_wrap=True)
+            console.print(text)
         except CommandExit as cexit:
             return cexit.code
         else:

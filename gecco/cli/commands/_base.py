@@ -104,7 +104,7 @@ class Command(metaclass=abc.ABCMeta):
             "[progress.percentage]{task.percentage:>3.0f}%",
             rich.progress.TimeElapsedColumn(),
             rich.progress.TimeRemainingColumn(),
-            console=rich.console.Console(file=self.stream),
+            console=rich.console.Console(file=self.stream, soft_wrap=True),
             disable=self.quiet > 0,
         )
         self.console = self.progress.console
