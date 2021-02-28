@@ -27,7 +27,7 @@ class TestTrain(TestCommand, unittest.TestCase):
         base = os.path.join(self.folder, "mibig-2.0.Pfam-33.0.Tigrfam-15.0")
         clusters, features = f"{base}.clusters.tsv", f"{base}.features.tsv"
 
-        argv = ["-vv", "--traceback", "train", "-f", features, "-c", clusters, "-o", self.tmpdir]
+        argv = ["-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir]
         with io.StringIO() as stream:
             retcode = main(argv, stream=stream)
             self.assertEqual(retcode, 0, stream.getvalue())

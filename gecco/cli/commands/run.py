@@ -20,7 +20,7 @@ import rich.emoji
 import rich.progress
 from Bio import SeqIO
 
-from ._base import CommandExit, InvalidArgument
+from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 from .._utils import guess_sequences_format, in_context, patch_showwarnings
 from ...crf import ClusterCRF
@@ -82,7 +82,7 @@ class Run(Annotate):  # noqa: D101
         """
 
     def _check(self) -> typing.Optional[int]:
-        super()._check()
+        Command._check(self)
         try:
             self.cds = self._check_flag("--cds", int, lambda x: x > 0, hint="positive integer")
             self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")

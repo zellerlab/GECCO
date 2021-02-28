@@ -64,8 +64,9 @@ class Main(Command):
         gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
-            gecco [-v | -vv | -q | -qq] [options] (-h | --help) [<cmd>]
-            gecco [-v | -vv | -q | -qq] [options] <cmd> [<args>...]
+            gecco [-v | -vv | -q | -qq] <cmd> [<args>...]
+            gecco --version
+            gecco --help [<cmd>]
 
         Commands:
         {commands}
@@ -80,10 +81,6 @@ class Main(Command):
                                        debug information).
             -V, --version              show the program version and exit.
 
-        Parameters - Debug:
-            --traceback                display full traceback on error.
-            -l <level>, --log <level>  the level of log message to display.
-                                       [available: DEBUG, INFO, WARNING, ERROR]
         """
             )
             .lstrip()
