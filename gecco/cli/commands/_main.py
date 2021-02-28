@@ -136,6 +136,7 @@ class Main(Command):
                 )
                 subcmd.verbose = self.verbose
                 subcmd.quiet = self.quiet
+                subcmd.progress.disable = self.quiet > 0
             # run the subcommand
             return subcmd.execute(ctx)
         except CommandExit as sysexit:
