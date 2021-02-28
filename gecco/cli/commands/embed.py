@@ -102,12 +102,11 @@ class Embed(Command):  # noqa: D101
         with multiprocessing.pool.ThreadPool(_jobs) as pool:
             rows = pool.map(self._read_table, self.bgc)
             bgc_df = pandas.concat(rows).assign(bgc_probability=1.0)
-            bgc_df["BGC_id"] = bgc_df.protein_id.str.split("|").str[0]
 
         # sort and reshape
         self.info("Sorting", "BGC features by genomic coordinates", level=2)
-        bgc_df.sort_values(by=["BGC_id", "start", "domain_start"], inplace=True)
-        return [s for _, s in bgc_df.groupby("BGC_id", sort=True)]
+        bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
+        return [s for _, s in bgc_df.groupby("sequence_id", sort=True)]
 
     def _check_count(self, no_bgc_list, bgc_list):
         no_bgc_count, bgc_count = len(no_bgc_list) - self.skip, len(bgc_list)
@@ -141,7 +140,7 @@ class Embed(Command):  # noqa: D101
         embed = embed[embed["i_evalue"] < self.e_filter]
         # add additional columns based on info from BGC and non-BGC
         with numpy_error_context(divide="ignore"):
-            bgc_id = bgc["BGC_id"].values[0]
+            bgc_id = bgc["sequence_id"].values[0]
             sequence_id = no_bgc["sequence_id"].apply(lambda x: x).values[0]
             embed = embed.assign(sequence_id=sequence_id, BGC_id=bgc_id)
         # return the embedding
