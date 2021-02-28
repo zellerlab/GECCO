@@ -97,10 +97,10 @@ class update_model(setuptools.Command):
             sig.write(hasher.hexdigest())
 
         # Update the domain composition table
-        self.info("Copying the KNN training data to the in-source location")
+        self.info("Copying the RF training data to the in-source location")
         for filename in ["compositions.npz", "domains.tsv", "types.tsv"]:
             src = os.path.join(self.model, filename)
-            dst = os.path.join("gecco", "knn", filename)
+            dst = os.path.join("gecco", "types", filename)
             shutil.copy(src=src, dst=dst)
 
         # Update the interpro entries
