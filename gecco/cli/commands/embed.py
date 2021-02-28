@@ -120,7 +120,6 @@ class Embed(Command):  # noqa: D101
         self,
         no_bgc: "pandas.DataFrame",
         bgc: "pandas.DataFrame",
-        task: "rich.progress.TaskID"
     ) -> "pandas.DataFrame":
         by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
         # cut the input in half to insert the bgc in the middle
@@ -149,17 +148,20 @@ class Embed(Command):  # noqa: D101
             embed = embed.assign(sequence_id=sequence_id, BGC_id=bgc_id)
         # return the embedding
         self.success("Finished", "embedding", repr(bgc_id), "into", repr(sequence_id), level=2)
-        self.progress.update(task_id=task, advance=1, refresh=1)
         return embed
 
     def _make_embeddings(self, no_bgc_list, bgc_list):
+        self.info("Embedding", len(bgc_list), "BGCs into", len(no_bgc_list), "contigs")
         _jobs = os.cpu_count() if not self.jobs else self.jobs
 
         unit = "BGC" if len(bgc_list) == 1 else "BGCs"
         task = self.progress.add_task("Embedding", unit=unit, total=len(bgc_list))
 
-        it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list, itertools.repeat(task))
-        embeddings = pandas.concat([ self._embed(*args) for args in it ])
+        it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
+        embeddings = pandas.concat([
+            self._embed(*args)
+            for args in self.progress.track(it, task_id=task, total=len(bgc_list))
+        ])
 
         embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return embeddings
