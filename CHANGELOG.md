@@ -5,7 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.3...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.4...master
+
+## [v0.5.4] - 2021-02-28
+[v0.5.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.3...v0.5.4
+### Changed
+- Replaced `verboselogs`, `coloredlogs` and `better-exceptions` with `rich`.
+### Removed
+- `tqdm` training dependency.
+### Added
+- `gecco annotate` command to produce a feature table from a genomic file.
+- `gecco embed` to embed BGCs into non-BGC regions using feature tables.
 
 ## [v0.5.3] - 2021-02-21
 [v0.5.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.2...v0.5.3
