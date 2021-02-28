@@ -166,13 +166,14 @@ class Run(Annotate):  # noqa: D101
         for cluster in self.progress.track(clusters, task_id=task):
             clusters_new.extend(classifier.predict_types([cluster]))
             if cluster.type != ProductType.Unknown:
-                name = "/".join(ty.name for ty in cluster.type.unpack())
-                prob = "/".join(f"[purple]{cluster.type_probabilities[ty]:.0%}[/]" for ty in cluster.type.unpack())
-                self.success(f"Predicted type of [bold blue]{cluster.id}[/] as [bold blue]{name}[/] ({prob} confidence)")
+                name = "/".join(f"[bold blue]{ty.name}[/]" for ty in cluster.type.unpack())
+                prob = "/".join(f"[bold purple]{cluster.type_probabilities[ty]:.0%}[/]" for ty in cluster.type.unpack())
+                self.success(f"Predicted type of [bold blue]{cluster.id}[/] as {name} ({prob} confidence)")
             else:
                 ty = max(cluster.type_probabilities, key=cluster.type_probabilities.get)
-                prob = f"[purple]{cluster.type_probabilities[ty]}[/]"
-                self.warn(f"Couldn't assign type to [bold blue]{cluster.id}[/] (maybe [bold blue]{ty}[/], {prob} confidence")
+                prob = f"[bold purple]{cluster.type_probabilities[ty]:.0%}[/]"
+                name = f"[bold blue]{ty.name}[/]"
+                self.warn(f"Couldn't assign type to [bold blue]{cluster.id}[/] (maybe {name}, {prob} confidence)")
 
         return clusters_new
 
