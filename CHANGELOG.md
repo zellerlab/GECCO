@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.4...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.5...master
+
+## [v0.5.5] - 2021-02-28
+[v0.5.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.4...v0.5.5
+### Fixed
+- `gecco cv` bug causing only the last fold to be written.
 
 ## [v0.5.4] - 2021-02-28
 [v0.5.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.3...v0.5.4
