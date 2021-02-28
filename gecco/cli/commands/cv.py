@@ -226,7 +226,7 @@ class Cv(Command):  # noqa: D101
                 train_data = self._get_train_data(train_indices, seqs)
                 test_data = self._get_test_data(test_indices, seqs)
                 new_genes = self._fit_predict(train_data, test_data)
-                self._write_fold(i+1, genes, append=i==0)
+                self._write_fold(i+1, new_genes, append=i>0)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:
