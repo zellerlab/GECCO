@@ -118,7 +118,7 @@ class Embed(Command):  # noqa: D101
     def _read_mapping(self):
         if self.mapping is not None:
             mapping = pandas.read_table(self.mapping)
-            return { t.bgc_id:t.contig_id for t in mapping.itertuples() }
+            return { t.bgc_id:t.sequence_id for t in mapping.itertuples() }
         return None
 
     def _check_count(self, no_bgc_list, bgc_list):
@@ -171,14 +171,12 @@ class Embed(Command):  # noqa: D101
             it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
         else:
             no_bgc_index = {x.sequence_id.values[0]:x for x in no_bgc_list}
-            bgc_index = {x.sequence_id.values[0]:x for x in bgc_list}
-            it = [(no_bgc_index[v], bgc_index[k]) for k,v in mapping.items()]
+            it = [(no_bgc_index[mapping[ bgc.sequence_id.values[0] ]], bgc) for bgc in bgc_list]
 
         embeddings = pandas.concat([
             self._embed(*args)
             for args in self.progress.track(it, task_id=task, total=len(bgc_list))
         ])
-
 
         embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return embeddings
@@ -237,9 +235,11 @@ class Embed(Command):  # noqa: D101
             # load inputs
             no_bgc_list = self._read_no_bgc()
             bgc_list = self._read_bgc()
-            self._check_count(no_bgc_list, bgc_list)
+            mapping = self._read_mapping()
+            if mapping is None:
+                self._check_count(no_bgc_list, bgc_list)
             # make embeddings
-            embeddings = self._make_embeddings(no_bgc_list, bgc_list)
+            embeddings = self._make_embeddings(no_bgc_list, bgc_list, mapping)
             # write outputs
             self._write_features(embeddings)
             self._write_clusters(embeddings)
