@@ -41,6 +41,10 @@ class Embed(Command):  # noqa: D101
                                           containing non-BGC training instances.
 
         Parameters:
+            -M <list>, --mapping <list>   an arbitrary list of which BGC
+                                          should go into which contig. Ignores
+                                          ``--min-size`` and ``--skip`` when
+                                          provided.
             -o <out>, --output <out>      the prefix used for the output files
                                           (which will be ``<prefix>.features.tsv``
                                           and ``<prefix>.clusters.tsv``).
@@ -64,9 +68,12 @@ class Embed(Command):  # noqa: D101
             self.min_size = self._check_flag("--min-size", int, lambda x: x >= 0, "positive or null integer")
             self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
+            self.mapping = self.args["--mapping"]
             self.bgc = self.args["--bgc"]
             self.no_bgc = self.args["--no-bgc"]
             self.output = self.args["--output"]
+            if self.mapping is not None:
+                self.min_size = 0
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -91,7 +98,7 @@ class Embed(Command):  # noqa: D101
         return [
             s
             for _, s in no_bgc_df.groupby("sequence_id", sort=True)
-            if s.shape[0] > self.min_size
+            if len(s.protein_id.unique()) > self.min_size
         ]
 
     def _read_bgc(self):
@@ -107,6 +114,12 @@ class Embed(Command):  # noqa: D101
         self.info("Sorting", "BGC features by genomic coordinates", level=2)
         bgc_df.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return [s for _, s in bgc_df.groupby("sequence_id", sort=True)]
+
+    def _read_mapping(self):
+        if self.mapping is not None:
+            mapping = pandas.read_table(self.mapping)
+            return { t.bgc_id:t.contig_id for t in mapping.itertuples() }
+        return None
 
     def _check_count(self, no_bgc_list, bgc_list):
         no_bgc_count, bgc_count = len(no_bgc_list) - self.skip, len(bgc_list)
@@ -147,18 +160,25 @@ class Embed(Command):  # noqa: D101
         self.success("Finished", "embedding", repr(bgc_id), "into", repr(sequence_id), level=2)
         return embed
 
-    def _make_embeddings(self, no_bgc_list, bgc_list):
+    def _make_embeddings(self, no_bgc_list, bgc_list, mapping):
         self.info("Embedding", len(bgc_list), "BGCs into", len(no_bgc_list), "contigs")
         _jobs = os.cpu_count() if not self.jobs else self.jobs
 
         unit = "BGC" if len(bgc_list) == 1 else "BGCs"
         task = self.progress.add_task("Embedding", unit=unit, total=len(bgc_list))
 
-        it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
+        if mapping is None:
+            it = zip(itertools.islice(no_bgc_list, self.skip, None), bgc_list)
+        else:
+            no_bgc_index = {x.sequence_id.values[0]:x for x in no_bgc_list}
+            bgc_index = {x.sequence_id.values[0]:x for x in bgc_list}
+            it = [(no_bgc_index[v], bgc_index[k]) for k,v in mapping.items()]
+
         embeddings = pandas.concat([
             self._embed(*args)
             for args in self.progress.track(it, task_id=task, total=len(bgc_list))
         ])
+
 
         embeddings.sort_values(by=["sequence_id", "start", "domain_start"], inplace=True)
         return embeddings
