@@ -44,7 +44,7 @@ directly with ``pip``:
 
 .. code:: console
 
-	$ pip install https://github.com/zellerlab/GECCO
+	$ pip install https://github.com/zellerlab/GECCO/archive/master.zip
 
 
 Keep in mind this will install the development version of the library, so not
