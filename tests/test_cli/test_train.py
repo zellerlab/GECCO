@@ -24,7 +24,7 @@ class TestTrain(TestCommand, unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_train_embedding(self):
-        base = os.path.join(self.folder, "mibig-2.0.Pfam-33.0.Tigrfam-15.0")
+        base = os.path.join(self.folder, "data", "mibig-2.0.Pfam-33.0.Tigrfam-15.0")
         clusters, features = f"{base}.clusters.tsv", f"{base}.features.tsv"
 
         argv = ["-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir]

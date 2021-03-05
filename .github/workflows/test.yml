@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OS: Linux
-      PIP_USE_FEATURE: 2020-resolver
     strategy:
       matrix:
         include:
@@ -66,7 +65,6 @@ jobs:
     runs-on: macos-latest
     env:
       OS: OSX
-      PIP_USE_FEATURE: 2020-resolver
     strategy:
       matrix:
         include:
@@ -102,7 +100,7 @@ jobs:
       run: python -m pip install -U pip wheel setuptools coverage
     - name: Build source distribution
       run: python setup.py sdist
-    - name: Install wheel distribution
+    - name: Install source distribution
       run: python -m pip install --find-links=dist gecco[train]
     - name: Test with coverage
       run: python -m coverage run -p -m unittest discover -vv

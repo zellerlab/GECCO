@@ -33,9 +33,9 @@ class TestRun(TestCommand, unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_fasta_genome(self):
-        sequence = os.path.join(self.folder, "BGC0001866.fna")
+        sequence = os.path.join(self.folder, "data", "BGC0001866.fna")
         source = Bio.SeqIO.read(sequence, "fasta")
-        with open(os.path.join(self.folder, "BGC0001866.features.tsv")) as f:
+        with open(os.path.join(self.folder, "data", "BGC0001866.features.tsv")) as f:
             features = FeatureTable.load(f)
             genes = list(features.to_genes())
 
@@ -48,12 +48,12 @@ class TestRun(TestCommand, unittest.TestCase):
 
         #_concat = mock.Mock(return_value=feats_df)
         with contextlib.ExitStack() as stack:
-            stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.PyHMMER, "run", new=_run)
-            )
-            stack.enter_context(
-                mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
-            )
+            # stack.enter_context(
+            #     mock.patch.object(gecco.cli.commands.run.PyHMMER, "run", new=_run)
+            # )
+            # stack.enter_context(
+            #     mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
+            # )
             argv = ["-vv", "run", "--genome", sequence, "--output", self.tmpdir]
             with io.StringIO() as stderr:
                 retcode = main(argv, stream=stderr)

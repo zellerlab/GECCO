@@ -19,8 +19,8 @@ class TestPyrodigalFinder(unittest.TestCase):
         # - BGC0001737.faa obtained by running Prodigal CLI in metagenome mode
         #   on BGC0001737.fna
         folder = os.path.dirname(os.path.abspath(__file__))
-        cls.genome = Bio.SeqIO.read(os.path.join(folder, "BGC0001737.fna"), "fasta")
-        cls.proteins = list(Bio.SeqIO.parse(os.path.join(folder, "BGC0001737.faa"), "fasta"))
+        cls.genome = Bio.SeqIO.read(os.path.join(folder, "data", "BGC0001737.fna"), "fasta")
+        cls.proteins = list(Bio.SeqIO.parse(os.path.join(folder, "data", "BGC0001737.faa"), "fasta"))
 
     def test_order(self):
         """Test proteins are emitted in the right order from the source file.
