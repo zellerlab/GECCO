@@ -7,7 +7,6 @@ import glob
 import gzip
 import hashlib
 import io
-import itertools
 import json
 import math
 import os
@@ -78,13 +77,16 @@ class list_requirements(setuptools.Command):
             self.output = "requirements.txt"
 
     def run(self):
-        reqs = self.distribution.install_requires
-        if self.setup:
-            reqs = itertools.chain(self.distribution.setup_requires, reqs)
+        cfg = configparser.ConfigParser()
+        cfg.read(__file__.replace(".py", ".cfg"))
+
         with open(self.output, "w") as f:
-            for r in reqs:
-                f.write(r)
-                f.write('\n')
+            if self.setup:
+                f.write(cfg.get("options", "setup_requires"))
+            f.write(cfg.get("options", "install_requires"))
+            for _, v in cfg.items("options.extras_require"):
+                f.write(v)
+
 
 class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.

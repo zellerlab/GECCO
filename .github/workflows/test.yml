@@ -43,11 +43,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
-      run: python -m pip install -U pip wheel setuptools coverage
-    - name: Build source distribution
-      run: python setup.py sdist
-    - name: Install source distribution
-      run: python -m pip install --find-links=dist gecco[train]
+      run: python -m pip install -U pip coverage
+    - name: List project dependencies
+      run: python setup.py list_requirements
+    - name: Install project dependencies
+      run: python -m pip install -r requirements.txt
+    - name: Build required data files
+      run: python setup.py build_data --inplace
     - name: Test with coverage
       run: python -m coverage run -p -m unittest discover -vv
     - name: Combine coverage reports
@@ -97,11 +99,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
-      run: python -m pip install -U pip wheel setuptools coverage
-    - name: Build source distribution
-      run: python setup.py sdist
-    - name: Install source distribution
-      run: python -m pip install --find-links=dist gecco[train]
+      run: python -m pip install -U pip coverage
+    - name: List project dependencies
+      run: python setup.py list_requirements
+    - name: Install project dependencies
+      run: python -m pip install -r requirements.txt
+    - name: Build required data files
+      run: python setup.py build_data --inplace
     - name: Test with coverage
       run: python -m coverage run -p -m unittest discover -vv
     - name: Combine coverage reports
