@@ -7,6 +7,7 @@ import glob
 import gzip
 import hashlib
 import io
+import itertools
 import json
 import math
 import os
@@ -53,6 +54,37 @@ class sdist(_sdist):
         # run the rest of the packaging
         _sdist.run(self)
 
+
+class list_requirements(setuptools.Command):
+    """A custom command to write the project requirements.
+    """
+
+    description = "list the project requirements"
+    user_options = [
+        ("setup", "s", "show the setup requirements as well."),
+        (
+            "requirements=",
+            "r",
+            "the name of the requirements file (defaults to requirements.txt)"
+        )
+    ]
+
+    def initialize_options(self):
+        self.setup = False
+        self.output = None
+
+    def finalize_options(self):
+        if self.output is None:
+            self.output = "requirements.txt"
+
+    def run(self):
+        reqs = self.distribution.install_requires
+        if self.setup:
+            reqs = itertools.chain(self.distribution.setup_requires, reqs)
+        with open(self.output, "w") as f:
+            for r in reqs:
+                f.write(r)
+                f.write('\n')
 
 class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.
@@ -318,6 +350,7 @@ if __name__ == "__main__":
             "build": build,
             "build_data": build_data,
             "clean": clean,
+            "list_requirements": list_requirements,
             "sdist": sdist,
             "update_model": update_model,
         },
