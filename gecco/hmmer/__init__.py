@@ -229,7 +229,7 @@ class PyHMMER(DomainAnnotator):
                 for hit in hits:
                     target_name = hit.name.decode('utf-8')
                     for domain in hit.domains:
-                        raw_acc = domain.alignment.hmm_accession
+                        raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
                         accession = self.hmm.relabel(raw_acc.decode('utf-8'))
                         entry = interpro.by_accession.get(accession)
 
