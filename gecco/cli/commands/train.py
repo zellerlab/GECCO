@@ -27,7 +27,6 @@ from .._utils import in_context, patch_showwarnings
 from ...model import FeatureTable, ClusterTable, Cluster
 from ...crf import ClusterCRF
 from ...refine import ClusterRefiner
-from ...hmmer import HMMER
 
 
 class Train(Command):  # noqa: D101

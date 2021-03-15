@@ -19,7 +19,6 @@ import pandas
 
 from ._base import Command, InvalidArgument, CommandExit
 from .._utils import numpy_error_context, in_context, patch_showwarnings
-from ...hmmer import HMMER
 
 
 class Embed(Command):  # noqa: D101

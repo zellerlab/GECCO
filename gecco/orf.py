@@ -17,7 +17,6 @@ import pyrodigal
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from ._base import BinaryRunner
 from .model import Gene, Protein, Strand
 
 if typing.TYPE_CHECKING:
