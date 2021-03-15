@@ -142,8 +142,8 @@ class Annotate(Command):  # noqa: D101
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
         task = self.progress.add_task(description=f"HMM annotation", unit="HMMs", total=len(hmms))
         for hmm in self.progress.track(hmms, task_id=task):
-            task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=1, unit="domains")
-            callback = lambda n, total: self.progress.update(task, advance=1, total=total)
+            task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains")
+            callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             features = PyHMMER(hmm, self.jobs).run(genes, progress=callback)
             self.success("Finished", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
