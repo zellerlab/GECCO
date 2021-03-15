@@ -109,6 +109,7 @@ class Cv(Command):  # noqa: D101
                 hint="positive or null integer"
             )
             self.features = self._check_flag("--features")
+            self.clusters = self._check_flag("--clusters")
             self.loto = self.args["loto"]
             self.output = self.args["--output"]
         except InvalidArgument:
@@ -149,13 +150,14 @@ class Cv(Command):  # noqa: D101
         return seqs
 
     def _loto_splits(self, seqs):
-        self.logger.info("Loading the clusters table")
+        self.info("Loading", "the clusters table")
         with open(self.clusters) as in_:
             table = ClusterTable.load(in_)
             index = { row.sequence_id: row.type for row in table }
             if len(index) != len(table):
                 raise ValueError("Training data contains several clusters per sequence")
 
+        self.info("Grouping", "sequences by cluster types")
         groups = []
         for cluster in seqs:
             ty = next((index[g.source.id] for g in cluster if g.source.id in index), None)
