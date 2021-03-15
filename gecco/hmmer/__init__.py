@@ -42,6 +42,7 @@ class HMM(typing.NamedTuple):
     version: str
     url: str
     path: str
+    size: int
     relabel_with: Optional[str] = None
     md5: Optional[str] = None
 
@@ -158,4 +159,8 @@ def embedded_hmms() -> Iterator[HMM]:
     for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
-        yield HMM(path=ini.replace(".ini", ".h3m"), **dict(cfg.items("hmm")))
+
+        args = dict(cfg.items("hmm"))
+        args["size"] = int(args["size"])
+
+        yield HMM(path=ini.replace(".ini", ".h3m"), **args)

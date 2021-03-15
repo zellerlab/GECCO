@@ -16,6 +16,7 @@ import signal
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
 import numpy
+import pyhmmer
 import rich.emoji
 import rich.progress
 from Bio import SeqIO
@@ -86,11 +87,14 @@ class Annotate(Command):  # noqa: D101
             if base.endswith(".gz"):
                 base, _ = os.path.splitext(base)
             base, _ = os.path.splitext(base)
+            with pyhmmer.plan7.HMMFile(path) as hmm_file:
+                size = sum(1 for _ in hmm_file)
             yield HMM(
                 id=base,
                 version="?",
                 url="?",
                 path=path,
+                size=size,
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
 

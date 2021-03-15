@@ -234,6 +234,7 @@ class build_data(setuptools.Command):
         # check the hashes are consistent
         if self.rebuild:
             self._rebuild_checksum(in_, local, cfg)
+            self._rebuild_size(in_, local, cfg)
         else:
             self._validate_checksum(local, options)
 
@@ -305,6 +306,11 @@ class build_data(setuptools.Command):
                 hasher.update(struct.pack("<I", hmm.checksum))
         return hasher.hexdigest()
 
+    def _size(self, path):
+        with HMMFile(path) as hmm_file:
+            size = sum(1 for _ in hmm_file)
+        return size
+
     def _validate_checksum(self, local, options):
         self.info(f"checking HMM/MD5 signature of {local}")
         md5 = self._checksum(local)
@@ -319,6 +325,13 @@ class build_data(setuptools.Command):
         cfg.set("hmm", "md5", self._checksum(local))
         with open(in_, "w") as f:
             cfg.write(f)
+
+    def _rebuild_size(self, in_, local, cfg):
+        self.info(f"updating HMM size in {in_}")
+        cfg.set("hmm", "size", str(self._size(local)))
+        with open(in_, "w") as f:
+            cfg.write(f)
+
 
 
 class build(_build):
