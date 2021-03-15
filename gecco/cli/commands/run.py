@@ -231,5 +231,8 @@ class Run(Annotate):  # noqa: D101
         except KeyboardInterrupt:
             self.error("Interrupted")
             return -signal.SIGINT
+        except Exception as err:
+            self.progress.stop()
+            raise
         else:
             return 0

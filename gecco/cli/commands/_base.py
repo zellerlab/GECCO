@@ -106,6 +106,7 @@ class Command(metaclass=abc.ABCMeta):
             rich.progress.TimeRemainingColumn(),
             console=rich.console.Console(file=self.stream, soft_wrap=True),
             disable=self.quiet > 0,
+            transient=True,
         )
         self.console = self.progress.console
 
