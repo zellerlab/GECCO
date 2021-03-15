@@ -5,7 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.0...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.1...master
+
+## [v0.6.1] - 2021-03-15
+[v0.6.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.0...v0.6.1
+### Fixed
+- Progress bar not being disabled by `-q` flag in CLI.
+- Fallback to using HMM name if accession is not available in `PyHMMER`.
+- Group genes by source contig and process them separately in `PyHMMER` to avoid bogus E-values.
+### Added
+- `psutil` dependency to get the number of physical CPU cores on the host machine.
+- Support for using an arbitrary mapping of positives to negatives in `gecco embed`.
+### Removed
+- Unused and outdated `HMMER` and `DomainRow` classes from `gecco.hmmer`.
 
 ## [v0.6.0] - 2021-02-28
 [v0.6.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.5...v0.6.0
@@ -15,7 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Updated internal InterPro catalog.
 ### Fixed
 - Features not being grouped together in `gecco cv` and `gecco train`
-  when provided with a feature table where rows were not sorted by 
+  when provided with a feature table where rows were not sorted by
   protein IDs.
 
 ## [v0.5.5] - 2021-02-28
