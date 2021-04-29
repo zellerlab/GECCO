@@ -2,8 +2,10 @@
 """
 
 import abc
+import contextlib
 import functools
 import importlib
+import locale
 import operator
 import typing
 from multiprocessing.pool import Pool
@@ -119,3 +121,15 @@ class OrderedPoolWrapper:
         results = self.inner.map(wrapped_func, wrapped_it)
         results.sort(key=operator.itemgetter(0))
         return list(map(operator.itemgetter(1), results))
+
+
+@contextlib.contextmanager
+def patch_locale(name: str):
+    """Create a context manager to locally change the locale in use.
+    """
+    lc = locale.setlocale(locale.LC_TIME)
+    try:
+        locale.setlocale(locale.LC_TIME, name)
+        yield
+    finally:
+        locale.setlocale(locale.LC_TIME, lc)

@@ -23,7 +23,7 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 from ._base import Dumpable
-from ._meta import requires
+from ._meta import requires, patch_locale
 
 
 __all__ = [
@@ -343,6 +343,9 @@ class Cluster:
         *misc_feature*.
 
         """
+        # store time of record creation
+        now = datetime.datetime.now()
+
         # NB(@althonos): we use inclusive 1-based ranges in the data model
         # but slicing expects 0-based ranges with exclusive ends
         bgc = self.source[self.start - 1 : self.end]
@@ -352,13 +355,14 @@ class Cluster:
         bgc.annotations = self.source.annotations.copy()
         bgc.annotations["topology"] = "linear"
         bgc.annotations["molecule_type"] = "DNA"
-        #bgc.annotations.setdefault("comment", []).append(f"Detected with GECCO v{__version__}")
+        with patch_locale("C"):
+            bgc.annotations['date'] = now.strftime("%d-%b-%Y").upper()
 
         # add GECCO-specific annotations as a structured comment
         structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
-            "creation_date": datetime.datetime.now().isoformat(),
+            "creation_date": now.isoformat(),
             "biosyn_class": ",".join(ty.name for ty in self.type.unpack()),
             "alkaloid_probability": self.type_probabilities.get(ProductType.Alkaloid, 0.0),
             "polyketide_probability": self.type_probabilities.get(ProductType.Polyketide, 0.0),
