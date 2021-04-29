@@ -144,39 +144,67 @@ class Command(metaclass=abc.ABCMeta):
 
     def error(self, message, *args, level=0):
         if self.quiet <= 2 and level <= self.verbose:
-            self.console.print(
-                *self._logprefix(),
-                "[bold red]FAIL[/]",
-                message,
-                *args,
-            )
+            if self.verbose <= 1:
+                self.console.print(
+                    "[bold red]x[/]",
+                    message,
+                    *args,
+                )
+            else:
+                self.console.print(
+                    *self._logprefix(),
+                    "[bold red]FAIL[/]",
+                    message,
+                    *args,
+                )
 
     def info(self, verb, *args, level=1):
         if self.quiet == 0 and level <= self.verbose:
-            self.console.print(
-                *self._logprefix(),
-                f"[bold blue]INFO[/]",
-                verb,
-                *args,
-            )
+            if self.verbose <= 1:
+                self.console.print(
+                    "[bold blue]i[/]",
+                    verb,
+                    *args,
+                )
+            else:
+                self.console.print(
+                    *self._logprefix(),
+                    f"[bold blue]INFO[/]",
+                    verb,
+                    *args,
+                )
 
     def success(self, verb, *args, level=1):
         if self.quiet == 0 and level <= self.verbose:
-            self.console.print(
-                *self._logprefix(),
-                f"[bold green]  OK[/]",
-                verb,
-                *args,
-            )
+            if self.verbose <= 1:
+                self.console.print(
+                    "[green]:heavy_check_mark:[/]",
+                    verb,
+                    *args,
+                )
+            else:
+                self.console.print(
+                    *self._logprefix(),
+                    f"[bold green]  OK[/]",
+                    verb,
+                    *args,
+                )
 
     def warn(self, verb, *args, level=0):
         if self.quiet <= 1 and level <= self.verbose:
-            self.console.print(
-                *self._logprefix(),
-                "[bold yellow]WARN[/]",
-                verb,
-                *args
-            )
+            if self.verbose <= 1:
+                self.console.print(
+                    "[bold yellow]![/]",
+                    verb,
+                    *args,
+                )
+            else:
+                self.console.print(
+                    *self._logprefix(),
+                    "[bold yellow]WARN[/]",
+                    verb,
+                    *args
+                )
 
     def _logprefix(self):
         return [
