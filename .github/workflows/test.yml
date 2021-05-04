@@ -43,7 +43,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
-      run: python -m pip install -U pip coverage wheel
+      run: python -m pip install -U pip coverage wheel numpy
     - name: List project dependencies
       run: python setup.py list_requirements
     - name: Install project dependencies
