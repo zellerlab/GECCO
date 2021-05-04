@@ -1,4 +1,4 @@
-<img align="right" width="180" height="180" src="static/gecco-square.png">
+<img align="right" width="180" height="180" src="https://raw.githubusercontent.com/zellerlab/GECCO/v0.6.2/static/gecco-square.png">
 
 # Hi, I'm GECCO!
 
