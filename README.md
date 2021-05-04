@@ -16,6 +16,7 @@ in genomic and metagenomic data using Conditional Random Fields (CRFs).
 [![Mirror](https://img.shields.io/badge/mirror-EMBL-009f4d?style=flat-square&maxAge=2678400)](https://git.embl.de/grp-zeller/GECCO/)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md)
 [![Issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
+[![Preprint](https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400)](https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1)
 
 ## 🔧 Installing GECCO
 
@@ -63,6 +64,15 @@ Additional parameters of interest are:
   number (and possibly length) of predictions, but reduce accuracy.
 
 <!-- ## 📖 Documentation -->
+
+## 🔖 Reference
+
+GECCO can be cited using the following preprint:
+
+> **Accurate de novo identification of biosynthetic gene clusters with GECCO**.
+> Laura M Carroll, Martin Larralde, Jonas Simon Fleck, Ruby Ponnudurai, Alessio Milanese, Elisa Cappio Barazzone, Georg Zeller.
+> bioRxiv 2021.05.03.442509; [doi:10.1101/2021.05.03.442509](https://doi.org/10.1101/2021.05.03.442509)
+
 
 ## 💭 Feedback
 
