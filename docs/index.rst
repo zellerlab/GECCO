@@ -4,7 +4,7 @@ GECCO
 *Biosynthetic Gene Cluster prediction with Conditional Random Fields.*
 
 
-|GitLabCI| |Coverage| |License| |Source| |Mirror| |Issues|
+|GitLabCI| |Coverage| |License| |Source| |Issues| |Preprint|
 
 .. |GitLabCI| image:: https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&logo=gitlab&style=flat-square&maxAge=600
    :target: https://git.embl.de/grp-zeller/GECCO/-/pipelines
@@ -23,6 +23,9 @@ GECCO
 
 .. |Issues| image:: https://img.shields.io/github/issues/zellerlab/GECCO.svg?logo=github&style=flat-square&maxAge=600
    :target: https://github.com/zellerlab/GECCO/issues
+
+.. |Preprint| image:: https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400&logo=arxiv
+   :target: https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1
 
 
 Overview
@@ -80,6 +83,16 @@ the input file):
   type.
 - ``{sequence}_cluster_{N}.gbk``: If any were found, a GenBank file per cluster,
   containing the cluster sequence annotated with its member proteins and domains.
+
+
+Reference
+---------
+
+GECCO can be cited using the following preprint:
+
+**Accurate de novo identification of biosynthetic gene clusters with GECCO**.
+Laura M Carroll, Martin Larralde, Jonas Simon Fleck, Ruby Ponnudurai, Alessio Milanese, Elisa Cappio Barazzone, Georg Zeller.
+bioRxiv 2021.05.03.442509; `doi:10.1101/2021.05.03.442509 <https://doi.org/10.1101/2021.05.03.442509>`_
 
 
 Feedback

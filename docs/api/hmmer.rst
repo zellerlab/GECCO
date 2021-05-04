@@ -13,8 +13,5 @@ Domain Annotation
 .. autoclass:: DomainAnnotator(object)
    :members:
 
-.. autoclass:: HMMER(DomainAnnotator)
-   :members:
-
 .. autoclass:: PyHMMER(DomainAnnotator)
    :members:

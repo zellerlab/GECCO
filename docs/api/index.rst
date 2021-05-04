@@ -51,7 +51,6 @@ Domain Annotation
 .. autosummary::
    :nosignatures:
 
-   HMMER
    PyHMMER
 
 BGC Detection
