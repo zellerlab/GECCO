@@ -1,0 +1,55 @@
+name: Changelog
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+
+  attach:
+    runs-on: ubuntu-latest
+    name: Attach HMM artifacts to GitHub releases page
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install build requirements
+      run: python -m pip install -r ci/requirements.txt
+    - name: Build new HMM artifacts
+      run: python setup.py build_data -f -r
+    - name: Compress Pfam HMM
+      run: gzip -c build/lib/gecco/hmmer/Pfam.h3m > Pfam.h3m.gz
+    - name: Compress Tigrfam HMM
+      run: gzip -c build/lib/gecco/hmmer/Tigrfam.h3m > Tigrfam.h3m.gz
+    - name: Upload HMM
+      uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            Pfam.h3m.gz
+            Tigrfam.h3m.gz
+
+  chandler:
+    environment: GitHub Releases
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+    - name: Set up Ruby 2.7
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: 2.7
+    - name: Install chandler gem
+      run: gem install chandler
+    - name: Update releases messages
+      run: chandler push --github=${{ github.repository }} --changelog="CHANGELOG.md"
+      env:
+        CHANDLER_GITHUB_API_TOKEN: ${{ secrets.CHANDLER_GITHUB_API_TOKEN }}
