@@ -18,7 +18,7 @@ from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, Na
 
 import numpy
 from Bio.Seq import Seq
-from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
+from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
@@ -357,6 +357,22 @@ class Cluster:
         bgc.annotations["molecule_type"] = "DNA"
         with patch_locale("C"):
             bgc.annotations['date'] = now.strftime("%d-%b-%Y").upper()
+
+        # add GECCO preprint as a reference
+        ref = Reference()
+        ref.title = "Accurate de novo identification of biosynthetic gene clusters with GECCO"
+        ref.journal = "bioRxiv (2021.05.03.442509)"
+        ref.comment = "doi:10.1101/2021.05.03.442509"
+        ref.authors = ", ".join([
+            "Laura M Carroll", 
+            "Martin Larralde", 
+            "Jonas Simon Fleck", 
+            "Ruby Ponnudurai", 
+            "Alessio Milanese", 
+            "Elisa Cappio Barazzone", 
+            "Georg Zeller"
+        ])
+        bgc.annotations.setdefault("references", []).append(ref)
 
         # add GECCO-specific annotations as a structured comment
         structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
