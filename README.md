@@ -27,7 +27,7 @@ PyPI, the Python Package Index.
 
 Use `pip` to install GECCO on your machine:
 ```console
-$ pip install https://github.com/zellerlab/GECCO/archive/master.zip
+$ pip install gecco-tool
 ```
 
 This will install GECCO, its dependencies, and the data needed to run

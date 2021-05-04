@@ -5,7 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.2...master
+
+## [v0.6.2] - 2021-05-04
+[v0.6.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.1...v0.6.2
+### Fixed
+- `gecco cv loto` crashing because of outdated code.
+### Changed
+- Logging-style prompt will only display if GECCO is running with `-vv` flag.
+### Added
+- GECCO bioRxiv paper reference to `Cluster.to_seq_record` output record.
 
 ## [v0.6.1] - 2021-03-15
 [v0.6.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.0...v0.6.1
