@@ -10,16 +10,17 @@ the Python Package Index. Contrary to other tools in the field
 (such as DeepBGC or AntiSMASH), it does not require any external binary.
 
 
-.. PyPi
-.. ^^^^
-..
-.. GECCO is hosted on the EMBL Git server, but the easiest way to install it is
-.. to download the latest release from its `PyPi repository <https://pypi.python.org/pypi/gecco>`_.
-.. It will install all dependencies then install the ``gecco`` module:
-..
-.. .. code:: console
-..
-.. 	$ pip install gecco
+PyPi
+^^^^
+
+GECCO is hosted on the EMBL Git server, but the easiest way to install it is
+to download the latest release from its `PyPi repository <https://pypi.python.org/pypi/gecco>`_.
+It will install all dependencies then install the ``gecco-tool`` package:
+
+.. code:: console
+
+    $ pip install gecco-tool
+
 
 .. Conda
 .. ^^^^^
@@ -36,11 +37,8 @@ the Python Package Index. Contrary to other tools in the field
 Git + ``pip``
 ^^^^^^^^^^^^^
 
-Until GECCO is released on PyPI, you can install it from the GitHub repository
-directly with ``pip``:
-
-.. If, for any reason, you prefer to download the library from the git repository,
-.. you can clone the repository and install the repository by running:
+If, for any reason, you prefer to download the library from the git repository,
+you can clone the repository and install the repository by running:
 
 .. code:: console
 
@@ -59,6 +57,6 @@ having properly installed all the dependencies):
 
 .. code:: console
 
-	$ git clone https://git.embl.de/grp-zeller/GECCO/
+	$ git clone https://github.com/zellerlab/GECCO/
 	$ cd GECCO
 	# python setup.py install
