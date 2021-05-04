@@ -52,7 +52,7 @@ GECCO with ``pip``:
 
 .. code:: console
 
-  $ pip install https://github.com/zellerlab/GECCO/archive/master.zip
+  $ pip install gecco-tool
 
 
 Predictions
