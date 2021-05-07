@@ -18,8 +18,10 @@ variables:
   before_script:
     - python -m pip install -U wheel coverage tqdm pyhmmer
   script:
+    - python setup.py list_requirements -s
+    - python -m pip install -U -r requirements.txt
     - python setup.py build_data --inplace bdist_wheel
-    - python -m pip install --find-links=dist gecco-tool[train]
+    - python -m pip install --find-links=dist --no-index gecco-tool[train]
     - python -m coverage run -p -m unittest discover -vv
   after_script:
     - python -m coverage combine
@@ -63,8 +65,8 @@ docs:
   dependencies:
     - test:python3.9
   before_script:
-    - pip install -U -r docs/requirements.txt
-    - pip install -U --find-links dist gecco-tool[train]
+    - python setup.py list_requirements -s
+    - pip install -U -r docs/requirements.txt -r requirements.txt
   script:
     - sphinx-build -b html docs public
   artifacts:

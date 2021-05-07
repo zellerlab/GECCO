@@ -140,6 +140,18 @@ class Command(metaclass=abc.ABCMeta):
         else:
             return value
 
+    def _on_import_error(
+        self,
+        subcommand: str,
+        e: ImportError
+    ) -> None:
+        import rich.traceback
+
+        self.error(f"The [bold blue]{subcommand}[/] subcommand requires optional dependency [bold blue]{e.name}[/]")
+        traceback = rich.traceback.Traceback.from_exception(type(e), e, e.__traceback__, extra_lines=0)
+        self.console.print(traceback)
+
+
     # -- Logging methods -----------------------------------------------------
 
     def error(self, message, *args, level=0):

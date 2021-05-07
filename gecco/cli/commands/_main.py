@@ -115,7 +115,7 @@ class Main(Command):
             try:
                 subcmd_cls = self._get_subcommand_by_name(subcmd_name)
             except ImportError as err:
-                self.error("The", repr(subcmd_name), "subcommand requires package", err.name)
+                self._on_import_error(subcmd_name, err)
                 return 1
 
             # exit if no known command was found
@@ -156,6 +156,9 @@ class Main(Command):
         except KeyboardInterrupt:
             self.error("Interrupted")
             return -signal.SIGINT
+        except ImportError as err:
+            self._on_import_error(subcmd_name, err)
+            return 1
         except Exception as e:
             import rich.traceback
 
