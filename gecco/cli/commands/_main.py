@@ -11,36 +11,48 @@ from typing import Mapping, Optional, Type
 
 import docopt
 import operator
-import pkg_resources
-import rich.traceback
 
 from ... import __version__
+from ..._meta import classproperty
 from .._utils import in_context, patch_showwarnings
 from . import __name__ as __parent__
 from ._base import Command, CommandExit, InvalidArgument
+
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
 
 
 class Main(Command):
     """The *main* command launched before processing subcommands.
     """
 
+    _entry_points_cache = None
+
+    @classproperty
+    def _entry_points(cls):
+        if cls._entry_points_cache is None:
+            cls._entry_points_cache = importlib_metadata.entry_points().get(__parent__, [])
+        return cls._entry_points_cache
+
     @classmethod
     def _get_subcommand_names(cls) -> Mapping[str, Type[Command]]:
-        return [cmd.name for cmd in pkg_resources.iter_entry_points(__parent__)]
+        return [cmd.name for cmd in cls._entry_points]
 
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
         commands = {}
-        for cmd in pkg_resources.iter_entry_points(__parent__):
+        for cmd in cls._entry_points:
             try:
                 commands[cmd.name] = cmd.load()
-            except pkg_resources.DistributionNotFound as err:
+            except Exception:
                 pass
         return commands
 
     @classmethod
     def _get_subcommand_by_name(cls, name: str) -> Optional[Type[Command]]:
-        for cmd in pkg_resources.iter_entry_points(__parent__):
+        for cmd in cls._entry_points:
             if cmd.name == name:
                 return cmd.load()
         return None
@@ -102,8 +114,8 @@ class Main(Command):
             subcmd_name = self.args["<cmd>"]
             try:
                 subcmd_cls = self._get_subcommand_by_name(subcmd_name)
-            except pkg_resources.DistributionNotFound as dnf:
-                self.error("The", repr(subcmd_name), "subcommand requires package", dnf.req)
+            except ImportError as err:
+                self.error("The", repr(subcmd_name), "subcommand requires package", err.name)
                 return 1
 
             # exit if no known command was found
@@ -145,6 +157,8 @@ class Main(Command):
             self.error("Interrupted")
             return -signal.SIGINT
         except Exception as e:
+            import rich.traceback
+
             self.error(
                 "An unexpected error occurred. Consider opening"
                 " a new issue on the bug tracker"
