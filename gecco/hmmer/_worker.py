@@ -1,5 +1,6 @@
 import ctypes
 import multiprocessing
+import os
 import queue
 import threading
 import typing
@@ -183,6 +184,6 @@ def hmmsearch(
 
     """
     # count the number of CPUs to use
-    _cpus = cpus if cpus > 0 else psutil.cpu_count(logical=False) or multiprocessing.cpu_count()
+    _cpus = cpus if cpus > 0 else psutil.cpu_count(logical=False) or os.cpu_count()
     runner = _HMMSearch(queries, contigs, _cpus, callback, **options)
     return runner.run()

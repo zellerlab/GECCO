@@ -3,7 +3,6 @@
 
 import abc
 import io
-import multiprocessing
 import os
 import queue
 import threading
@@ -133,7 +132,7 @@ class PyrodigalFinder(ORFFinder):
 
         """
         # count the number of CPUs to use
-        _cpus = self.cpus if self.cpus > 0 else multiprocessing.cpu_count()
+        _cpus = self.cpus if self.cpus > 0 else os.cpu_count()
 
         # create the queue to pass the objects around
         record_count = Value('i')
