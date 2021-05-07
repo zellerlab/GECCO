@@ -8,8 +8,6 @@ import typing
 import warnings
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Type, TextIO
 
-import numpy
-
 from .._meta import classproperty
 
 if typing.TYPE_CHECKING:
@@ -32,6 +30,7 @@ def patch_showwarnings(new_showwarning: "ShowWarning") -> Iterator[None]:
 
 @contextlib.contextmanager
 def numpy_error_context(
+    numpy,
     *,
     all: Optional[str] = None,
     divide: Optional[str] = None,
@@ -42,10 +41,11 @@ def numpy_error_context(
     """A context manager to modify the `numpy` error behaviour locally.
 
     Example:
-        >>> with numpy_error_context(divide="ignore"):
+        >>> import numpy
+        >>> with numpy_error_context(numpy, divide="ignore"):
         ...     numpy.log10(0)
         -inf
-        >>> with numpy_error_context(divide="raise"):
+        >>> with numpy_error_context(numpy, divide="raise"):
         ...     numpy.log10(0)
         Traceback (most recent call last):
           File "<stdin>", line 1, in <module>

@@ -134,6 +134,7 @@ class Embed(Command):  # noqa: D101
         bgc: "pandas.DataFrame",
     ) -> "pandas.DataFrame":
         import pandas
+        import numpy
 
         by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
         # cut the input in half to insert the bgc in the middle
@@ -156,7 +157,7 @@ class Embed(Command):  # noqa: D101
         embed = embed.reset_index(drop=True)
         embed = embed[embed["i_evalue"] < self.e_filter]
         # add additional columns based on info from BGC and non-BGC
-        with numpy_error_context(divide="ignore"):
+        with numpy_error_context(numpy, divide="ignore"):
             bgc_id = bgc["sequence_id"].values[0]
             sequence_id = no_bgc["sequence_id"].apply(lambda x: x).values[0]
             embed = embed.assign(sequence_id=sequence_id, BGC_id=bgc_id)
