@@ -4,21 +4,16 @@
 import contextlib
 import csv
 import itertools
-import logging
-import math
 import multiprocessing.pool
 import os
-import pickle
-import random
 import signal
 import typing
-import warnings
-
-import numpy
-import pandas
 
 from ._base import Command, InvalidArgument, CommandExit
 from .._utils import numpy_error_context, in_context, patch_showwarnings
+
+if typing.TYPE_CHECKING:
+    import pandas
 
 
 class Embed(Command):  # noqa: D101
@@ -79,10 +74,14 @@ class Embed(Command):  # noqa: D101
     # ---
 
     def _read_table(self, path: str) -> "pandas.DataFrame":
+        import pandas
+
         self.info("Reading", "table from", repr(path), level=2)
         return pandas.read_table(path, dtype={"domain": str})
 
     def _read_no_bgc(self):
+        import pandas
+
         self.info("Reading", "non-BGC features")
 
         # Read the non-BGC table and assign the Y column to `0`
@@ -101,6 +100,8 @@ class Embed(Command):  # noqa: D101
         ]
 
     def _read_bgc(self):
+        import pandas
+
         self.info("Reading", "BGC features")
 
         # Read the BGC table, assign the Y column to `1`
@@ -115,6 +116,8 @@ class Embed(Command):  # noqa: D101
         return [s for _, s in bgc_df.groupby("sequence_id", sort=True)]
 
     def _read_mapping(self):
+        import pandas
+
         if self.mapping is not None:
             mapping = pandas.read_table(self.mapping)
             return { t.bgc_id:t.sequence_id for t in mapping.itertuples() }
@@ -130,6 +133,8 @@ class Embed(Command):  # noqa: D101
         no_bgc: "pandas.DataFrame",
         bgc: "pandas.DataFrame",
     ) -> "pandas.DataFrame":
+        import pandas
+
         by_prots = [s for _, s in no_bgc.groupby("protein_id", sort=False)]
         # cut the input in half to insert the bgc in the middle
         index_half = len(by_prots) // 2
@@ -160,6 +165,8 @@ class Embed(Command):  # noqa: D101
         return embed
 
     def _make_embeddings(self, no_bgc_list, bgc_list, mapping):
+        import pandas
+
         self.info("Embedding", len(bgc_list), "BGCs into", len(no_bgc_list), "contigs")
         _jobs = os.cpu_count() if not self.jobs else self.jobs
 

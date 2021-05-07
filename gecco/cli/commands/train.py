@@ -5,28 +5,15 @@ import contextlib
 import csv
 import hashlib
 import io
-import itertools
-import logging
-import multiprocessing.pool
 import os
 import operator
 import pickle
-import random
 import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-import numpy
-import rich.progress
-import scipy.sparse
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-
 from ._base import Command, CommandExit, InvalidArgument
 from .._utils import in_context, patch_showwarnings
-from ...model import FeatureTable, ClusterTable, Cluster
-from ...crf import ClusterCRF
-from ...refine import ClusterRefiner
 
 
 class Train(Command):  # noqa: D101
@@ -151,6 +138,8 @@ class Train(Command):  # noqa: D101
                 break
 
     def _load_features(self):
+        from ...model import FeatureTable
+
         self.info("Loading", "features table from file", repr(self.features))
         with open(self.features) as in_:
             return FeatureTable.load(in_)
@@ -176,6 +165,8 @@ class Train(Command):  # noqa: D101
         return genes
 
     def _fit_model(self, genes):
+        from ...crf import ClusterCRF
+
         self.info("Creating" f"the CRF in {self.feature_type} mode", level=2)
         self.info("Using" f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
         crf = ClusterCRF(
@@ -222,6 +213,8 @@ class Train(Command):  # noqa: D101
                 writer.writerow([*attrs, weight])
 
     def _load_clusters(self, genes):
+        from ...model import ClusterTable, Cluster
+
         self.info("Loading", "clusters table from file", repr(self.clusters))
         index = { g.id: g for g in genes }
         with open(self.clusters) as f:
@@ -233,6 +226,9 @@ class Train(Command):  # noqa: D101
         return clusters
 
     def _save_domain_compositions(self, crf, clusters):
+        import numpy
+        import scipy.sparse
+
         self.info("Finding", "the array of possible protein domains", level=2)
         if crf.significant_features is not None:
             all_possible = sorted(crf.significant_features)

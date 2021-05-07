@@ -12,14 +12,8 @@ import random
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-import rich.progress
-import sklearn.model_selection
-
 from ._base import Command, CommandExit, InvalidArgument
-from .._utils import in_context, patch_showwarnings
-from ...model import ClusterTable, FeatureTable, ProductType
-from ...crf import ClusterCRF
-from ...crf.cv import LeaveOneGroupOut
+from .._utils import patch_showwarnings
 
 
 class Cv(Command):  # noqa: D101
@@ -118,6 +112,8 @@ class Cv(Command):  # noqa: D101
     # --
 
     def _load_features(self):
+        from ...model import FeatureTable
+
         self.info("Loading", "features table from file", repr(self.features))
         with open(self.features) as in_:
             return FeatureTable.load(in_)
@@ -150,6 +146,9 @@ class Cv(Command):  # noqa: D101
         return seqs
 
     def _loto_splits(self, seqs):
+        from ...crf.cv import LeaveOneGroupOut
+        from ...model import ClusterTable, ProductType
+
         self.info("Loading", "the clusters table")
         with open(self.clusters) as in_:
             table = ClusterTable.load(in_)
@@ -170,6 +169,7 @@ class Cv(Command):  # noqa: D101
         return list(LeaveOneGroupOut().split(seqs, groups=groups))
 
     def _kfold_splits(self, seqs):
+        import sklearn.model_selection
         return list(sklearn.model_selection.KFold(self.splits).split(seqs))
 
     def _get_train_data(self, train_indices, seqs):
@@ -184,6 +184,8 @@ class Cv(Command):  # noqa: D101
         return test_data
 
     def _fit_predict(self, train_data, test_data):
+        from ...crf import ClusterCRF
+
         # fit and predict the CRF for the current fold
         crf = ClusterCRF(
             self.feature_type,
@@ -196,6 +198,8 @@ class Cv(Command):  # noqa: D101
         return crf.predict_probabilities(test_data, cpus=self.jobs)
 
     def _write_fold(self, fold, genes, append=False):
+        from ...model import FeatureTable
+
         frame = FeatureTable.from_genes(genes).to_dataframe()
         with open(self.output, "a" if append else "w") as out:
             frame.assign(fold=fold).to_csv(out, header=not append, sep="\t", index=False)

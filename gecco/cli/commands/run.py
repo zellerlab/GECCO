@@ -15,20 +15,12 @@ import typing
 import signal
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-import numpy
 import rich.emoji
 import rich.progress
-from Bio import SeqIO
 
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
-from .._utils import guess_sequences_format, in_context, patch_showwarnings
-from ...crf import ClusterCRF
-from ...hmmer import PyHMMER, HMM, embedded_hmms
-from ...model import FeatureTable, ClusterTable, ProductType
-from ...orf import PyrodigalFinder
-from ...types import TypeClassifier
-from ...refine import ClusterRefiner
+from .._utils import patch_showwarnings
 
 
 class Run(Annotate):  # noqa: D101
@@ -119,6 +111,8 @@ class Run(Annotate):  # noqa: D101
                 break
 
     def _predict_probabilities(self, genes):
+        from ...crf import ClusterCRF
+
         if self.model is None:
             self.info("Loading", "embedded CRF pre-trained model", level=1)
         else:
@@ -134,6 +128,8 @@ class Run(Annotate):  # noqa: D101
         ))
 
     def _write_feature_table(self, genes):
+        from ...model import FeatureTable
+
         base, _ = os.path.splitext(os.path.basename(self.genome))
         pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
         self.info("Writing", "feature table to", repr(pred_out), level=1)
@@ -141,6 +137,8 @@ class Run(Annotate):  # noqa: D101
             FeatureTable.from_genes(genes).dump(f)
 
     def _extract_clusters(self, genes):
+        from ...refine import ClusterRefiner
+
         self.info("Extracting", "predicted biosynthetic regions", level=1)
         refiner = ClusterRefiner(self.threshold, self.postproc, self.cds)
 
@@ -156,6 +154,9 @@ class Run(Annotate):  # noqa: D101
         return clusters
 
     def _predict_types(self, clusters):
+        from ...model import ProductType
+        from ...types import TypeClassifier
+
         self.info("Predicting", "BGC types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"
@@ -178,6 +179,8 @@ class Run(Annotate):  # noqa: D101
         return clusters_new
 
     def _write_cluster_table(self, clusters):
+        from ...model import ClusterTable
+
         base, _ = os.path.splitext(os.path.basename(self.genome))
         cluster_out = os.path.join(self.output_dir, f"{base}.clusters.tsv")
         self.info("Writing", "cluster table to", repr(cluster_out), level=1)
@@ -185,6 +188,8 @@ class Run(Annotate):  # noqa: D101
             ClusterTable.from_clusters(clusters).dump(out)
 
     def _write_clusters(self, clusters):
+        from Bio import SeqIO
+
         for cluster in clusters:
             gbk_out = os.path.join(self.output_dir, f"{cluster.id}.gbk")
             self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)

@@ -15,20 +15,8 @@ import typing
 import signal
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-import numpy
-import pyhmmer
-import rich.emoji
-import rich.progress
-from Bio import SeqIO
-
 from ._base import Command, CommandExit, InvalidArgument
 from .._utils import guess_sequences_format, in_context, patch_showwarnings
-from ...crf import ClusterCRF
-from ...hmmer import PyHMMER, HMM, embedded_hmms
-from ...model import FeatureTable, ClusterTable, ProductType
-from ...orf import PyrodigalFinder
-from ...types import TypeClassifier
-from ...refine import ClusterRefiner
 
 
 class Annotate(Command):  # noqa: D101
@@ -82,6 +70,9 @@ class Annotate(Command):  # noqa: D101
             raise CommandExit(1)
 
     def _custom_hmms(self):
+        import pyhmmer
+        from ...hmmer import HMM
+
         for path in self.hmm:
             base = os.path.basename(path)
             if base.endswith(".gz"):
@@ -101,6 +92,8 @@ class Annotate(Command):  # noqa: D101
     # ---
 
     def _load_sequences(self):
+        from Bio import SeqIO
+
         if self.format is not None:
             format = self.format
             self.info("Using", "user-provided sequence format", repr(format), level=2)
@@ -123,6 +116,8 @@ class Annotate(Command):  # noqa: D101
             return sequences
 
     def _extract_genes(self, sequences):
+        from ...orf import PyrodigalFinder
+
         self.info("Extracting", "genes from input sequences", level=1)
         orf_finder = PyrodigalFinder(metagenome=True, cpus=self.jobs)
 
@@ -136,6 +131,8 @@ class Annotate(Command):  # noqa: D101
         return list(orf_finder.find_genes(sequences, progress=callback))
 
     def _annotate_domains(self, genes):
+        from ...hmmer import PyHMMER, embedded_hmms
+
         self.info("Running", "HMMER domain annotation", level=1)
 
         # Run all HMMs over ORFs to annotate with protein domains
@@ -171,6 +168,8 @@ class Annotate(Command):  # noqa: D101
         return genes
 
     def _write_feature_table(self, genes):
+        from ...model import FeatureTable
+
         self.info("Writing", "feature table to", repr(self.output), level=1)
         with open(self.output, "w") as f:
             FeatureTable.from_genes(genes).dump(f)
