@@ -141,7 +141,7 @@ class Annotate(Command):  # noqa: D101
         # Run all HMMs over ORFs to annotate with protein domains
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
         task = self.progress.add_task(description=f"HMM annotation", unit="HMMs", total=len(hmms))
-        for hmm in self.progress.track(hmms, task_id=task):
+        for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
             task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)

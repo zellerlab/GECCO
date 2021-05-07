@@ -129,7 +129,7 @@ class Run(Annotate):  # noqa: D101
         unit = "genes" if len(genes) > 1 else "gene"
         task = self.progress.add_task("Prediction", total=len(genes), unit=unit)
         return list(crf.predict_probabilities(
-            self.progress.track(genes, task_id=task),
+            self.progress.track(genes, task_id=task, total=len(genes)),
             cpus=self.jobs
         ))
 
