@@ -22,17 +22,17 @@ It will install all dependencies then install the ``gecco-tool`` package:
     $ pip install gecco-tool
 
 
-.. Conda
-.. ^^^^^
-..
-.. GECCO is also available as a `recipe <https://anaconda.org/bioconda/GECCO>`_
-.. in the `bioconda <https://bioconda.github.io/>`_ channel. To install, simply
-.. use the `conda` installer:
-..
-.. .. code:: console
-..
-.. 	 $ conda install -c bioconda GECCO
-..
+Conda
+^^^^^
+
+GECCO is also available as a `recipe <https://anaconda.org/bioconda/GECCO>`_
+in the `Bioconda <https://bioconda.github.io/>`_ channel. To install, simply
+use the `conda` installer:
+
+.. code:: console
+
+	 $ conda install -c bioconda GECCO
+
 
 Git + ``pip``
 ^^^^^^^^^^^^^

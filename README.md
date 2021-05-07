@@ -18,6 +18,7 @@ in genomic and metagenomic data using Conditional Random Fields (CRFs).
 [![Issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
 [![Preprint](https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400)](https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1)
 [![PyPI](https://img.shields.io/pypi/v/gecco-tool.svg?style=flat-square&maxAge=3600)](https://pypi.python.org/pypi/gecco-tool)
+[![Bioconda](https://img.shields.io/conda/vn/bioconda/gecco?style=flat-square&maxAge=3600)](https://anaconda.org/bioconda/gecco)
 [![Versions](https://img.shields.io/pypi/pyversions/gecco-tool.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-tool/#files)
 [![Wheel](https://img.shields.io/pypi/wheel/gecco-tool?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-tool/#files)
 
@@ -27,17 +28,25 @@ in genomic and metagenomic data using Conditional Random Fields (CRFs).
 GECCO is implemented in [Python](https://www.python.org/), and supports [all
 versions](https://endoflife.date/python) from Python 3.6. It requires
 additional libraries that can be installed directly from
-PyPI, the Python Package Index.
+[PyPI](https://pypi.org), the Python Package Index.
 
-Use `pip` to install GECCO on your machine:
+Use [`pip`](https://pip.pypa.io/en/stable/) to install GECCO on your
+machine:
 ```console
 $ pip install gecco-tool
 ```
 
+If you'd rather use [Conda](https://conda.io), a package is available
+in the [`bioconda`](https://bioconda.github.io/) channel. You can install
+with:
+```console
+$ conda install -c bioconda gecco
+```
+
 This will install GECCO, its dependencies, and the data needed to run
 predictions. This requires around 100MB of data to be downloaded, so
-it could take some time depending on your connection. Once done, you will
-have a ``gecco`` command available in your $PATH.
+it could take some time depending on your Internet connection. Once done, you
+will have a ``gecco`` command available in your $PATH.
 
 *Note that GECCO uses [HMMER3](http://hmmer.org/), which can only run
 on PowerPC and and recent x86-64 machines running a POSIX operating system.
@@ -67,7 +76,6 @@ Additional parameters of interest are:
   considered part of a BGC region. Using a lower number will increase the
   number (and possibly length) of predictions, but reduce accuracy.
 
-<!-- ## 📖 Documentation -->
 
 ## 🔖 Reference
 

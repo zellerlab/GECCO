@@ -3,8 +3,7 @@ GECCO
 
 *Biosynthetic Gene Cluster prediction with Conditional Random Fields.*
 
-
-|GitLabCI| |Coverage| |License| |Source| |Issues| |Preprint|
+|GitLabCI| |License| |Coverage| |Source| |Mirror| |Issues| |Preprint| |PyPI| |Bioconda| |Versions| |Wheel|
 
 .. |GitLabCI| image:: https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&logo=gitlab&style=flat-square&maxAge=600
    :target: https://git.embl.de/grp-zeller/GECCO/-/pipelines
@@ -26,6 +25,18 @@ GECCO
 
 .. |Preprint| image:: https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400&logo=arxiv
    :target: https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/gecco-tool.svg?style=flat-square&maxAge=3600&logo=pypi
+   :target: https://pypi.python.org/pypi/gecco-tool
+
+.. |Bioconda| image:: https://img.shields.io/conda/vn/bioconda/gecco?logo=anaconda&style=flat-square&maxAge=3600
+   :target: https://anaconda.org/bioconda/gecco
+
+.. |Versions| image:: https://img.shields.io/pypi/pyversions/gecco-tool.svg?style=flat-square&maxAge=3600
+   :target: https://pypi.org/project/gecco-tool/#files
+
+.. |Wheel| image:: https://img.shields.io/pypi/wheel/gecco-tool?style=flat-square&maxAge=3600
+   :target: https://pypi.org/project/gecco-tool/#files
 
 
 Overview
@@ -53,6 +64,12 @@ GECCO with ``pip``:
 .. code:: console
 
   $ pip install gecco-tool
+
+Or with Conda, using the `bioconda` channel:
+
+.. code::
+
+  $ conda install -c bioconda gecco
 
 
 Predictions
