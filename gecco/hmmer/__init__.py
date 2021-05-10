@@ -1,6 +1,7 @@
 """Compatibility wrapper for HMMER binaries and output.
 """
 import abc
+import atexit
 import collections
 import configparser
 import contextlib
@@ -152,11 +153,22 @@ class PyHMMER(DomainAnnotator):
 def embedded_hmms() -> Iterator[HMM]:
     """Iterate over the embedded HMMs that are shipped with GECCO.
     """
-    for ini in importlib_resources.files(__name__).glob("*.ini"):
-        cfg = configparser.ConfigParser()
-        cfg.read(ini)
+    for filename in importlib_resources.contents(__name__):
 
+        if not filename.endswith(".ini"):
+            continue
+
+        ini_ctx = importlib_resources.path(__name__, filename)
+        ini_path = ini_ctx.__enter__()
+        atexit.register(ini_ctx.__exit__, None, None, None)
+
+        cfg = configparser.ConfigParser()
+        cfg.read(ini_path)
         args = dict(cfg.items("hmm"))
         args["size"] = int(args["size"])
 
-        yield HMM(path=os.fspath(ini.with_suffix(".h3m")), **args)
+        hmm_ctx = importlib_resources.path(__name__, filename.replace(".ini", ".h3m"))
+        hmm_path = hmm_ctx.__enter__()
+        atexit.register(hmm_ctx.__exit__, None, None, None)
+
+        yield HMM(path=os.fspath(hmm_path), **args)
