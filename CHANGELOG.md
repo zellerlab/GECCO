@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.3...master
+
+## [v0.6.3] - 2021-05-10
+[v0.6.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.2...v0.6.3
+### Fixed
+- HMMER annotation not properly handling inputs with multiple contigs.
+- Some progress bar totals displaying as floats in the CLI.
+### Changed
+- `PyHMMER` now sets the `Z` and `domZ` values from the number of proteins given to the search pipeline.
+- `gecco.cli` delegates imports to make CLI more responsive.
+- `pkg_resources` has been replaced with `importlib.resources` and `importlib.metadata` where applicable.
+- `multiprocessing.cpu_count` has been replaced with `os.cpu_count` where applicable.
 
 ## [v0.6.2] - 2021-05-04
 [v0.6.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.1...v0.6.2
