@@ -31,7 +31,6 @@ from typing import (
 
 import numpy
 import tqdm
-import pkg_resources
 import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
@@ -42,6 +41,10 @@ from . import features
 from .cv import LeaveOneGroupOut
 from .select import fisher_significance
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
 
 __all__ = ["ClusterCRF"]
 
@@ -69,25 +72,23 @@ class ClusterCRF(object):
         """
         # get the path to the pickled model and read its signature file
         if model_path is not None:
-            pkl_path = os.path.join(model_path, "model.pkl")
-            md5_path = os.path.join(model_path, "model.pkl.md5")
+            pkl_file = os.path.join(model_path, "model.pkl")
+            md5_file = os.path.join(model_path, "model.pkl.md5")
         else:
-            pkl_path = pkg_resources.resource_filename(__name__, "model.pkl")
-            md5_path = pkg_resources.resource_filename(__name__, "model.pkl.md5")
-        with open(md5_path) as sig:
+            pkl_file = importlib_resources.open_binary(__name__, "model.pkl")
+            md5_file = importlib_resources.open_text(__name__, "model.pkl.md5")
+        with md5_file as sig:
             signature = sig.read().strip()
 
         # check the file content matches its MD5 hashsum
         hasher = hashlib.md5()
-        with open(pkl_path, "rb") as bin:
+        with pkl_file as bin:
             read = functools.partial(bin.read, io.DEFAULT_BUFFER_SIZE)
             for chunk in iter(read, b""):
                 hasher.update(typing.cast(bytes, chunk))
-        if hasher.hexdigest().upper() != signature.upper():
-            raise ValueError("MD5 hash of model data does not match signature")
-
-        # load the pickled model if the data matches the hashsum
-        with open(pkl_path, "rb") as bin:
+            if hasher.hexdigest().upper() != signature.upper():
+                raise ValueError("MD5 hash of model data does not match signature")
+            pkl_file.seek(0)
             return pickle.load(bin)  # type: ignore
 
     def __init__(

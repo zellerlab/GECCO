@@ -15,7 +15,6 @@ import tempfile
 import typing
 from typing import Callable, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
-import pkg_resources
 import pyhmmer
 from Bio import SeqIO
 from pyhmmer.hmmer import hmmsearch
@@ -24,6 +23,10 @@ from .._meta import requires
 from ..model import Gene, Domain
 from ..interpro import InterPro
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
 
 __all__ = ["DomainAnnotator", "HMM", "PyHMMER", "embedded_hmms"]
 
@@ -149,11 +152,11 @@ class PyHMMER(DomainAnnotator):
 def embedded_hmms() -> Iterator[HMM]:
     """Iterate over the embedded HMMs that are shipped with GECCO.
     """
-    for ini in glob.glob(pkg_resources.resource_filename(__name__, "*.ini")):
+    for ini in importlib_resources.files(__name__).glob("*.ini"):
         cfg = configparser.ConfigParser()
         cfg.read(ini)
 
         args = dict(cfg.items("hmm"))
         args["size"] = int(args["size"])
 
-        yield HMM(path=ini.replace(".ini", ".h3m"), **args)
+        yield HMM(path=os.fspath(ini.with_suffix(".h3m")), **args)

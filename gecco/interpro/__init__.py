@@ -6,7 +6,10 @@ import json
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-import pkg_resources
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
 
 
 __all__ = ["InterProEntry", "InterPro"]
@@ -39,7 +42,7 @@ class InterPro:
 
     @classmethod
     def load(cls) -> "InterPro":
-        with pkg_resources.resource_stream(__name__, "interpro.json.gz") as f:
+        with importlib_resources.open_binary(__name__, "interpro.json.gz") as f:
             data = json.load(gzip.open(f, mode="rt"))
             entries = [ InterProEntry(**entry["metadata"]) for entry in data ]
         return cls(entries)

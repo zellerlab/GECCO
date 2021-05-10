@@ -9,13 +9,16 @@ import typing
 from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy
-import pkg_resources
 import scipy.sparse
 import sklearn.ensemble
 import sklearn.preprocessing
 
 from ..model import ProductType, Cluster
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
 
 __all__ = ["TypeBinarizer", "TypeClassifier"]
 
@@ -63,21 +66,22 @@ class TypeClassifier(object):
         """
 
         if model_path is not None:
-            doms_path = os.path.join(model_path, "domains.tsv")
-            typs_path = os.path.join(model_path, "types.tsv")
-            comp_path = os.path.join(model_path, "compositions.npz")
+            doms_file = open(os.path.join(model_path, "domains.tsv"))
+            typs_file = open(os.path.join(model_path, "types.tsv"))
+            comp_file = open(os.path.join(model_path, "compositions.npz"), "rb")
         else:
-            doms_path = pkg_resources.resource_filename(__name__, "domains.tsv")
-            typs_path = pkg_resources.resource_filename(__name__, "types.tsv")
-            comp_path = pkg_resources.resource_filename(__name__, "compositions.npz")
+            doms_file = importlib_resources.open_text(__name__, "domains.tsv")
+            typs_file = importlib_resources.open_text(__name__, "types.tsv")
+            comp_file = importlib_resources.open_binary(__name__, "compositions.npz")
 
-        compositions = scipy.sparse.load_npz(comp_path)
-        with open(doms_path, "r") as src:
-            domains = [ line.strip() for line in src ]
-        with open(typs_path, "r") as src:
+        with comp_file as comp_src:
+            compositions = scipy.sparse.load_npz(comp_src)
+        with doms_file as doms_src:
+            domains = [ line.strip() for line in doms_src ]
+        with typs_file as typs_src:
             types = [
                 ProductType.pack(ProductType.__members__[ty] for ty in raw.split(";"))
-                for raw in (line.split("\t")[1].strip() for line in src)
+                for raw in (line.split("\t")[1].strip() for line in typs_src)
             ]
 
         classifier = cls(random_state=0)
