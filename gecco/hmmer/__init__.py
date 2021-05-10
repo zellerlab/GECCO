@@ -18,20 +18,14 @@ from typing import Callable, Dict, Optional, Iterable, Iterator, List, Mapping, 
 import pkg_resources
 import pyhmmer
 from Bio import SeqIO
+from pyhmmer.hmmer import hmmsearch
 
-from ._worker import hmmsearch
 from .._meta import requires
 from ..model import Gene, Domain
 from ..interpro import InterPro
 
 
-if typing.TYPE_CHECKING:
-    from Bio.SeqRecord import SeqRecord
-
-    _T = typing.TypeVar("_T", bound="DomainRow")
-
-
-__all__ = ["DomainRow", "HMM", "HMMER", "PyHMMER", "embedded_hmms"]
+__all__ = ["DomainAnnotator", "HMM", "PyHMMER", "embedded_hmms"]
 
 
 class HMM(typing.NamedTuple):
@@ -100,28 +94,27 @@ class PyHMMER(DomainAnnotator):
         # collect genes and build an index of genes by protein id
         gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
 
-        # group genes by contig
-        by_source  = collections.defaultdict(list)
-        for gene in gene_index.values():
-            by_source[gene.source.id].append(gene)
-
-        # convert to Easel sequences, grouped by contig
+        # convert proteins to Easel sequences
         esl_abc = pyhmmer.easel.Alphabet.amino()
         esl_sqs = [
-            [
-                pyhmmer.easel.TextSequence(
-                    name=gene.protein.id.encode(),
-                    sequence=str(gene.protein.seq)
-                ).digitize(esl_abc)
-                for gene in contig_genes
-            ]
-            for contig_genes in by_source.values()
+            pyhmmer.easel.TextSequence(
+                name=gene.protein.id.encode(),
+                sequence=str(gene.protein.seq)
+            ).digitize(esl_abc)
+            for gene in genes
         ]
 
-        # Run HMMER subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
+        # Run search pipeline using the HMM
         with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
             cpus = 0 if self.cpus is None else self.cpus
-            hmms_hits = hmmsearch(hmm_file, esl_sqs, cpus=cpus, callback=progress)
+            hmms_hits = hmmsearch(
+                hmm_file,
+                esl_sqs,
+                cpus=cpus,
+                callback=progress,
+                Z=len(esl_sqs),
+                domZ=len(esl_sqs)
+            )
 
             # Load InterPro metadata for the annotation
             interpro = InterPro.load()
