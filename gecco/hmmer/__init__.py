@@ -143,8 +143,9 @@ class PyHMMER(DomainAnnotator):
 
                     # add the domain to the protein domains of the right gene
                     assert domain.env_from < domain.env_to
-                    domain = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
-                    gene_index[target_name].protein.domains.append(domain)
+                    assert domain.i_evalue >= 0
+                    d = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
+                    gene_index[target_name].protein.domains.append(d)
 
         # return the updated list of genes that was given in argument
         return list(gene_index.values())
