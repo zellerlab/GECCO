@@ -49,11 +49,13 @@ class Run(Annotate):  # noqa: D101
                                           Biopython format string. GECCO is able
                                           to recognize FASTA and GenBank files
                                           automatically if this is not given.
-            -o <out>, --output-dir <out>  the directory in which to write the
-                                          output files. [default: .]
             -j <jobs>, --jobs <jobs>      the number of CPUs to use for
                                           multithreading. Use 0 to use all of the
                                           available CPUs. [default: 0]
+
+        Parameters - Output:
+            -o <out>, --output-dir <out>  the directory in which to write the
+                                          output files. [default: .]
             --antismash-sideload          write an AntiSMASH v6 sideload JSON
                                           file next to the output files.
 
@@ -111,7 +113,10 @@ class Run(Annotate):  # noqa: D101
 
         # Check if output files already exist
         base, _ = os.path.splitext(os.path.basename(self.genome))
-        for ext in ["features.tsv", "clusters.tsv"]:
+        output_exts = ["features.tsv", "clusters.tsv"]
+        if self.antismash_sideload:
+            output_exts.append("sideload.json")
+        for ext in output_exts:
             if os.path.isfile(os.path.join(self.output_dir, f"{base}.{ext}")):
                 self.warn("Output folder contains files that will be overwritten")
                 break
