@@ -165,7 +165,7 @@ class Main(Command):
             self.error(
                 "An unexpected error occurred. Consider opening"
                 " a new issue on the bug tracker"
-                " (https://github.com/zellerlab/GECCO/issues/new) if"
+                " ( https://github.com/zellerlab/GECCO/issues/new ) if"
                 " it persists, including the traceback below:"
             )
             traceback = rich.traceback.Traceback.from_exception(type(e), e, e.__traceback__)
