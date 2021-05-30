@@ -5,6 +5,7 @@ import contextlib
 import errno
 import glob
 import itertools
+import json
 import logging
 import multiprocessing
 import operator
@@ -18,9 +19,11 @@ from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 import rich.emoji
 import rich.progress
 
+from ... import __version__
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 from .._utils import patch_showwarnings
+from ...model import ProductType
 
 
 class Run(Annotate):  # noqa: D101
@@ -51,6 +54,8 @@ class Run(Annotate):  # noqa: D101
             -j <jobs>, --jobs <jobs>      the number of CPUs to use for
                                           multithreading. Use 0 to use all of the
                                           available CPUs. [default: 0]
+            --antismash-sideload          write an AntiSMASH v6 sideload JSON
+                                          file next to the output files.
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -89,6 +94,7 @@ class Run(Annotate):  # noqa: D101
             self.model = self._check_flag("--model")
             self.hmm = self._check_flag("--hmm")
             self.output_dir = self._check_flag("--output-dir")
+            self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -195,6 +201,52 @@ class Run(Annotate):  # noqa: D101
             self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
             SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
+    def _write_sideload_json(self, clusters):
+        data = {
+            "records": [],
+            "tool": {
+                "name": "GECCO",
+                "version": __version__,
+                "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
+                "configuration": {
+                    "--cds": self.cds,
+                    "--e-filter": self.e_filter,
+                    "--postproc": self.postproc,
+                    "--jobs": self.jobs,
+                    "--threshold": self.threshold,
+                    "--model": self.model,
+                    "--hmm": self.hmm,
+                }
+            }
+        }
+
+        for seq_id, seq_clusters in itertools.groupby(clusters, key=lambda cluster: cluster.source.id):
+            data["records"].append({"name": seq_id, "subregions": []})
+            for cluster in seq_clusters:
+                ty = ";".join(sorted(ty.name for ty in cluster.type.unpack())) or "Unknown"
+                data["records"][-1]["subregions"].append({
+                    "start": cluster.start,
+                    "end": cluster.end,
+                    "label": ty,
+                    "details": {
+                        "average_p": cluster.average_probability,
+                        "max_p": cluster.maximum_probability,
+                        "alkaloid_probability": cluster.type_probabilities.get(ProductType.Alkaloid, 0.0),
+                        "polyketide_probability": cluster.type_probabilities.get(ProductType.Polyketide, 0.0),
+                        "ripp_probability": cluster.type_probabilities.get(ProductType.RiPP, 0.0),
+                        "saccharide_probability": cluster.type_probabilities.get(ProductType.Saccharide, 0.0),
+                        "terpene_probability": cluster.type_probabilities.get(ProductType.Terpene, 0.0),
+                        "nrp_probability": cluster.type_probabilities.get(ProductType.NRP, 0.0),
+                        "other_probability": cluster.type_probabilities.get(ProductType.Other, 0.0),
+                    }
+                })
+
+        base, _ = os.path.splitext(os.path.basename(self.genome))
+        sideload_out = os.path.join(self.output_dir, f"{base}.sideload.json")
+        self.info("Writing", "sideload JSON to", repr(sideload_out), level=1)
+        with open(sideload_out, "w") as out:
+            json.dump(data, out, sort_keys=True, indent=4)
+
     # ---
 
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
@@ -230,6 +282,8 @@ class Run(Annotate):  # noqa: D101
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
             self._write_cluster_table(clusters)
             self._write_clusters(clusters)
+            if self.antismash_sideload:
+                self._write_sideload_json(clusters)
             self.success("Found", len(clusters), "biosynthetic gene clusters", level=0)
         except CommandExit as cexit:
             return cexit.code
