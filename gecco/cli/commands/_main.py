@@ -88,9 +88,9 @@ class Main(Command):
                                        for a given subcommand.
             -q, --quiet                silence any output other than errors
                                        (-qq silences everything).
-            -v, --verbose              increase verbosity (-v is minimal,
-                                       -vv is verbose, and -vvv shows
-                                       debug information).
+            -v, --verbose              increase verbosity (-v is verbose,
+                                       -vv is very verbose and makes the
+                                       output more suitable for logging).
             -V, --version              show the program version and exit.
 
         """
