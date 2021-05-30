@@ -16,6 +16,7 @@ from collections.abc import Sized
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
 
+import Bio
 import numpy
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
@@ -164,7 +165,15 @@ class Protein:
         """Convert the protein to a single record.
         """
         # FIXME: add domains
-        return SeqRecord(self.seq, id=self.id, name=self.id)
+        record = SeqRecord(self.seq, id=self.id, name=self.id)
+
+        biopython_version = tuple(map(int, Bio.__version__.split(".")))
+        if biopython_version < (1, 77):
+            from Bio import Alphabet
+
+            record.seq.alphabet = Alphabet.generic_protein
+
+        return record
 
 
 @dataclass
@@ -358,18 +367,24 @@ class Cluster:
         with patch_locale("C"):
             bgc.annotations['date'] = now.strftime("%d-%b-%Y").upper()
 
+        biopython_version = tuple(map(int, Bio.__version__.split(".")))
+        if biopython_version < (1, 77):
+            from Bio import Alphabet
+
+            bgc.seq.alphabet = Alphabet.generic_dna
+
         # add GECCO preprint as a reference
         ref = Reference()
         ref.title = "Accurate de novo identification of biosynthetic gene clusters with GECCO"
         ref.journal = "bioRxiv (2021.05.03.442509)"
         ref.comment = "doi:10.1101/2021.05.03.442509"
         ref.authors = ", ".join([
-            "Laura M Carroll", 
-            "Martin Larralde", 
-            "Jonas Simon Fleck", 
-            "Ruby Ponnudurai", 
-            "Alessio Milanese", 
-            "Elisa Cappio Barazzone", 
+            "Laura M Carroll",
+            "Martin Larralde",
+            "Jonas Simon Fleck",
+            "Ruby Ponnudurai",
+            "Alessio Milanese",
+            "Elisa Cappio Barazzone",
             "Georg Zeller"
         ])
         bgc.annotations.setdefault("references", []).append(ref)
