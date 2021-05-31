@@ -207,6 +207,7 @@ class Run(Annotate):  # noqa: D101
             SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
     def _write_sideload_json(self, clusters):
+        # record version and important parameters
         data = {
             "records": [],
             "tool": {
@@ -214,17 +215,19 @@ class Run(Annotate):  # noqa: D101
                 "version": __version__,
                 "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
                 "configuration": {
-                    "--cds": self.cds,
-                    "--e-filter": self.e_filter,
-                    "--postproc": self.postproc,
-                    "--jobs": self.jobs,
-                    "--threshold": self.threshold,
-                    "--model": self.model,
-                    "--hmm": self.hmm,
+                    "cds": repr(self.cds),
+                    "e-filter": repr(self.e_filter),
+                    "postproc": repr(self.postproc),
+                    "threshold": repr(self.threshold),
                 }
             }
         }
-
+        # record if non-standard HMM or model was used
+        if self.hmm:
+            data["tool"]["configuration"]["hmm"] = list(self.hmm)
+        if self.model:
+            data["tool"]["configuration"]["model"] = self.model
+        # create a record per sequence
         for seq_id, seq_clusters in itertools.groupby(clusters, key=lambda cluster: cluster.source.id):
             data["records"].append({"name": seq_id, "subregions": []})
             for cluster in seq_clusters:
@@ -234,18 +237,18 @@ class Run(Annotate):  # noqa: D101
                     "end": cluster.end,
                     "label": ty,
                     "details": {
-                        "average_p": cluster.average_probability,
-                        "max_p": cluster.maximum_probability,
-                        "alkaloid_probability": cluster.type_probabilities.get(ProductType.Alkaloid, 0.0),
-                        "polyketide_probability": cluster.type_probabilities.get(ProductType.Polyketide, 0.0),
-                        "ripp_probability": cluster.type_probabilities.get(ProductType.RiPP, 0.0),
-                        "saccharide_probability": cluster.type_probabilities.get(ProductType.Saccharide, 0.0),
-                        "terpene_probability": cluster.type_probabilities.get(ProductType.Terpene, 0.0),
-                        "nrp_probability": cluster.type_probabilities.get(ProductType.NRP, 0.0),
-                        "other_probability": cluster.type_probabilities.get(ProductType.Other, 0.0),
+                        "average_p": f"{cluster.average_probability:.3f}",
+                        "max_p": f"{cluster.maximum_probability:.3f}",
+                        "alkaloid_probability": f"{cluster.type_probabilities.get(ProductType.Alkaloid, 0.0):.3f}",
+                        "polyketide_probability": f"{cluster.type_probabilities.get(ProductType.Polyketide, 0.0):.3f}",
+                        "ripp_probability": f"{cluster.type_probabilities.get(ProductType.RiPP, 0.0):.3f}",
+                        "saccharide_probability": f"{cluster.type_probabilities.get(ProductType.Saccharide, 0.0):.3f}",
+                        "terpene_probability": f"{cluster.type_probabilities.get(ProductType.Terpene, 0.0):.3f}",
+                        "nrp_probability": f"{cluster.type_probabilities.get(ProductType.NRP, 0.0):.3f}",
+                        "other_probability": f"{cluster.type_probabilities.get(ProductType.Other, 0.0):.3f}",
                     }
                 })
-
+        # write the JSON file to the output folder
         base, _ = os.path.splitext(os.path.basename(self.genome))
         sideload_out = os.path.join(self.output_dir, f"{base}.sideload.json")
         self.info("Writing", "sideload JSON to", repr(sideload_out), level=1)
