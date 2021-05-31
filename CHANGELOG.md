@@ -5,7 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.3...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.7.0...master
+
+## [v0.7.0] - 2021-05-31
+[v0.7.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.3...v0.7.0
+### Added
+- Support for writing an AntiSMASH sideload JSON file after a `gecco run` workflow.
+- Code for converting GenBank files in BiG-SLiCE compatible format with the `gecco convert` subcommand.
+- Documentation about using GECCO in combination with AntiSMASH or BiG-SLiCE.
+### Changed
+- Minimum Biopython version to `v1.73` for compatibility with older bioinformatics tooling.
+- Internal domain composition shipped in the `gecco.types` with newer composition array obtained directly from MIBiG files.
+### Removed
+- Outdated notice about `-vvv` verbosity level in the help message of the main `gecco` command.
 
 ## [v0.6.3] - 2021-05-10
 [v0.6.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.2...v0.6.3
