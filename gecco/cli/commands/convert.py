@@ -20,7 +20,7 @@ from ._base import Command, CommandExit, InvalidArgument
 from .._utils import patch_showwarnings
 
 
-class Convert(Command):
+class Convert(Command):  # noqa: D101
 
     summary = "convert output for compatibility with other tools"
 
