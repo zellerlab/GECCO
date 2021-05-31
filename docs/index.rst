@@ -84,7 +84,7 @@ predictions to the current directory:
 
 .. code:: console
 
-   $ gecco run --genome sequence.fna
+   $ gecco -v run --genome sequence.fna
 
 
 Output
@@ -141,6 +141,7 @@ Guides
     :maxdepth: 1
 
     Installation <install>
+    Integrations <integrations>
     Training <training>
     Contributing <contributing>
 
