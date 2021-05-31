@@ -49,7 +49,7 @@ it could take some time depending on your Internet connection. Once done, you
 will have a ``gecco`` command available in your $PATH.
 
 *Note that GECCO uses [HMMER3](http://hmmer.org/), which can only run
-on PowerPC and and recent x86-64 machines running a POSIX operating system.
+on PowerPC and recent x86-64 machines running a POSIX operating system.
 Therefore, Linux and OSX are supported platforms, but GECCO will not be able
 to run on Windows.*
 
