@@ -202,7 +202,7 @@ class PyrodigalFinder(ORFFinder):
                     index, query = next(queries)
                     record_count.value += 1
                     orfs_found.append(threading.Event())
-                    query_queue.put((index, query))
+                    record_queue.put((index, query))
                 except StopIteration:
                     break
                 # yield the top hits for the next query, if available
