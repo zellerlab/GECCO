@@ -50,7 +50,7 @@ class Annotate(Command):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
-                                          to be included. [default: 1e-5]
+                                          to be included. [default: 10.0]
 
         Parameters - Debug:
             --hmm <hmm>                   the path to one or more alternative
@@ -60,7 +60,7 @@ class Annotate(Command):  # noqa: D101
     def _check(self) -> typing.Optional[int]:
         super()._check()
         try:
-            self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
+            self.e_filter = self._check_flag("--e-filter", float, lambda x: x > 0, hint="real number above 0")
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
             self.format = self._check_flag("--format")
             self.genome = self._check_flag("--genome")
