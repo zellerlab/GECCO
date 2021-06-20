@@ -8,6 +8,7 @@ import contextlib
 import csv
 import errno
 import glob
+import gzip
 import itertools
 import os
 import re
@@ -108,8 +109,13 @@ class PyHMMER(DomainAnnotator):
             for gene in genes
         ]
 
-        # Run search pipeline using the HMM
-        with pyhmmer.plan7.HMMFile(self.hmm.path) as hmm_file:
+        with contextlib.ExitStack() as ctx:
+            # decompress the input if needed
+            file = ctx.enter_context(open(self.hmm.path, "rb"))
+            if self.hmm.path.endswith(".gz"):
+                file = ctx.enter_context(gzip.GzipFile(fileobj=file))
+            # Run search pipeline using the HMM
+            hmm_file = ctx.enter_context(pyhmmer.plan7.HMMFile(file))
             cpus = 0 if self.cpus is None else self.cpus
             hmms_hits = hmmsearch(
                 hmm_file,

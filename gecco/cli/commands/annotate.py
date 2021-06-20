@@ -81,7 +81,7 @@ class Annotate(Command):  # noqa: D101
                 base, _ = os.path.splitext(base)
                 file = gzip.GzipFile(fileobj=file)
             base, _ = os.path.splitext(base)
-            self.info("Counting", "profiles in HMM file", repr(path), level=2)
+            self.info("Counting", "profiles in HMM file", repr(path), level=1)
             with file:
                 with pyhmmer.plan7.HMMFile(file) as hmm_file:
                     size = sum(1 for _ in hmm_file)
