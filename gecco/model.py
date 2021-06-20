@@ -7,6 +7,7 @@ import datetime
 import enum
 import functools
 import itertools
+import math
 import operator
 import re
 import typing
@@ -316,6 +317,8 @@ class Cluster:
         self,
         all_possible: Optional[Sequence[str]] = None,
         normalize: bool = True,
+        minlog_weights: bool = False,
+        pvalue: bool = True,
     ) -> numpy.ndarray:
         """Compute weighted domain composition with respect to ``all_possible``.
 
@@ -324,6 +327,14 @@ class Cluster:
                 all domain names to consider when computing domain composition
                 for the BGC. If `None` given, then only domains within the
                 cluster are taken into account.
+            normalize (`bool`): Normalize the composition vector so that it
+                sums to 1.
+            minlog_weights (`bool`): Compute weight for each domain as
+                :math:`-log_10(v)` (where :math:`v` is either the ``pvalue``
+                or the ``i_evalue``, depending on the value of ``normalize``).
+                Use :math:`1 - v` otherwise.
+            pvalue (`bool`): Compute composition weights using the ``pvalue``
+                of each domain, instead of the ``i_evalue``.
 
         Returns:
             `~numpy.ndarray`: A numerical array containing the relative domain
@@ -332,7 +343,12 @@ class Cluster:
         """
         domains = [d for gene in self.genes for d in gene.protein.domains]
         names = numpy.array([domain.name for domain in domains])
-        weights = numpy.array([1 - domain.i_evalue for domain in domains])
+        field = operator.attrgetter("pvalue" if pvalue else "i_evalue")
+        if minlog_weights:
+            weights = numpy.array([- math.log10(field(domain)) for domain in domains])
+        else:
+            weights = numpy.array([1 - field(domain) for domain in domains])
+
         unique_names = set(names)
         if all_possible is None:
             all_possible = numpy.unique(names)
