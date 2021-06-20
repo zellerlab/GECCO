@@ -116,8 +116,8 @@ class PyHMMER(DomainAnnotator):
                 esl_sqs,
                 cpus=cpus,
                 callback=progress,
-                Z=len(esl_sqs),
-                domZ=len(esl_sqs)
+                Z=self.hmm.size,
+                domZ=self.hmm.size
             )
 
             # Load InterPro metadata for the annotation
