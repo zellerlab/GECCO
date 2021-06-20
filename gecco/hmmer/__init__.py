@@ -127,9 +127,14 @@ class PyHMMER(DomainAnnotator):
             for hit in itertools.chain.from_iterable(hmms_hits):
                 target_name = hit.name.decode('utf-8')
                 for domain in hit.domains:
+                    # extract name and get InterPro metadata about hit
                     raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
                     accession = self.hmm.relabel(raw_acc.decode('utf-8'))
                     entry = interpro.by_accession.get(accession)
+
+                    # extract coordinates
+                    start = domain.alignment.target_from
+                    end = domain.alignment.target_to
 
                     # extract qualifiers
                     qualifiers: Dict[str, List[str]] = {
@@ -144,7 +149,8 @@ class PyHMMER(DomainAnnotator):
                     # add the domain to the protein domains of the right gene
                     assert domain.env_from < domain.env_to
                     assert domain.i_evalue >= 0
-                    d = Domain(accession, domain.env_from, domain.env_to, self.hmm.id, domain.i_evalue, None, qualifiers)
+                    assert domain.pvalue >= 0
+                    d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, qualifiers)
                     gene_index[target_name].protein.domains.append(d)
 
         # return the updated list of genes that was given in argument

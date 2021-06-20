@@ -105,6 +105,8 @@ class Domain:
             (e.g. ``Pfam``, ``Panther``).
         i_evalue (`float`): The independent e-value reported by ``hmmsearch``
             that measures how reliable the domain annotation is.
+        pvalue (`float`): The p-value reported by ``hmmsearch`` that measure
+            how likely the domain annotation is.
         probability (`float`, optional): The probability that this domain
             is part of a BGC, or `None` if no prediction has been made yet.
         qualifiers (`dict`, optional): A dictionary of feature qualifiers that
@@ -118,6 +120,7 @@ class Domain:
     end: int
     hmm: str
     i_evalue: float
+    pvalue: Optional[float] = None
     probability: Optional[float] = None
     qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
 
@@ -456,6 +459,7 @@ class FeatureTable(Dumpable, Sized):
     domain: List[str] = field(default_factory = list)
     hmm: List[str] = field(default_factory = list)
     i_evalue: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
+    pvalue: List[Optional[float]] = field(default_factory = list)           # type: ignore
     domain_start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
     domain_end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
     bgc_probability: List[Optional[float]] = field(default_factory = list)
@@ -472,9 +476,11 @@ class FeatureTable(Dumpable, Sized):
         domain: str
         hmm: str
         i_evalue: float
+        pvalue: Optional[float]
         domain_start: int
         domain_end: int
         bgc_probability: Optional[float]
+        pvalue: Optional[float]
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
@@ -491,6 +497,7 @@ class FeatureTable(Dumpable, Sized):
                 table.domain.append(domain.name)
                 table.hmm.append(domain.hmm)
                 table.i_evalue.append(domain.i_evalue)
+                table.pvalue.append(domain.pvalue)
                 table.domain_start.append(domain.start)
                 table.domain_end.append(domain.end)
                 table.bgc_probability.append(domain.probability)
@@ -519,7 +526,7 @@ class FeatureTable(Dumpable, Sized):
             protein = Protein(rows[0].protein_id, seq=None)
             gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
             for row in rows:
-                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.bgc_probability)
+                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.pvalue, row.bgc_probability)
                 gene.protein.domains.append(domain)
             yield gene
 
