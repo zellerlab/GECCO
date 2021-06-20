@@ -4,6 +4,7 @@
 import contextlib
 import errno
 import glob
+import gzip
 import itertools
 import logging
 import multiprocessing
@@ -75,11 +76,16 @@ class Annotate(Command):  # noqa: D101
 
         for path in self.hmm:
             base = os.path.basename(path)
+            file = open(path, "rb")
             if base.endswith(".gz"):
                 base, _ = os.path.splitext(base)
+                file = gzip.GzipFile(fileobj=file)
             base, _ = os.path.splitext(base)
-            with pyhmmer.plan7.HMMFile(path) as hmm_file:
-                size = sum(1 for _ in hmm_file)
+            self.info("Counting", "profiles in HMM file", repr(path), level=2)
+            with file:
+                with pyhmmer.plan7.HMMFile(file) as hmm_file:
+                    size = sum(1 for _ in hmm_file)
+            self.success("Found", size, "profiles in HMM file", repr(path), level=1)
             yield HMM(
                 id=base,
                 version="?",
