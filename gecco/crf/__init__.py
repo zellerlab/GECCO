@@ -72,8 +72,8 @@ class ClusterCRF(object):
         """
         # get the path to the pickled model and read its signature file
         if model_path is not None:
-            pkl_file = os.path.join(model_path, "model.pkl")
-            md5_file = os.path.join(model_path, "model.pkl.md5")
+            pkl_file = open(os.path.join(model_path, "model.pkl"), "rb")
+            md5_file = open(os.path.join(model_path, "model.pkl.md5"))
         else:
             pkl_file = importlib_resources.open_binary(__name__, "model.pkl")
             md5_file = importlib_resources.open_text(__name__, "model.pkl.md5")
