@@ -215,5 +215,11 @@ class ClusterCRF(object):
             X = pool.map(extract_features, seqs)
             Y = pool.map(extract_labels, seqs)
 
+        # check labels
+        if all(y == "1" for y in Y):
+            raise ValueError("only positives labels found, something is wrong.")
+        elif all(y == "0" for y in Y):
+            raise ValueError("only negative labels found, something is wrong.")
+
         # fit the model
         self.model.fit(X, Y)
