@@ -196,8 +196,8 @@ class Train(Command):  # noqa: D101
     def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
 
-        self.info("Creating" f"the CRF in {self.feature_type} mode", level=2)
-        self.info("Using" f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
+        self.info("Creating", f"the CRF in [bold blue]{self.feature_type}[/] mode", level=2)
+        self.info("Using", f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",
@@ -260,12 +260,17 @@ class Train(Command):  # noqa: D101
         for cluster_row in clusters:
             cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
 
+        self.info("Loading", "labelling genes belonging to clusters")
         labelled_genes = []
         for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
             for gene in seq_genes:
-                for cluster_row in cluster_by_seq[seq_id]:
-                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        gene.domains = [d.with_probability(1) for d in gene.protein.domains]
+                if any(
+                    cluster_row.start <= gene.start and gene.end <= cluster_row.end
+                    for cluster_row in cluster_by_seq[seq_id]
+                ):
+                    gene.domains = [d.with_probability(1) for d in gene.protein.domains]
+                else:
+                    gene.domains = [d.with_probability(0) for d in gene.protein.domains]
                 labelled_genes.append(gene)
 
         return labelled_genes
