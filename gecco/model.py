@@ -129,7 +129,7 @@ class Domain:
         """Copy the current domain and assign it a BGC probability.
         """
         return Domain(
-            self.name, self.start, self.end, self.hmm, self.i_evalue,
+            self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
             probability, self.qualifiers
         )
 
