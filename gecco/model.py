@@ -496,7 +496,6 @@ class FeatureTable(Dumpable, Sized):
         domain_start: int
         domain_end: int
         bgc_probability: Optional[float]
-        pvalue: Optional[float]
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
@@ -608,6 +607,13 @@ class FeatureTable(Dumpable, Sized):
         """
         writer = csv.writer(fh, dialect=dialect)
         columns = list(self.__annotations__)
+
+        # do not write optional columns if they are completely empty
+        if all(p is None for p in self.pvalue):
+            columns.remove("pvalue")
+        if all(proba is None for proba in self.bgc_probability):
+            columns.remove("bgc_probability")
+
         if header:
             writer.writerow(columns)
         for row in self:
@@ -621,31 +627,30 @@ class FeatureTable(Dumpable, Sized):
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
 
-        # find the columns and the type of each column based on the annotations
-        columns = [
-            (
-                (header.index(col) if col in header else None),
-                col,
-                getattr(table, col).append,
-                getattr(ty.__args__[0], "__args__", ty.__args__)[0], # concrete type
-            )
-            for col, ty in cls.__annotations__.items()
-        ]
+        # get the name of each column
+        columns = {i:col for i, col in enumerate(header)}
 
-        # check that if a column is missing, it is Optional
-        missing = [
-            c
-            for i, c, _, _ in columns
-            if i is None and not isinstance(cls.__annotations__[c].__args__[0], type)
-        ]
+        # check that if a column is missing, it is one of the optional values
+        missing = set(self.__annotations__).difference(columns.values())
+        if "pvalue" in missing:
+            missing.discard("pvalue")
+            p_value_missing = True
+        missing_required = missing.difference({"pvalue", "bgc_probability"})
         if missing:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing)))
+            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
 
         # extract elements from the CSV rows
         for row in reader:
-            for index, _, append, ty in columns:
-                append(None if index is None else ty(row[index]))
-
+            for col in missing:
+                getattr(self, col).append(None)
+            for i,value in enumerate(row):
+                col = columns[i]
+                if col in ("i_evalue", "pvalue", "bgc_probability"):
+                    getattr(self, col).append(float(value))
+                elif col in ("start", "end", "domain_start", "domain_end"):
+                    getattr(self, col).append(int(value))
+                elif col in self.__annotations__:
+                    getattr(self, col).append(value)
 
         return table
 
