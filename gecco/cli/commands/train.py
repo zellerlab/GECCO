@@ -265,7 +265,7 @@ class Train(Command):  # noqa: D101
             for gene in seq_genes:
                 for cluster_row in cluster_by_seq[seq_id]:
                     if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        gene = gene.with_probability(1)
+                        gene.domains = [d.with_probability(1) for d in gene.protein.domains]
                 labelled_genes.append(gene)
 
         return labelled_genes
