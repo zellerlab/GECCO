@@ -168,6 +168,7 @@ class Train(Command):  # noqa: D101
             except Exception as err:
                 self.error("Failed to load features:", err)
                 raise CommandExit(getattr(err, "errno", 1)) from err
+        self.success("Loaded", "a total of", len(features), "features", level=1)
         return features
 
     def _convert_to_genes(self, features: "FeatureTable") -> List["Gene"]:
