@@ -631,7 +631,7 @@ class FeatureTable(Dumpable, Sized):
         columns = {i:col for i, col in enumerate(header)}
 
         # check that if a column is missing, it is one of the optional values
-        missing = set(self.__annotations__).difference(columns.values())
+        missing = set(cls.__annotations__).difference(columns.values())
         if "pvalue" in missing:
             missing.discard("pvalue")
             p_value_missing = True
@@ -642,15 +642,15 @@ class FeatureTable(Dumpable, Sized):
         # extract elements from the CSV rows
         for row in reader:
             for col in missing:
-                getattr(self, col).append(None)
+                getattr(table, col).append(None)
             for i,value in enumerate(row):
                 col = columns[i]
                 if col in ("i_evalue", "pvalue", "bgc_probability"):
-                    getattr(self, col).append(float(value))
+                    getattr(table, col).append(float(value))
                 elif col in ("start", "end", "domain_start", "domain_end"):
-                    getattr(self, col).append(int(value))
-                elif col in self.__annotations__:
-                    getattr(self, col).append(value)
+                    getattr(table, col).append(int(value))
+                elif col in cls.__annotations__:
+                    getattr(table, col).append(value)
 
         return table
 
