@@ -1,10 +1,12 @@
 """Implementation of the ``gecco train`` subcommand.
 """
 
+import collections
 import contextlib
 import csv
 import hashlib
 import io
+import itertools
 import os
 import operator
 import pickle
@@ -16,13 +18,17 @@ from .._utils import in_context, patch_showwarnings
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 
+if typing.TYPE_CHECKING:
+    from ...crf import ClusterCRF
+    from ...model import Cluster, Gene, FeatureTable, ClusterTable
+
 
 class Train(Command):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco train - {cls.summary}
 
@@ -148,7 +154,7 @@ class Train(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-    def _load_features(self):
+    def _load_features(self) -> "FeatureTable":
         from ...model import FeatureTable
 
         features = FeatureTable()
@@ -165,7 +171,7 @@ class Train(Command):  # noqa: D101
                 raise CommandExit(getattr(err, "errno", 1)) from err
         return features
 
-    def _convert_to_genes(self, features):
+    def _convert_to_genes(self, features: "FeatureTable") -> List["Gene"]:
         self.info("Converting", "features to genes")
 
         gene_count = len(set(features.protein_id))
@@ -188,7 +194,7 @@ class Train(Command):  # noqa: D101
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
         return genes
 
-    def _fit_model(self, genes):
+    def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
 
         self.info("Creating" f"the CRF in {self.feature_type} mode", level=2)
@@ -204,7 +210,7 @@ class Train(Command):  # noqa: D101
         crf.fit(genes, select=self.select, shuffle=not self.no_shuffle, cpus=self.jobs)
         return crf
 
-    def _save_model(self, crf):
+    def _save_model(self, crf: "ClusterCRF") -> None:
         model_out = os.path.join(self.output_dir, "model.pkl")
         self.info("Pickling", "the model to", repr(model_out))
         with open(model_out, "wb") as out:
@@ -220,7 +226,7 @@ class Train(Command):  # noqa: D101
         with open(f"{model_out}.md5", "w") as out_hash:
             out_hash.write(hasher.hexdigest())
 
-    def _save_transitions(self, crf):
+    def _save_transitions(self, crf: "ClusterCRF") -> None:
         self.info("Writing", "CRF transitions weights")
         with open(os.path.join(self.output_dir, "model.trans.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
@@ -228,7 +234,7 @@ class Train(Command):  # noqa: D101
             for labels, weight in crf.model.transition_features_.items():
                 writer.writerow([*labels, weight])
 
-    def _save_weights(self, crf):
+    def _save_weights(self, crf: "ClusterCRF") -> None:
         self.info("Writing", "state weights")
         with open(os.path.join(self.output_dir, "model.state.tsv"), "w") as f:
             writer = csv.writer(f, dialect="excel-tab")
@@ -236,20 +242,64 @@ class Train(Command):  # noqa: D101
             for attrs, weight in crf.model.state_features_.items():
                 writer.writerow([*attrs, weight])
 
-    def _load_clusters(self, genes):
-        from ...model import ClusterTable, Cluster
+    def _load_clusters(self) -> "ClusterTable":
+        from ...model import ClusterTable
 
         self.info("Loading", "clusters table from file", repr(self.clusters))
-        index = { g.id: g for g in genes }
-        with open(self.clusters) as f:
-            clusters = [
-                Cluster(c.bgc_id, [index[p] for p in c.proteins if p in index ], c.type)
-                for c in ClusterTable.load(f)
-            ]
-        clusters.sort(key=operator.attrgetter("id"))
-        return clusters
+        try:
+            with open(self.clusters) as in_:
+                return ClusterTable.load(in_)
+        except FileNotFoundError as err:
+            self.error("Could not find clusters file:", repr(self.clusters))
+            raise CommandExit(e.errno) from err
+        except Exception as err:
+            self.error("Failed to load clusters:", err)
+            raise CommandExit(getattr(err, "errno", 1)) from err
 
-    def _save_domain_compositions(self, crf, clusters):
+    def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
+        cluster_by_seq = collections.defaultdict(list)
+        for cluster_row in clusters:
+            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+
+        labelled_genes = []
+        for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
+            for gene in seq_genes:
+                for cluster_row in cluster_by_seq[seq_id]:
+                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
+                        gene = gene.with_probability(1)
+                labelled_genes.append(gene)
+
+        return labelled_genes
+
+    def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
+
+        cluster_by_seq = collections.defaultdict(list)
+        for cluster_row in clusters:
+            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+
+        genes_by_cluster = collections.defaultdict(list)
+        for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
+            for gene in seq_genes:
+                for cluster_row in cluster_by_seq[seq_id]:
+                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
+                        genes_by_cluster[cluster_row].append(gene)
+
+        return [
+            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id] cluster_row.type)
+            for cluster_row in sorted(clusters.sequence_id)
+            if genes_by_cluster[cluster_row.bgc_id]
+        ]
+
+        # index = { g.id: g for g in genes }
+        # with open(self.clusters) as f:
+        #     clusters = [
+        #         Cluster(c.bgc_id, [index[p] for p in c.proteins if p in index ], c.type)
+        #         for c in ClusterTable.load(f)
+        #     ]
+        # clusters.sort(key=operator.attrgetter("id"))
+        # return clusters
+
+    def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]):
         import numpy
         import scipy.sparse
 
@@ -288,15 +338,17 @@ class Train(Command):  # noqa: D101
             features = self._load_features()
             genes = self._convert_to_genes(features)
             del features
+            # load clusters and label genes inside clusters
+            clusters = self._load_clusters(genes)
+            genes = self._label_genes(genes, clusters)
             # fit CRF
             crf = self._fit_model(genes)
             # save model
             self._save_model(crf)
             self._save_transitions(crf)
             self._save_weights(crf)
-            # load clusters
-            clusters = self._load_clusters(genes)
-            self._save_domain_compositions(crf, clusters)
+            # compute domain compositions
+            self._save_domain_compositions(crf, self._extract_clusters(genes, clusters))
             self.success("Finished", "training new CRF model", level=0)
         except CommandExit as cexit:
             return cexit.code

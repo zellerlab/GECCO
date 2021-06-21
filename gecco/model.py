@@ -248,7 +248,7 @@ class Cluster:
         id (`str`): The identifier of the gene cluster.
         genes (`list` of `~gecco.model.Gene`): A list of the genes belonging
             to this gene cluster.
-        types (`list` of `str`): The list of the putative types of product
+        types (`gecco.model.ProductType`): The putative types of product
             synthesized by this gene cluster, according to similarity in
             domain composition with curated clusters.
         types_probabilities (`list` of `float`): The probability with which
@@ -559,7 +559,7 @@ class FeatureTable(Dumpable, Sized):
             frame[column] = getattr(self, column)
         return frame
 
-    def __iadd__(self, rhs: FeatureTable):
+    def __iadd__(self, rhs: "FeatureTable") -> "FeatureTable":
         if not isinstance(rhs, FeatureTable):
             return NotImplemented
         for col in self.__annotations__:
@@ -721,6 +721,13 @@ class ClusterTable(Dumpable, Sized):
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
             table.domains.append(sorted(domains))
         return table
+
+    def __iadd__(self, rhs: "ClusterTable") -> "ClusterTable":
+        if not isinstance(rhs, FeatureTable):
+            return NotImplemented
+        for col in self.__annotations__:
+            getattr(self, col).extend(getattr(rhs, col))
+        return self
 
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
