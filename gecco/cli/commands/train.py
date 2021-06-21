@@ -271,7 +271,6 @@ class Train(Command):  # noqa: D101
         return labelled_genes
 
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
-
         cluster_by_seq = collections.defaultdict(list)
         for cluster_row in clusters:
             cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
@@ -288,15 +287,6 @@ class Train(Command):  # noqa: D101
             for cluster_row in sorted(clusters.sequence_id)
             if genes_by_cluster[cluster_row.bgc_id]
         ]
-
-        # index = { g.id: g for g in genes }
-        # with open(self.clusters) as f:
-        #     clusters = [
-        #         Cluster(c.bgc_id, [index[p] for p in c.proteins if p in index ], c.type)
-        #         for c in ClusterTable.load(f)
-        #     ]
-        # clusters.sort(key=operator.attrgetter("id"))
-        # return clusters
 
     def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]):
         import numpy
@@ -338,7 +328,7 @@ class Train(Command):  # noqa: D101
             genes = self._convert_to_genes(features)
             del features
             # load clusters and label genes inside clusters
-            clusters = self._load_clusters(genes)
+            clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
             # fit CRF
             crf = self._fit_model(genes)
