@@ -796,33 +796,43 @@ class ClusterTable(Dumpable, Sized):
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
 
-        # find the columns and the type of each column based on the annotations
-        columns = [
-            (
-                (header.index(col) if col in header else None),
-                col,
-                getattr(table, col).append,
-                getattr(ty.__args__[0], "__args__", ty.__args__)[0], # concrete type
-            )
-            for col, ty in cls.__annotations__.items()
-        ]
+        # get the name of each column
+        columns = {i:col for i, col in enumerate(header)}
 
-        # check that no column is missing
-        missing = [c for i, c, _, _ in columns if i is None]
-        if missing:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing)))
+        # check that if a column is missing, it is one of the optional values
+        missing = set(cls.__annotations__).difference(columns.values())
+        missing_required = missing.difference({
+            "average_p",
+            "max_p",
+            "alkaloid_probability",
+            "polyketide_probability",
+            "ripp_probability",
+            "saccharide_probability",
+            "terpene_probability",
+            "nrp_probability",
+            "other_probability",
+            "proteins",
+            "domains"
+        })
+        if missing_required:
+            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
 
         # extract elements from the CSV rows
-        for line in reader:
-            for index, column, append, ty in columns:
-                if ty is ProductType:
-                    types = [ ProductType.__members__[k] for k in line[index].split(";") ]
-                    append(functools.reduce(operator.or_, types))
-                elif column == "proteins" or column == "domains":
-                    append(list(line[index].split(";")))
-                elif isinstance(ty, type):
-                    append(ty(line[index]))
+        for row in reader:
+            for col in missing:
+                if col in ("proteins", "domains"):
+                    getattr(table, col).append(list())
+                elif col in ("average_p", "max_p"):
+                    getattr(table, col).append(1.0)
                 else:
-                    raise ValueError
+                    getattr(table, col).append(0.0)
+            for i,value in enumerate(row):
+                col = columns.get(i)
+                if col in ("i_evalue", "pvalue", "bgc_probability"):
+                    getattr(table, col).append(float(value))
+                elif col in ("start", "end", "domain_start", "domain_end"):
+                    getattr(table, col).append(int(value))
+                elif col in cls.__annotations__:
+                    getattr(table, col).append(value)
 
         return table
