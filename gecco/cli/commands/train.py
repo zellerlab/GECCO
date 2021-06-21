@@ -123,10 +123,9 @@ class Train(Command):  # noqa: D101
                 lambda x: x >= 0,
                 hint="positive or null integer"
             )
-            self.features = self._check_flag("--features")
             self.no_shuffle = self._check_flag("--no-shuffle", bool)
             self.output_dir = self._check_flag("--output-dir", str)
-            self.features = self._check_flag("--features", str)
+            self.features = self._check_flag("--features", list)
             self.clusters = self._check_flag("--clusters", str)
         except InvalidArgument:
             raise CommandExit(1)
@@ -140,7 +139,7 @@ class Train(Command):  # noqa: D101
             os.makedirs(self.output_dir, exist_ok=True)
         except OSError as err:
             self.error("Could not create output directory: {}", err)
-            raise CommandExit(e.errno) from err
+            raise CommandExit(err.errno) from err
         # Check if output files already exist
         files = [
             "model.pkl",
@@ -161,11 +160,11 @@ class Train(Command):  # noqa: D101
         for filename in self.features:
             self.info("Loading", "features table from file", repr(filename))
             try:
-                with open(self.features) as in_:
+                with open(filename) as in_:
                     features += FeatureTable.load(in_)
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
-                raise CommandExit(e.errno) from err
+                raise CommandExit(err.errno) from err
             except Exception as err:
                 self.error("Failed to load features:", err)
                 raise CommandExit(getattr(err, "errno", 1)) from err
@@ -251,7 +250,7 @@ class Train(Command):  # noqa: D101
                 return ClusterTable.load(in_)
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
-            raise CommandExit(e.errno) from err
+            raise CommandExit(err.errno) from err
         except Exception as err:
             self.error("Failed to load clusters:", err)
             raise CommandExit(getattr(err, "errno", 1)) from err
@@ -285,7 +284,7 @@ class Train(Command):  # noqa: D101
                         genes_by_cluster[cluster_row].append(gene)
 
         return [
-            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id] cluster_row.type)
+            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
             for cluster_row in sorted(clusters.sequence_id)
             if genes_by_cluster[cluster_row.bgc_id]
         ]
