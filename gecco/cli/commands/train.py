@@ -260,7 +260,7 @@ class Train(Command):  # noqa: D101
         for cluster_row in clusters:
             cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
 
-        self.info("Loading", "labelling genes belonging to clusters")
+        self.info("Labelling", "genes belonging to clusters")
         labelled_genes = []
         for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
             for gene in seq_genes:
@@ -268,29 +268,32 @@ class Train(Command):  # noqa: D101
                     cluster_row.start <= gene.start and gene.end <= cluster_row.end
                     for cluster_row in cluster_by_seq[seq_id]
                 ):
-                    gene.domains = [d.with_probability(1) for d in gene.protein.domains]
+                    gene.protein.domains = [d.with_probability(1) for d in gene.protein.domains]
                 else:
-                    gene.domains = [d.with_probability(0) for d in gene.protein.domains]
+                    gene.protein.domains = [d.with_probability(0) for d in gene.protein.domains]
                 labelled_genes.append(gene)
 
         return labelled_genes
 
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
+        from ...model import Cluster
+
         cluster_by_seq = collections.defaultdict(list)
         for cluster_row in clusters:
             cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
 
+        self.info("Extracting", "genes belonging to clusters")
         genes_by_cluster = collections.defaultdict(list)
         for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
             for gene in seq_genes:
                 for cluster_row in cluster_by_seq[seq_id]:
                     if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        genes_by_cluster[cluster_row].append(gene)
+                        genes_by_cluster[cluster_row.bgc_id].append(gene)
 
         return [
             Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
-            for cluster_row in sorted(clusters.sequence_id)
-            if genes_by_cluster[cluster_row.bgc_id]
+            for bgc_id in sorted(clusters.bgc_id)
+            if genes_by_cluster[bgc_id]
         ]
 
     def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]):
