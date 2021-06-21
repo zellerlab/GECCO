@@ -51,7 +51,9 @@ class Annotate(Command):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
-                                          to be included. [default: 10.0]
+                                          to be included.
+            -p <p>, --p-filter <p>        the p-value cutoff for protein domains
+                                          to be included.
 
         Parameters - Debug:
             --hmm <hmm>                   the path to one or more alternative
@@ -61,7 +63,20 @@ class Annotate(Command):  # noqa: D101
     def _check(self) -> typing.Optional[int]:
         super()._check()
         try:
-            self.e_filter = self._check_flag("--e-filter", float, lambda x: x > 0, hint="real number above 0")
+            self.e_filter = self._check_flag(
+                "--e-filter",
+                float,
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
+            )
+            self.p_filter = self._check_flag(
+                "--p-filter",
+                float,
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
+            )
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
             self.format = self._check_flag("--format")
             self.genome = self._check_flag("--genome")
@@ -156,11 +171,17 @@ class Annotate(Command):  # noqa: D101
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.success("Found", count, "domains across all proteins", level=1)
 
-        # Filter i-evalue
-        self.info("Filtering", "results with e-value under", self.e_filter, level=1)
-        key = lambda d: d.i_evalue < self.e_filter
-        for gene in genes:
-            gene.protein.domains = list(filter(key, gene.protein.domains))
+        # Filter i-evalue and p-value if required
+        if self.e_filter is not None:
+            self.info("Filtering", "results with e-value under", self.e_filter, level=1)
+            key = lambda d: d.i_evalue < self.e_filter
+            for gene in genes:
+                gene.protein.domains = list(filter(key, gene.protein.domains))
+        if self.p_filter is not None:
+            self.info("Filtering", "results with p-value under", self.p_filter, level=1)
+            key = lambda d: d.pvalue < self.p_filter
+            for gene in genes:
+                gene.protein.domains = list(filter(key, gene.protein.domains))
 
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.info("Using", "remaining", count, "domains", level=2)

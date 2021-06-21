@@ -124,9 +124,12 @@ class Command(metaclass=abc.ABCMeta):
         check: Optional[Callable[[_T], bool]] = None,
         message: Optional[str] = None,
         hint: Optional[str] = None,
+        optional: bool = False,
     ) -> _T:
         _convert = (lambda x: x) if convert is None else convert
         _check = (lambda x: True) if check is None else check
+        if optional and self.args[name] is None:
+            return None
         try:
             value = _convert(self.args[name])
             if not _check(value):
