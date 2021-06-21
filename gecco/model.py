@@ -804,6 +804,7 @@ class ClusterTable(Dumpable, Sized):
         missing_required = missing.difference({
             "average_p",
             "max_p",
+            "type",
             "alkaloid_probability",
             "polyketide_probability",
             "ripp_probability",
@@ -824,6 +825,8 @@ class ClusterTable(Dumpable, Sized):
                     getattr(table, col).append(list())
                 elif col in ("average_p", "max_p"):
                     getattr(table, col).append(1.0)
+                elif col == "type":
+                    table.type.append(ProductType.Unknown)
                 else:
                     getattr(table, col).append(0.0)
             for i,value in enumerate(row):
@@ -832,6 +835,9 @@ class ClusterTable(Dumpable, Sized):
                     getattr(table, col).append(float(value))
                 elif col in ("start", "end", "domain_start", "domain_end"):
                     getattr(table, col).append(int(value))
+                elif col == "type":
+                    types = [ProductType.__members__[x] for x in value.split(";")]
+                    table.type.append(ProductType.pack(types))
                 elif col in cls.__annotations__:
                     getattr(table, col).append(value)
 
