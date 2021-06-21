@@ -559,6 +559,13 @@ class FeatureTable(Dumpable, Sized):
             frame[column] = getattr(self, column)
         return frame
 
+    def __iadd__(self, rhs: FeatureTable):
+        if not isinstance(rhs, FeatureTable):
+            return NotImplemented
+        for col in self.__annotations__:
+            getattr(self, col).extend(getattr(rhs, col))
+        return self
+
     def __bool__(self) -> bool:  # noqa: D105
         return len(self) != 0
 

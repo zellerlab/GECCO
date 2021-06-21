@@ -27,7 +27,7 @@ class Train(Command):  # noqa: D101
         gecco train - {cls.summary}
 
         Usage:
-            gecco train --features <table> --clusters <table> [options]
+            gecco train --features <table>... --clusters <table> [options]
 
         Arguments:
             -f <data>, --features <table>   a domain annotation table, used to
@@ -151,9 +151,19 @@ class Train(Command):  # noqa: D101
     def _load_features(self):
         from ...model import FeatureTable
 
-        self.info("Loading", "features table from file", repr(self.features))
-        with open(self.features) as in_:
-            return FeatureTable.load(in_)
+        features = FeatureTable()
+        for filename in self.features:
+            self.info("Loading", "features table from file", repr(filename))
+            try:
+                with open(self.features) as in_:
+                    features += FeatureTable.load(in_)
+            except FileNotFoundError as err:
+                self.error("Could not find feature file:", repr(filename))
+                raise CommandExit(e.errno) from err
+            except Exception as err:
+                self.error("Failed to load features:", err)
+                raise CommandExit(getattr(err, "errno", 1)) from err
+        return features
 
     def _convert_to_genes(self, features):
         self.info("Converting", "features to genes")
