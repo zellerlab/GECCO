@@ -632,11 +632,8 @@ class FeatureTable(Dumpable, Sized):
 
         # check that if a column is missing, it is one of the optional values
         missing = set(cls.__annotations__).difference(columns.values())
-        if "pvalue" in missing:
-            missing.discard("pvalue")
-            p_value_missing = True
         missing_required = missing.difference({"pvalue", "bgc_probability"})
-        if missing:
+        if missing_required:
             raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
 
         # extract elements from the CSV rows
@@ -644,7 +641,7 @@ class FeatureTable(Dumpable, Sized):
             for col in missing:
                 getattr(table, col).append(None)
             for i,value in enumerate(row):
-                col = columns[i]
+                col = columns.get(i)
                 if col in ("i_evalue", "pvalue", "bgc_probability"):
                     getattr(table, col).append(float(value))
                 elif col in ("start", "end", "domain_start", "domain_end"):
