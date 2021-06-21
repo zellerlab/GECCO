@@ -12,8 +12,9 @@ import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-from ._base import Command, CommandExit, InvalidArgument
 from .._utils import in_context, patch_showwarnings
+from ._base import Command, CommandExit, InvalidArgument
+from .annotate import Annotate
 
 
 class Train(Command):  # noqa: D101
@@ -44,7 +45,9 @@ class Train(Command):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>          the e-value cutoff for domains to
-                                            be included [default: 1e-5]
+                                            be included.
+            -p <p>, --p-filter <p>          the p-value cutoff for domains to
+                                            be included. [default: 1e-9]
 
         Parameters - Training:
             --c1 <C1>                       parameter for L1 regularisation.
@@ -91,8 +94,16 @@ class Train(Command):  # noqa: D101
             self.e_filter = self._check_flag(
                 "--e-filter",
                 float,
-                lambda x: 0 <= x <= 1,
-                hint="real number between 0 and 1"
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
+            )
+            self.p_filter = self._check_flag(
+                "--p-filter",
+                float,
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
             )
             self.select = self._check_flag(
                 "--select",
@@ -156,6 +167,9 @@ class Train(Command):  # noqa: D101
             total=gene_count,
             task_id=task
         ))
+
+        # filter domains out
+        Annotate._filter_domains(self, genes)
 
         self.info("Sorting", "genes by genomic coordinates")
         genes.sort(key=operator.attrgetter("source.id", "start", "end"))

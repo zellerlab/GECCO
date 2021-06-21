@@ -61,7 +61,9 @@ class Run(Annotate):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
-                                          to be included. [default: 1e-5]
+                                          to be included.
+            -p <p>, --p-filter <p>        the p-value cutoff for protein domains
+                                          to be included. [default: 1e-9]
 
         Parameters - Cluster Detection:
             -c, --cds <N>                 the minimum number of coding sequences a
@@ -84,7 +86,20 @@ class Run(Annotate):  # noqa: D101
         Command._check(self)
         try:
             self.cds = self._check_flag("--cds", int, lambda x: x > 0, hint="positive integer")
-            self.e_filter = self._check_flag("--e-filter", float, lambda x: 0 <= x <= 1, hint="real number between 0 and 1")
+            self.e_filter = self._check_flag(
+                "--e-filter",
+                float,
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
+            )
+            self.p_filter = self._check_flag(
+                "--p-filter",
+                float,
+                lambda x: x > 0,
+                hint="real number above 0",
+                optional=True,
+            )
             if self.args["--threshold"] is None:
                 self.threshold = 0.4 if self.args["--postproc"] == "gecco" else 0.6
             else:
@@ -109,7 +124,7 @@ class Run(Annotate):  # noqa: D101
             os.makedirs(self.output_dir, exist_ok=True)
         except OSError as err:
             self.error("Could not create output directory: {}", err)
-            raise CommandExit(e.errno) from err
+            raise CommandExit(err.errno) from err
 
         # Check if output files already exist
         base, _ = os.path.splitext(os.path.basename(self.genome))

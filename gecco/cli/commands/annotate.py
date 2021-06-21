@@ -172,19 +172,7 @@ class Annotate(Command):  # noqa: D101
         self.success("Found", count, "domains across all proteins", level=1)
 
         # Filter i-evalue and p-value if required
-        if self.e_filter is not None:
-            self.info("Filtering", "results with e-value under", self.e_filter, level=1)
-            key = lambda d: d.i_evalue < self.e_filter
-            for gene in genes:
-                gene.protein.domains = list(filter(key, gene.protein.domains))
-        if self.p_filter is not None:
-            self.info("Filtering", "results with p-value under", self.p_filter, level=1)
-            key = lambda d: d.pvalue < self.p_filter
-            for gene in genes:
-                gene.protein.domains = list(filter(key, gene.protein.domains))
-
-        count = sum(1 for gene in genes for domain in gene.protein.domains)
-        self.info("Using", "remaining", count, "domains", level=2)
+        genes = self._filter_domains(genes)
 
         # Sort genes
         self.info("Sorting", "genes by coordinates", level=2)
@@ -192,6 +180,23 @@ class Annotate(Command):  # noqa: D101
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
 
+        return genes
+
+    def _filter_domains(self, genes):
+        # Filter i-evalue and p-value if required
+        if self.e_filter is not None:
+            self.info("Filtering", "domains with e-value under", self.e_filter, level=1)
+            key = lambda d: d.i_evalue < self.e_filter
+            for gene in genes:
+                gene.protein.domains = list(filter(key, gene.protein.domains))
+        if self.p_filter is not None:
+            self.info("Filtering", "domains with p-value under", self.p_filter, level=1)
+            key = lambda d: d.pvalue < self.p_filter
+            for gene in genes:
+                gene.protein.domains = list(filter(key, gene.protein.domains))
+        if self.p_filter is not None or self.e_filter is not None:
+            count = sum(1 for gene in genes for domain in gene.protein.domains)
+            self.info("Using", "remaining", count, "domains", level=1)
         return genes
 
     def _write_feature_table(self, genes):
