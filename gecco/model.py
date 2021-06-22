@@ -831,7 +831,7 @@ class ClusterTable(Dumpable, Sized):
                     getattr(table, col).append(0.0)
             for i,value in enumerate(row):
                 col = columns.get(i)
-                if col in ("i_evalue", "pvalue", "bgc_probability"):
+                if col in ("i_evalue", "pvalue") or col.endswith(("_p", "_probability")):
                     getattr(table, col).append(float(value))
                 elif col in ("start", "end", "domain_start", "domain_end"):
                     getattr(table, col).append(int(value))
