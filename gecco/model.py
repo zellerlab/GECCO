@@ -107,7 +107,7 @@ class Domain:
         i_evalue (`float`): The independent e-value reported by ``hmmsearch``
             that measures how reliable the domain annotation is.
         pvalue (`float`): The p-value reported by ``hmmsearch`` that measure
-            how likely the domain annotation is.
+            how likely the domain score is.
         probability (`float`, optional): The probability that this domain
             is part of a BGC, or `None` if no prediction has been made yet.
         qualifiers (`dict`, optional): A dictionary of feature qualifiers that
@@ -121,7 +121,7 @@ class Domain:
     end: int
     hmm: str
     i_evalue: float
-    pvalue: Optional[float] = None
+    pvalue: float
     probability: Optional[float] = None
     qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
 
@@ -413,7 +413,7 @@ class Cluster:
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
             "creation_date": now.isoformat(),
-            "biosyn_class": ",".join(ty.name for ty in self.type.unpack()),
+            "biosyn_class": ";".join(sorted(ty.name for ty in self.type.unpack())),
             "alkaloid_probability": self.type_probabilities.get(ProductType.Alkaloid, 0.0),
             "polyketide_probability": self.type_probabilities.get(ProductType.Polyketide, 0.0),
             "ripp_probability": self.type_probabilities.get(ProductType.RiPP, 0.0),
@@ -475,7 +475,7 @@ class FeatureTable(Dumpable, Sized):
     domain: List[str] = field(default_factory = list)
     hmm: List[str] = field(default_factory = list)
     i_evalue: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
-    pvalue: List[Optional[float]] = field(default_factory = list)           # type: ignore
+    pvalue: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
     domain_start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
     domain_end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
     bgc_probability: List[Optional[float]] = field(default_factory = list)
@@ -492,7 +492,7 @@ class FeatureTable(Dumpable, Sized):
         domain: str
         hmm: str
         i_evalue: float
-        pvalue: Optional[float]
+        pvalue: float
         domain_start: int
         domain_end: int
         bgc_probability: Optional[float]
@@ -609,8 +609,6 @@ class FeatureTable(Dumpable, Sized):
         columns = list(self.__annotations__)
 
         # do not write optional columns if they are completely empty
-        if all(p is None for p in self.pvalue):
-            columns.remove("pvalue")
         if all(proba is None for proba in self.bgc_probability):
             columns.remove("bgc_probability")
 
@@ -632,7 +630,7 @@ class FeatureTable(Dumpable, Sized):
 
         # check that if a column is missing, it is one of the optional values
         missing = set(cls.__annotations__).difference(columns.values())
-        missing_required = missing.difference({"pvalue", "bgc_probability"})
+        missing_required = missing.difference({"bgc_probability"})
         if missing_required:
             raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
 

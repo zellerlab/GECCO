@@ -22,8 +22,8 @@ class _TestFeatureExtraction(object):
                     id="prot1",
                     seq=None,
                     domains=[
-                        Domain("A", 0, 1, "test", 0.5, probability=1, qualifiers={}),
-                        Domain("B", 0, 1, "test", 0.0, probability=1, qualifiers={})
+                        Domain("A", 0, 1, "test", 0.5, 0.5, probability=1, qualifiers={}),
+                        Domain("B", 0, 1, "test", 0.0, 0.0, probability=1, qualifiers={})
                     ]
                 )
             ),
@@ -36,7 +36,7 @@ class _TestFeatureExtraction(object):
                     id="prot2",
                     seq=None,
                     domains=[
-                        Domain("C", 0, 1, "test", 0.2, probability=0, qualifiers={})
+                        Domain("C", 0, 1, "test", 0.2, 0.2, probability=0, qualifiers={})
                     ]
                 )
             )

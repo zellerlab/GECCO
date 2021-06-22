@@ -190,13 +190,10 @@ class Annotate(Command):  # noqa: D101
             for gene in genes:
                 gene.protein.domains = list(filter(key, gene.protein.domains))
         if self.p_filter is not None:
-            if any(d.pvalue is None for gene in genes for d in gene.protein.domains):
-                self.warn("Failed", "to filter domains by p-value as some domains are missing a p-value")
-            else:
-                self.info("Filtering", "domains with p-value under", self.p_filter, level=1)
-                key = lambda d: d.pvalue < self.p_filter
-                for gene in genes:
-                    gene.protein.domains = list(filter(key, gene.protein.domains))
+            self.info("Filtering", "domains with p-value under", self.p_filter, level=1)
+            key = lambda d: d.pvalue < self.p_filter
+            for gene in genes:
+                gene.protein.domains = list(filter(key, gene.protein.domains))
         if self.p_filter is not None or self.e_filter is not None:
             count = sum(1 for gene in genes for domain in gene.protein.domains)
             self.info("Using", "remaining", count, "domains", level=1)

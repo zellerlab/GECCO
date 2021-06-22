@@ -87,24 +87,24 @@ def fisher_significance(
 
         >>> data = [
         ...     Protein("prot1", _, [
-        ...         Domain("A", _, _, _, _, probability=1),
-        ...         Domain("B", _, _, _, _, probability=1),
+        ...         Domain("A", _, _, _, _, _, probability=1),
+        ...         Domain("B", _, _, _, _, _, probability=1),
         ...     ]),
         ...     Protein("prot2", _, [
-        ...         Domain("A", _, _, _, _, probability=1),
-        ...         Domain("B", _, _, _, _, probability=1),
+        ...         Domain("A", _, _, _, _, _, probability=1),
+        ...         Domain("B", _, _, _, _, _, probability=1),
         ...     ]),
         ...     Protein("prot3", _, [
-        ...         Domain("A", _, _, _, _, probability=1),
-        ...         Domain("B", _, _, _, _, probability=1),
+        ...         Domain("A", _, _, _, _, _, probability=1),
+        ...         Domain("B", _, _, _, _, _, probability=1),
         ...     ]),
-        ...     Protein("prot4", _, [Domain("A", _, _, _, _, probability=1)]),
-        ...     Protein("prot5", _, [Domain("A", _, _, _, _, probability=1)]),
+        ...     Protein("prot4", _, [Domain("A", _, _, _, _, _, probability=1)]),
+        ...     Protein("prot5", _, [Domain("A", _, _, _, _, _, probability=1)]),
         ...     Protein("prot6", _, [
-        ...         Domain("C", _, _, _, _, probability=0),
-        ...         Domain("B", _, _, _, _, probability=0),
+        ...         Domain("C", _, _, _, _, _, probability=0),
+        ...         Domain("B", _, _, _, _, _, probability=0),
         ...     ]),
-        ...     Protein("prot7", _, [Domain("C", _, _, _, _, probability=0)]),
+        ...     Protein("prot7", _, [Domain("C", _, _, _, _, _, probability=0)]),
         ... ]
         >>> sorted(fisher_significance(data).items())
         [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]

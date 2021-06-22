@@ -309,7 +309,11 @@ class Train(Command):  # noqa: D101
                 writer.writerow([cluster.id, types])
 
         self.info("Building", "new domain composition matrix")
-        comp = numpy.array([c.domain_composition(all_possible) for c in clusters])
+        comp = numpy.array([
+            c.domain_composition(all_possible)
+            for c in clusters
+        ])
+
         comp_out = os.path.join(self.output_dir, "compositions.npz")
         self.info("Saving", "new domain composition matrix to file", repr(comp_out))
         scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(comp))
