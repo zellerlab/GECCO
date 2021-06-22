@@ -9,15 +9,17 @@ import os
 import operator
 import multiprocessing
 import random
+import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
 from .._utils import patch_showwarnings
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
+from .train import Train
 
 
-class Cv(Command):  # noqa: D101
+class Cv(Train):  # noqa: D101
 
     summary = "perform cross validation on a training set."
 
@@ -27,8 +29,8 @@ class Cv(Command):  # noqa: D101
         gecco cv  - {cls.summary}
 
         Usage:
-            gecco cv kfold -f <table> [-c <data>] [options]
-            gecco cv loto  -f <table>  -c <data>  [options]
+            gecco cv kfold --features <table>... --clusters <table> [options]
+            gecco cv loto  --features <table>... --clusters <table> [options]
 
         Arguments:
             -f <data>, --features <table>   a domain annotation table, used to
@@ -65,96 +67,27 @@ class Cv(Command):  # noqa: D101
                                             (if running `kfold`). [default: 10]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
-            --shuffle                       enable shuffling of stratified rows.
+            --no-shuffle                    disable shuffling of the data before
+                                            fitting the model.
 
         """
 
     def _check(self) -> typing.Optional[int]:
+        self.args["--output-dir"] = "."
         super()._check()
         try:
-            self.feature_type = self._check_flag(
-                "--feature-type",
-                str,
-                lambda x: x in {"single", "overlap", "group"},
-                hint="'single', 'overlap' or 'group'"
-            )
-            self.overlap = self._check_flag(
-                "--overlap",
-                int,
-                lambda x: x > 0,
-                hint="positive integer",
-            )
-            self.c1 = self._check_flag("--c1", float, hint="real number")
-            self.c2 = self._check_flag("--c2", float, hint="real number")
-            self.splits = self._check_flag("--splits", int, lambda x: x>1, hint="integer greater than 1")
-            self.e_filter = self._check_flag(
-                "--e-filter",
-                float,
-                lambda x: x > 0,
-                hint="real number above 0",
-                optional=True,
-            )
-            self.p_filter = self._check_flag(
-                "--p-filter",
-                float,
-                lambda x: x > 0,
-                hint="real number above 0",
-                optional=True,
-            )
-            self.select = self._check_flag(
-                "--select",
-                lambda x: x if x is None else float(x),
-                lambda x: x is None or 0 <= x <= 1,
-                hint="real number between 0 and 1"
-            )
-            self.jobs = self._check_flag(
-                "--jobs",
-                int,
-                lambda x: x >= 0,
-                hint="positive or null integer"
-            )
-            self.features = self._check_flag("--features")
-            self.clusters = self._check_flag("--clusters")
+            self.output = self._check_flag("--output", str)
             self.loto = self.args["loto"]
-            self.output = self.args["--output"]
         except InvalidArgument:
             raise CommandExit(1)
 
     # --
 
-    def _load_features(self):
-        from ...model import FeatureTable
-
-        self.info("Loading", "features table from file", repr(self.features))
-        with open(self.features) as in_:
-            return FeatureTable.load(in_)
-
-    def _convert_to_genes(self, features):
-        self.info("Converting", "features to genes")
-        gene_count = len(set(features.protein_id))
-        unit = "gene" if gene_count == 1 else "genes"
-        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit)
-        genes = list(self.progress.track(
-            features.to_genes(),
-            total=gene_count,
-            task_id=task
-        ))
-
-        # filter domains out
-        Annotate._filter_domains(self, genes)
-
-        self.info("Sorting", "genes by genomic coordinates")
-        genes.sort(key=operator.attrgetter("source.id", "start", "end"))
-        self.info("Sorting", "domains by protein coordinates")
-        for gene in genes:
-            gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
-        return genes
-
     def _group_genes(self, genes):
         self.info("Grouping", "genes by source sequence")
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
-        if self.args["--shuffle"]:
+        if not self.no_shuffle:
             self.info("Shuffling training data sequences")
             random.shuffle(seqs)
         return seqs
@@ -186,11 +119,13 @@ class Cv(Command):  # noqa: D101
         import sklearn.model_selection
         return list(sklearn.model_selection.KFold(self.splits).split(seqs))
 
-    def _get_train_data(self, train_indices, seqs):
+    @staticmethod
+    def _get_train_data(train_indices, seqs):
         # extract train data
         return [gene for i in train_indices for gene in seqs[i]]
 
-    def _get_test_data(self, test_indices, seqs):
+    @staticmethod
+    def _get_test_data(test_indices, seqs):
         # make a clean copy of the test data without gene probabilities
         test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
         for gene in test_data:
@@ -228,9 +163,11 @@ class Cv(Command):  # noqa: D101
             ctx.enter_context(patch_showwarnings(self._showwarnings))
             # load features
             features = self._load_features()
-            self.success("Loaded", len(features), "feature annotations")
             genes = self._convert_to_genes(features)
-            self.success("Recoverd", len(genes), "genes from the feature annotations")
+            del features
+            # load clusters and label genes inside clusters
+            clusters = self._load_clusters()
+            genes = self._label_genes(genes, clusters)
             seqs = self._group_genes(genes)
             self.success("Grouped", "genes into", len(seqs), "sequences")
             # split CV folds
