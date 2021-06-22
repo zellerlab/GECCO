@@ -79,6 +79,12 @@ class Cv(Train):  # noqa: D101
         super()._check()
         try:
             self.output = self._check_flag("--output", str)
+            self.splits = self._check_flag(
+                "--splits",
+                int,
+                lambda x: x > 0,
+                hint="positive integer"
+            )
             self.loto = self.args["loto"]
         except InvalidArgument:
             raise CommandExit(1)
