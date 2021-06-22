@@ -157,9 +157,9 @@ class Train(Command):  # noqa: D101
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
-            except Exception as err:
-                self.error("Failed to load features:", err)
-                raise CommandExit(getattr(err, "errno", 1)) from err
+            # except Exception as err:
+            #     self.error("Failed to load features:", err)
+            #     raise CommandExit(getattr(err, "errno", 1)) from err
         self.success("Loaded", "a total of", len(features), "features", level=1)
         return features
 
@@ -244,9 +244,9 @@ class Train(Command):  # noqa: D101
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
-        except Exception as err:
-            self.error("Failed to load clusters:", err)
-            raise CommandExit(getattr(err, "errno", 1)) from err
+        # except Exception as err:
+        #     self.error("Failed to load clusters:", err)
+        #     raise CommandExit(getattr(err, "errno", 1)) from err
 
     def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
         cluster_by_seq = collections.defaultdict(list)
