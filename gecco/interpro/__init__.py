@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
 
 
 __all__ = ["InterProEntry", "InterPro"]

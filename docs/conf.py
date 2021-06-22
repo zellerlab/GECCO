@@ -123,7 +123,7 @@ html_theme_options = {
     "navbar_pagenav": False,
     # A list of tuples containing pages or urls to link to.
     "navbar_links": [
-        ("Repository", _parser.get("metadata", "home-page").strip(), True),
+        ("Repository", project_urls["Repository"].strip(), True),
     ],
     #  + [
     #     (k, v, True)
