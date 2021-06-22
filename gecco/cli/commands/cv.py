@@ -63,12 +63,14 @@ class Cv(Train):  # noqa: D101
                                             [default: group]
             --overlap <N>                   how much overlap to consider if
                                             features overlap. [default: 2]
-            --splits <N>                    number of folds for cross-validation
-                                            (if running `kfold`). [default: 10]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
             --no-shuffle                    disable shuffling of the data before
                                             fitting the model.
+
+        Parameters - Cross-validation:
+            --splits <N>                    number of folds for cross-validation
+                                            (if running `kfold`). [default: 10]
 
         """
 

@@ -63,8 +63,6 @@ class Train(Command):  # noqa: D101
             --feature-type <type>           how features should be extracted
                                             (single, overlap, or group).
                                             [default: group]
-            --truncate <N>                  the maximum number of rows to use from
-                                            the training set.
             --overlap <N>                   how much overlap to consider if
                                             features overlap. [default: 2]
             --no-shuffle                    disable shuffling of the data before
@@ -82,12 +80,6 @@ class Train(Command):  # noqa: D101
                 str,
                 lambda x: x in {"single", "overlap", "group"},
                 hint="'single', 'overlap' or 'group'"
-            )
-            self.truncate = self._check_flag(
-                "--truncate",
-                lambda x: x if x is None else int(x),
-                lambda x: x is None or x > 0,
-                hint="positive integer"
             )
             self.overlap = self._check_flag(
                 "--overlap",
