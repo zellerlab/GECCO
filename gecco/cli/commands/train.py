@@ -10,6 +10,7 @@ import itertools
 import os
 import operator
 import pickle
+import random
 import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
@@ -55,6 +56,13 @@ class Train(Command):  # noqa: D101
             -p <p>, --p-filter <p>          the p-value cutoff for domains to
                                             be included. [default: 1e-9]
 
+        Parameters - Training Data:
+            --no-shuffle                    disable shuffling of the data
+                                            before fitting the model.
+            --seed <N>                      the seed to initialize the RNG
+                                            with for shuffling operations.
+                                            [default: 42]
+
         Parameters - Training:
             --c1 <C1>                       parameter for L1 regularisation.
                                             [default: 0.15]
@@ -65,8 +73,6 @@ class Train(Command):  # noqa: D101
                                             [default: group]
             --overlap <N>                   how much overlap to consider if
                                             features overlap. [default: 2]
-            --no-shuffle                    disable shuffling of the data before
-                                            fitting the model.
             --select <N>                    fraction of most significant features
                                             to select from the training data.
 
@@ -116,6 +122,7 @@ class Train(Command):  # noqa: D101
                 hint="positive or null integer"
             )
             self.no_shuffle = self._check_flag("--no-shuffle", bool)
+            self.seed = self._check_flag("--seed", int)
             self.output_dir = self._check_flag("--output-dir", str)
             self.features = self._check_flag("--features", list)
             self.clusters = self._check_flag("--clusters", str)
@@ -123,6 +130,10 @@ class Train(Command):  # noqa: D101
             raise CommandExit(1)
 
     # ---
+
+    def _seed_rng(self):
+        self.info("Seeding", "the random number generator with seed", self.seed, level=2)
+        random.seed(self.seed)
 
     def _make_output_directory(self) -> None:
         # Make output directory
@@ -326,6 +337,8 @@ class Train(Command):  # noqa: D101
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
+            # seed RNG
+            self._seed_rng()
             # attempt to create the output directory
             self._make_output_directory()
             # load features

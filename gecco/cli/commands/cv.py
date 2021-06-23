@@ -53,6 +53,13 @@ class Cv(Train):  # noqa: D101
             -p <p>, --p-filter <p>          the p-value cutoff for domains
                                             to be included. [default: 1e-9]
 
+        Parameters - Training Data:
+            --no-shuffle                    disable shuffling of the data
+                                            before fitting the model.
+            --seed <N>                      the seed to initialize the RNG
+                                            with for shuffling operations.
+                                            [default: 42]
+
         Parameters - Training:
             --c1 <C1>                       parameter for L1 regularisation.
                                             [default: 0.15]
@@ -65,8 +72,7 @@ class Cv(Train):  # noqa: D101
                                             features overlap. [default: 2]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
-            --no-shuffle                    disable shuffling of the data before
-                                            fitting the model.
+
 
         Parameters - Cross-validation:
             --splits <N>                    number of folds for cross-validation
@@ -96,7 +102,7 @@ class Cv(Train):  # noqa: D101
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
         if not self.no_shuffle:
-            self.info("Shuffling training data sequences")
+            self.info("Shuffling", "training data sequences")
             random.shuffle(seqs)
         return seqs
 
@@ -151,7 +157,7 @@ class Cv(Train):  # noqa: D101
             c1=self.c1,
             c2=self.c2,
         )
-        crf.fit(train_data, cpus=self.jobs, select=self.select)
+        crf.fit(train_data, cpus=self.jobs, select=self.select, shuffle=not self.no_shuffle)
         return crf.predict_probabilities(test_data, cpus=self.jobs)
 
     def _write_fold(self, fold, genes, append=False):
@@ -169,6 +175,8 @@ class Cv(Train):  # noqa: D101
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
+            # seed RNG
+            self._seed_rng()
             # load features
             features = self._load_features()
             genes = self._convert_to_genes(features)
