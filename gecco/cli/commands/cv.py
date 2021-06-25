@@ -149,15 +149,7 @@ class Cv(Train):  # noqa: D101
     def _fit_predict(self, train_data, test_data):
         from ...crf import ClusterCRF
 
-        # fit and predict the CRF for the current fold
-        crf = ClusterCRF(
-            self.feature_type,
-            algorithm="lbfgs",
-            overlap=self.overlap,
-            c1=self.c1,
-            c2=self.c2,
-        )
-        crf.fit(train_data, cpus=self.jobs, select=self.select, shuffle=not self.no_shuffle)
+        crf = self._fit_model(train_data)
         return crf.predict_probabilities(test_data, cpus=self.jobs)
 
     def _write_fold(self, fold, genes, append=False):

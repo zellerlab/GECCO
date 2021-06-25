@@ -111,9 +111,10 @@ class Train(Command):  # noqa: D101
             )
             self.select = self._check_flag(
                 "--select",
-                lambda x: x if x is None else float(x),
-                lambda x: x is None or 0 <= x <= 1,
-                hint="real number between 0 and 1"
+                float,
+                lambda x: 0 <= x <= 1,
+                hint="real number between 0 and 1",
+                optional=True,
             )
             self.jobs = self._check_flag(
                 "--jobs",
@@ -200,8 +201,10 @@ class Train(Command):  # noqa: D101
     def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
 
-        self.info("Creating", f"the CRF in [bold blue]{self.feature_type}[/] mode", level=2)
-        self.info("Using", f"hyperparameters C1={self.c1}, C2={self.c2}", level=2)
+        self.info("Creating", f"the CRF in [bold blue]{self.feature_type}[/] mode", level=1)
+        self.info("Using", f"hyperparameters C1={self.c1}, C2={self.c2}", level=1)
+        if self.select is not None:
+            self.info("Using", f"Fisher Exact Test significance threshold of {self.select}", level=1)
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",
