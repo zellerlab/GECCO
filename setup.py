@@ -88,6 +88,48 @@ class list_requirements(setuptools.Command):
                 f.write(v)
 
 
+class update_interpro(setuptools.Command):
+    """A custom command to update the internal InterPro metadata.
+    """
+
+    description = "update the InterPro metadata embedded in the source"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def info(self, msg):
+        self.announce(msg, level=2)
+
+    def run(self):
+        # Update the interpro entries
+        entries = []
+        path = os.path.join("gecco", "interpro", "interpro.json.gz")
+        self.info("getting Pfam entries from InterPro")
+        entries.extend(self.download_interpro_entries("pfam"))
+        self.info("getting Tigrfam entries from InterPro")
+        entries.extend(self.download_interpro_entries("tigrfams"))
+        with gzip.open(path, "wt") as dest:
+            json.dump(entries, dest)
+
+    def download_interpro_entries(self, db):
+        next = f"https://www.ebi.ac.uk:443/interpro/api/entry/all/{db}/?page_size=200"
+        entries = []
+        context = ssl._create_unverified_context()
+        with tqdm(desc=db, leave=False) as pbar:
+            while next:
+                with urllib.request.urlopen(next, context=context) as res:
+                    payload = json.load(res)
+                    pbar.total = payload["count"]
+                    next = payload["next"]
+                    entries.extend(payload["results"])
+                    pbar.update(len(payload["results"]))
+        return entries
+
+
 class update_model(setuptools.Command):
     """A custom command to update the internal CRF model.
     """
@@ -99,7 +141,6 @@ class update_model(setuptools.Command):
 
     def initialize_options(self):
         self.model = None
-        self.domain = None
 
     def finalize_options(self):
         if self.model is None:
@@ -137,33 +178,14 @@ class update_model(setuptools.Command):
             dst = os.path.join("gecco", "types", filename)
             shutil.copy(src=src, dst=dst)
 
-        # Update the interpro entries
-        path = os.path.join("gecco", "interpro", "interpro.json.gz")
-        self.info("getting Pfam entries from InterPro")
-        entries = self.download_interpro_entries("pfam")
-        self.info("getting Tigrfam entries from InterPro")
-        entries.extend(self.download_interpro_entries("tigrfams"))
-        with gzip.open(path, "wt") as dest:
-            json.dump(entries, dest)
+        # Rebuild the InterPro metadata
+        update_interpro = self.get_finalized_command("update_interpro")
+        update_interpro.run()
 
         # Rebuild the HMMs using the new domains from the model
         build_data = self.get_finalized_command("build_data")
         build_data.force = build_data.rebuild = True
         build_data.run()
-
-    def download_interpro_entries(self, db):
-        next = f"https://www.ebi.ac.uk:443/interpro/api/entry/all/{db}/?page_size=200"
-        entries = []
-        context = ssl._create_unverified_context()
-        with tqdm(desc=db, leave=False) as pbar:
-            while next:
-                with urllib.request.urlopen(next, context=context) as res:
-                    payload = json.load(res)
-                    pbar.total = payload["count"]
-                    next = payload["next"]
-                    entries.extend(payload["results"])
-                    pbar.update(len(payload["results"]))
-        return entries
 
 
 class build_data(setuptools.Command):
@@ -333,13 +355,17 @@ class build_data(setuptools.Command):
             cfg.write(f)
 
 
-
 class build(_build):
     """A hacked `build` command that will also run `build_data`.
     """
 
     def run(self):
-        self.run_command("build_data")
+        # build data if needed
+        if not self.distribution.have_run.get("build_data", False):
+            _build_data = self.get_finalized_command("build_data")
+            _build_data.force = self.force
+            _build_data.run()
+        # build rest as normal
         _build.run(self)
 
 
@@ -368,5 +394,6 @@ if __name__ == "__main__":
             "list_requirements": list_requirements,
             "sdist": sdist,
             "update_model": update_model,
+            "update_interpro": update_interpro,
         },
     )
