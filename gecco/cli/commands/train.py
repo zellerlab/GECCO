@@ -183,7 +183,7 @@ class Train(Command):  # noqa: D101
 
         gene_count = len(set(features.protein_id))
         unit = "gene" if gene_count == 1 else "genes"
-        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit, precision="")
+        task = self.progress.add_task("Converting features", total=gene_count, unit=unit, precision="")
 
         genes = list(self.progress.track(
             features.to_genes(),
@@ -272,6 +272,10 @@ class Train(Command):  # noqa: D101
         for cluster_row in clusters:
             cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
 
+        gene_count = len(genes)
+        unit = "gene" if gene_count == 1 else "genes"
+        task = self.progress.add_task("Labelling genes", total=gene_count, unit=unit, precision="")
+
         self.info("Labelling", "genes belonging to clusters")
         labelled_genes = []
         for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
@@ -284,6 +288,7 @@ class Train(Command):  # noqa: D101
                 else:
                     gene.protein.domains = [d.with_probability(0) for d in gene.protein.domains]
                 labelled_genes.append(gene)
+                self.progress.update(task_id=task, advance=1)
 
         return labelled_genes
 
