@@ -15,7 +15,7 @@ import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
-from .._utils import in_context, patch_showwarnings
+from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 
@@ -162,16 +162,19 @@ class Train(Command):  # noqa: D101
 
         features = FeatureTable()
         for filename in self.features:
-            self.info("Loading", "features table from file", repr(filename))
             try:
-                with open(filename) as in_:
-                    features += FeatureTable.load(in_)
+                # get filesize and unit
+                input_size = os.stat(filename).st_size
+                total, scale, unit = ProgressReader.scale_size(input_size)
+                task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
+                # load features
+                self.info("Loading", "features table from file", repr(filename))
+                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:
+                    features += FeatureTable.load(io.TextIOWrapper(in_))
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
-            # except Exception as err:
-            #     self.error("Failed to load features:", err)
-            #     raise CommandExit(getattr(err, "errno", 1)) from err
+
         self.success("Loaded", "a total of", len(features), "features", level=1)
         return features
 
@@ -251,16 +254,18 @@ class Train(Command):  # noqa: D101
     def _load_clusters(self) -> "ClusterTable":
         from ...model import ClusterTable
 
-        self.info("Loading", "clusters table from file", repr(self.clusters))
         try:
-            with open(self.clusters) as in_:
-                return ClusterTable.load(in_)
+            # get filesize and unit
+            input_size = os.stat(self.clusters).st_size
+            total, scale, unit = ProgressReader.scale_size(input_size)
+            task = self.progress.add_task("Loading clusters", total=total, unit=unit, precision=".1f")
+            # load clusters
+            self.info("Loading", "clusters table from file", repr(self.clusters))
+            with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
+                return ClusterTable.load(io.TextIOWrapper(in_))
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
-        # except Exception as err:
-        #     self.error("Failed to load clusters:", err)
-        #     raise CommandExit(getattr(err, "errno", 1)) from err
 
     def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
         cluster_by_seq = collections.defaultdict(list)

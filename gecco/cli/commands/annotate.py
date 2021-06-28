@@ -135,6 +135,7 @@ class Annotate(Command):  # noqa: D101
         total, scale, unit = ProgressReader.scale_size(input_size)
         task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
 
+        # load sequences
         self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
         try:
             with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
