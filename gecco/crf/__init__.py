@@ -201,6 +201,13 @@ class ClusterCRF(object):
             self.significance = sig = fisher_significance(g.protein for seq in seqs for g in seq)
             sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
             self.significant_features = frozenset(sorted_sig)
+            # check that we don't select "random" domains
+            if sig[sorted_sig[-1]] == 1.0:
+                warnings.warn(
+                    "Selected features still include domains with a p-value "
+                    "of 1, consider reducing the selected fraction.",
+                    UserWarning
+                )
             # remove non significant domains
             for i, seq in enumerate(seqs):
                 for j, gene in enumerate(seq):
