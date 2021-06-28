@@ -85,11 +85,11 @@ class Convert(Command):  # noqa: D101
         # collect `*.clusters.tsv` files
         cluster_files = glob.glob(os.path.join(self.input_dir, "*.clusters.tsv"))
         unit = "table" if len(cluster_files) == 1 else "tables"
-        task = self.progress.add_task("Loading", total=len(cluster_files), unit=unit)
+        task = self.progress.add_task("Loading", total=len(cluster_files), unit=unit, precision="")
         # load the original coordinates from the `*.clusters.tsv` files
         coordinates = {}
         types = {}
-        for cluster_file in self.progress.track(cluster_files, task_id=task):
+        for cluster_file in self.progress.track(cluster_files, task_id=task, precision=""):
             cluster_fh = ctx.enter_context(open(cluster_file))
             for row in ClusterTable.load(cluster_fh):
                 ty = ";".join(sorted(ty.name for ty in row.type.unpack()))
@@ -99,10 +99,10 @@ class Convert(Command):  # noqa: D101
         # collect `*_clusters_{N}.gbk` files
         gbk_files = glob.glob(os.path.join(self.input_dir, "*_cluster_*.gbk"))
         unit = "file" if len(gbk_files) == 1 else "files"
-        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit)
+        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit, precision="")
         done = 0
         # rewrite GenBank files
-        for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files)):
+        for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files), precision=""):
             # load record and ensure it comes from GECCO
             record = Bio.SeqIO.read(gbk_file, "genbank")
             if "GECCO-Data" not in record.annotations.get('structured_comment', {}):
@@ -137,7 +137,7 @@ class Convert(Command):  # noqa: D101
         # collect `*_clusters_{N}.gbk` files
         gbk_files = glob.glob(os.path.join(self.input_dir, "*_cluster_*.gbk"))
         unit = "file" if len(gbk_files) == 1 else "files"
-        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit)
+        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit, precision="")
         done = 0
         # rewrite GenBank files
         for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files)):
@@ -162,7 +162,7 @@ class Convert(Command):  # noqa: D101
         # collect `*_clusters_{N}.gbk` files
         gbk_files = glob.glob(os.path.join(self.input_dir, "*_cluster_*.gbk"))
         unit = "file" if len(gbk_files) == 1 else "files"
-        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit)
+        task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit, precision="")
         done = 0
         # rewrite GenBank files
         for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files)):

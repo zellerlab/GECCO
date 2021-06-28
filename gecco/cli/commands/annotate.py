@@ -6,6 +6,7 @@ import errno
 import glob
 import gzip
 import itertools
+import io
 import logging
 import multiprocessing
 import operator
@@ -17,7 +18,12 @@ import signal
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
 from ._base import Command, CommandExit, InvalidArgument
-from .._utils import guess_sequences_format, in_context, patch_showwarnings
+from .._utils import (
+    guess_sequences_format,
+    in_context,
+    patch_showwarnings,
+    ProgressReader,
+)
 
 
 class Annotate(Command):  # noqa: D101
@@ -115,6 +121,7 @@ class Annotate(Command):  # noqa: D101
     def _load_sequences(self):
         from Bio import SeqIO
 
+        # guess format or use the one given in CLI
         if self.format is not None:
             format = self.format
             self.info("Using", "user-provided sequence format", repr(format), level=2)
@@ -123,13 +130,19 @@ class Annotate(Command):  # noqa: D101
             format = guess_sequences_format(self.genome)
             self.success("Detected", "format of input as", repr(format), level=2)
 
+        # get filesize and unit
+        input_size = os.stat(self.genome).st_size
+        total, scale, unit = ProgressReader.scale_size(input_size)
+        task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
+
         self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
         try:
-            sequences = list(SeqIO.parse(self.genome, format))
+            with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
+                sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
             raise CommandExit(e.errno) from err
-        except Exception as err:
+        except ValueError as err:
             self.error("Failed to load sequences:", err)
             raise CommandExit(getattr(err, "errno", 1)) from err
         else:
@@ -143,7 +156,7 @@ class Annotate(Command):  # noqa: D101
         orf_finder = PyrodigalFinder(metagenome=True, cpus=self.jobs)
 
         unit = "contigs" if len(sequences) > 1 else "contig"
-        task = self.progress.add_task(description="ORFs finding", total=len(sequences), unit=unit)
+        task = self.progress.add_task(description="ORFs finding", total=len(sequences), unit=unit, precision="")
 
         def callback(record, found, total):
             self.success("Found", found, "genes in record", repr(record.id), level=2)
@@ -158,9 +171,9 @@ class Annotate(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
-        task = self.progress.add_task(description=f"HMM annotation", unit="HMMs", total=len(hmms))
+        task = self.progress.add_task(description=f"HMM annotation", unit="HMMs", total=len(hmms), precision="")
         for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
-            task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains")
+            task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             features = PyHMMER(hmm, self.jobs).run(genes, progress=callback)

@@ -147,7 +147,7 @@ class Run(Annotate):  # noqa: D101
 
         self.info("Predicting", "cluster probabilitites with the CRF model", level=1)
         unit = "genes" if len(genes) > 1 else "gene"
-        task = self.progress.add_task("Prediction", total=len(genes), unit=unit)
+        task = self.progress.add_task("Prediction", total=len(genes), unit=unit, precision="")
         return list(crf.predict_probabilities(
             self.progress.track(genes, task_id=task, total=len(genes)),
             cpus=self.jobs
@@ -170,7 +170,7 @@ class Run(Annotate):  # noqa: D101
 
         total = len({gene.source.id for gene in genes})
         unit = "contigs" if total > 1 else "contig"
-        task = self.progress.add_task("Segmentation", total=total, unit=unit)
+        task = self.progress.add_task("Segmentation", total=total, unit=unit, precision="")
 
         clusters = []
         gene_groups = itertools.groupby(genes, lambda g: g.source.id)
@@ -186,7 +186,7 @@ class Run(Annotate):  # noqa: D101
         self.info("Predicting", "BGC types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"
-        task = self.progress.add_task("Type prediction", total=len(clusters), unit=unit)
+        task = self.progress.add_task("Type prediction", total=len(clusters), unit=unit, precision="")
 
         clusters_new = []
         classifier = TypeClassifier.trained(self.model)
@@ -307,7 +307,8 @@ class Run(Annotate):  # noqa: D101
             self._write_clusters(clusters)
             if self.antismash_sideload:
                 self._write_sideload_json(clusters)
-            self.success("Found", len(clusters), "biosynthetic gene clusters", level=0)
+            unit = "cluster" if len(clusters) == 1 else "clusters"
+            self.success("Found", len(clusters), "biosynthetic gene", unit, level=0)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:

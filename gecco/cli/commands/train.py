@@ -180,7 +180,7 @@ class Train(Command):  # noqa: D101
 
         gene_count = len(set(features.protein_id))
         unit = "gene" if gene_count == 1 else "genes"
-        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit)
+        task = self.progress.add_task("Feature conversion", total=gene_count, unit=unit, precision="")
 
         genes = list(self.progress.track(
             features.to_genes(),

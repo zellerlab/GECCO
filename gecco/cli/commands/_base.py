@@ -99,7 +99,7 @@ class Command(metaclass=abc.ABCMeta):
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
             "[progress.description]{task.description}",
             rich.progress.BarColumn(bar_width=60),
-            "[progress.completed]{task.completed}/{task.total}",
+            "[progress.completed]{task.completed:{task.fields[precision]}}/{task.total:{task.fields[precision]}}",
             "[progress.completed]{task.fields[unit]}",
             "[progress.percentage]{task.percentage:>3.0f}%",
             rich.progress.TimeElapsedColumn(),

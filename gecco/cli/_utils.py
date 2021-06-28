@@ -3,6 +3,7 @@
 
 import contextlib
 import functools
+import io
 import logging
 import typing
 import warnings
@@ -15,6 +16,65 @@ if typing.TYPE_CHECKING:
         [str, Type[Warning], str, int, Optional[TextIO], Optional[str]],
         None
     ]
+
+
+class ProgressReader(io.RawIOBase):
+    """A reader that updates a progress bar while it's being read from.
+    """
+
+    @staticmethod
+    def scale_size(length):
+        for scale, unit in enumerate(["B", "kiB", "MiB", "GiB", "TiB"]):
+            if length > 1024:
+                length /= 1024
+            else:
+                break
+        return length, scale, unit
+
+    def __init__(self, handle, progress, task, scale=0):
+        self.handle = handle
+        self.progress = progress
+        self.task = task
+        self.scale = scale
+
+    def __enter__(self):
+        self.handle.__enter__()
+        return self
+
+    def __exit__(self, exc_val, exc_ty, tb):
+        self.handle.__exit__(exc_val, exc_ty, tb)
+        return False
+
+    def _update(self, length):
+        self.progress.update(self.task, advance=length / (1024 ** self.scale))
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return False
+
+    def writable(self):
+        return False
+
+    def readline(self, size=-1):
+        line = self.handle.readline(size)
+        self._update(len(line))
+        return line
+
+    def readlines(self, hint=-1):
+        lines = self.handle.readlines(hint)
+        self._update(sum(map(len, lines)))
+        return lines
+
+    def read(self, size=-1):
+        block = self.handle.read(size)
+        self._update(len(block))
+        return block
+
+    def close(self):
+        self.handle.close()
+
 
 @contextlib.contextmanager
 def patch_showwarnings(new_showwarning: "ShowWarning") -> Iterator[None]:
