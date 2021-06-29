@@ -75,10 +75,15 @@ class Train(Command):  # noqa: D101
                                             features overlap. [default: 2]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
+            --correction <method>           the multiple test correction method
+                                            to use when computing significance
+                                            with multiple Fisher tests.
 
         """
 
     def _check(self) -> typing.Optional[int]:
+        from ...crf.select import _CORRECTION_METHODS
+
         super()._check()
         try:
             self.feature_type = self._check_flag(
@@ -115,6 +120,13 @@ class Train(Command):  # noqa: D101
                 lambda x: 0 <= x <= 1,
                 hint="real number between 0 and 1",
                 optional=True,
+            )
+            self.correction = self._check_flag(
+                "--correction",
+                str,
+                lambda m: m in _CORRECTION_METHODS,
+                hint="one of {}".format(", ".join(sorted(_CORRECTION_METHODS))),
+                optional=True
             )
             self.jobs = self._check_flag(
                 "--jobs",
@@ -216,7 +228,13 @@ class Train(Command):  # noqa: D101
             c2=self.c2,
         )
         self.info("Fitting", "the CRF model to the training data")
-        crf.fit(genes, select=self.select, shuffle=not self.no_shuffle, cpus=self.jobs)
+        crf.fit(
+            genes,
+            select=self.select,
+            shuffle=not self.no_shuffle,
+            correction_method=self.correction,
+            cpus=self.jobs
+        )
         return crf
 
     def _save_model(self, crf: "ClusterCRF") -> None:

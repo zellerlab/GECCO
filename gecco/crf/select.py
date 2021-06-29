@@ -13,6 +13,19 @@ from .._meta import requires
 if typing.TYPE_CHECKING:
     from ..bgc import BGC
 
+_CORRECTION_METHODS = {
+    "bonferroni",
+    "sidak",
+    "holm-sidak",
+    "holm",
+    "simes-hochberg",
+    "hommel",
+    "fdr_bh",
+    "fdr_by",
+    "fdr_tsbh",
+    "fdr_tsbky",
+}
+
 @requires("statsmodels.stats.multitest")
 def significance_correction(
     significance: Mapping[str, float], method: str,
@@ -23,27 +36,27 @@ def significance_correction(
         significance (dict): A dictionary which maps feature names to Fisher
             p-values.
         method (str): The correction method to use. See allowed values in the
-            documentation of `statsmodels.stats.multitest.fdrcorrection`.
+            documentation of `statsmodels.stats.multitest.multipletests`.
 
     Returns:
         dict: A dictionary which maps feature names to corrected p-values.
 
     Example:
         >>> s = {"A": 0.6, "B": 0.05, "C": 1, "D": 0}
-        >>> sorted(significance_correction(s, method="indep").items())
+        >>> sorted(significance_correction(s, method="fdr_bh").items())
         [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
 
     """
     features = sorted(significance, key=significance.__getitem__)
     pvalues = numpy.array([significance[feature] for feature in features])
-    _, corrected = multitest.fdrcorrection(pvalues, method=method, is_sorted=True)
+    _, corrected, _, _ = multitest.multipletests(pvalues, method=method, is_sorted=True)
     return dict(zip(features, corrected))
 
 
 @requires("fisher")
 def fisher_significance(
     proteins: Iterable[Protein],
-    correction_method: Optional[str] = "indep",
+    correction_method: Optional[str] = "fdr_bh",
 ) -> Dict[str, float]:
     r"""Estimate the significance of each domain in the given proteins.
 
@@ -70,7 +83,7 @@ def fisher_significance(
             BGC, or of 0 if they are not.**
         correction_method (`str`, optional): The name of the multiple test
             correction method to use when computing significance, or `None` to
-            skip correction. See `statsmodels.stats.multitest.fdrcorrection`
+            skip correction. See `statsmodels.stats.multitest.multipletests`
             for allowed values.
 
     Returns:

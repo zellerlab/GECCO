@@ -171,7 +171,15 @@ class ClusterCRF(object):
         # probabilities set
         return list(itertools.chain.from_iterable(annotated_seqs)) # type: ignore
 
-    def fit(self, genes: Iterable[Gene], select: Optional[float] = None, shuffle: bool = True, *, cpus: Optional[int] = None) -> None:
+    def fit(
+        self,
+        genes: Iterable[Gene],
+        select: Optional[float] = None,
+        shuffle: bool = True,
+        *,
+        cpus: Optional[int] = None,
+        correction_method: Optional[str] = None,
+    ) -> None:
         _cpus = os.cpu_count() if not cpus else cpus
         # select the feature extraction method
         if self.feature_type == "group":
@@ -198,7 +206,10 @@ class ClusterCRF(object):
             if select <= 0 or select > 1:
                 raise ValueError(f"invalid value for select: {select}")
             # find most significant features
-            self.significance = sig = fisher_significance(g.protein for seq in seqs for g in seq)
+            self.significance = sig = fisher_significance(
+                (g.protein for seq in seqs for g in seq),
+                correction_method=correction_method,
+            )
             sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
             self.significant_features = frozenset(sorted_sig)
             # check that we don't select "random" domains

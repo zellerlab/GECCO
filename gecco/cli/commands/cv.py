@@ -72,7 +72,9 @@ class Cv(Train):  # noqa: D101
                                             features overlap. [default: 2]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
-
+            --correction <method>           the multiple test correction method
+                                            to use when computing significance
+                                            with multiple Fisher tests.
 
         Parameters - Cross-validation:
             --splits <N>                    number of folds for cross-validation
