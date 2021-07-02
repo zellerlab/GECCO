@@ -327,8 +327,8 @@ class Train(Command):  # noqa: D101
 
         return [
             Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
-            for bgc_id in sorted(clusters.bgc_id)
-            if genes_by_cluster[bgc_id]
+            for cluster_row in sorted(clusters, key=lambda row: row.bgc_id)
+            if genes_by_cluster[cluster_row.bgc_id]
         ]
 
     def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]):
