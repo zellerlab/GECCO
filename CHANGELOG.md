@@ -5,7 +5,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.7.0...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.0...master
+
+## [v0.8.0] - 2021-07-03
+[v0.8.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.7.0...v0.8.0
+### Changed
+- Retrain internal model using new sequence embeddings and remove broken/duplicate BGCs from MIBiG 2.0.
+- Bump minimum `pyhmmer` version to `v0.4.0` to improve exception handling.
+- Bump minimum `pyrodigal` version to `v0.5.0` to fix sequence decoding on some platforms.
+- Use p-values instead of e-values to filter domains obtained with HMMER.
+- `gecco cv` and `gecco train` now seed the RNG with a user-defined seed before shuffling rows of training data.
+### Fixed
+- Extraction of BGC compositions for the type predictor while training.
+- `ClusterCRF.trained` failing to open an external model.
+### Added
+- `Domain.pvalue` attribute to access the p-value of a domain annotation.
+- Mandatory `pvalue` column to `FeatureTable` objects.
+- Support for loading several feature tables in `gecco train` and `gecco cv`.
+- Warnings to `ClusterCRF.fit` when selecting uninformative features.
+- `--correction` flag to `gecco train` and `gecco cv`, allowing to give a multiple testing correction method when computing p-values with the Fisher Exact Tests.
+### Removed
+- Outdated `gecco embed` command.
+- Unused `--truncate` flag from the `gecco train` CLI.
+- Tigrfam domains, which is not improving performance on the new training data.
 
 ## [v0.7.0] - 2021-05-31
 [v0.7.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.3...v0.7.0
