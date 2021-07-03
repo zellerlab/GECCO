@@ -558,7 +558,7 @@ class FeatureTable(Dumpable, Sized):
             frame[column] = getattr(self, column)
         return frame
 
-    def __iadd__(self, rhs: "FeatureTable") -> "FeatureTable":
+    def __iadd__(self, rhs: "FeatureTable") -> "FeatureTable":  # noqa: D105
         if not isinstance(rhs, FeatureTable):
             return NotImplemented
         for col in self.__annotations__:
@@ -722,7 +722,7 @@ class ClusterTable(Dumpable, Sized):
             table.domains.append(sorted(domains))
         return table
 
-    def __iadd__(self, rhs: "ClusterTable") -> "ClusterTable":
+    def __iadd__(self, rhs: "ClusterTable") -> "ClusterTable":  # noqa: D105
         if not isinstance(rhs, FeatureTable):
             return NotImplemented
         for col in self.__annotations__:
