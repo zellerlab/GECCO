@@ -13,6 +13,8 @@ import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
+import docopt
+
 from .._utils import patch_showwarnings
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
@@ -83,7 +85,8 @@ class Cv(Train):  # noqa: D101
         """
 
     def _check(self) -> typing.Optional[int]:
-        self.args["--output-dir"] = "."
+        if not isinstance(self.args, docopt.DocoptExit):
+            self.args["--output-dir"] = "."
         super()._check()
         try:
             self.output = self._check_flag("--output", str)
