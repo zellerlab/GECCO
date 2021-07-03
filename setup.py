@@ -307,8 +307,7 @@ class build_data(setuptools.Command):
             leave=False,
         )
         # download to `output`
-        nsource = 0
-        nwritten = 0
+        nsource = nwritten = 0
         with contextlib.ExitStack() as ctx:
             dl = ctx.enter_context(pbar)
             src = ctx.enter_context(gzip.open(dl))
