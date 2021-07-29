@@ -165,7 +165,7 @@ class Annotate(Command):  # noqa: D101
 
         return list(orf_finder.find_genes(sequences, progress=callback))
 
-    def _annotate_domains(self, genes):
+    def _annotate_domains(self, genes, whitelist=None):
         from ...hmmer import PyHMMER, embedded_hmms
 
         self.info("Running", "HMMER domain annotation", level=1)
@@ -177,7 +177,7 @@ class Annotate(Command):  # noqa: D101
             task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
-            features = PyHMMER(hmm, self.jobs).run(genes, progress=callback)
+            features = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback)
             self.success("Finished", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             self.progress.update(task_id=task, visible=False)
 

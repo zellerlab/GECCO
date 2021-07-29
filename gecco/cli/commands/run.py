@@ -136,6 +136,19 @@ class Run(Annotate):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
+    def _load_model_domains(self) -> typing.Set[str]:
+        self.info("Loading", "domain whitelist from", repr(self.model), level=2)
+        try:
+            domains_file = os.path.join(self.model, "domains.tsv")
+            with open(domains_file) as f:
+                domains = set(filter(None, map(str.strip, f)))
+        except FileNotFoundError as err:
+            self.error("Could not find model domains:", repr(domains_file))
+            raise CommandExit(e.errno) from err
+        else:
+            self.success("Found", len(domains), "selected features", level=2)
+            return domains
+
     def _predict_probabilities(self, genes):
         from ...crf import ClusterCRF
 
@@ -288,8 +301,10 @@ class Run(Annotate):  # noqa: D101
             else:
                 self.warn("No genes were found")
                 return 0
+            # if given a custom model, use a whitelist for domain annotation
+            whitelist = None if self.model is None else self._load_model_domains()
             # annotate domains and predict probabilities
-            genes = self._annotate_domains(genes)
+            genes = self._annotate_domains(genes, whitelist=whitelist)
             genes = self._predict_probabilities(genes)
             self._write_feature_table(genes)
             # extract clusters from probability vector
