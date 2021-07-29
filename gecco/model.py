@@ -191,6 +191,7 @@ class Gene:
             the source sequence, independent of the strandedness.
         end (`int`): The index of the rightmost nucleotide of the gene within
             the source sequence.
+        strand (`~gecco.model.Strand`): The strand where the gene is located.
         protein (`~gecco.model.Protein`): The protein translated from this
             gene.
         qualifiers (`dict`, optional): A dictionary of feature qualifiers that
