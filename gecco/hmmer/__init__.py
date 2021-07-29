@@ -15,13 +15,13 @@ import re
 import subprocess
 import tempfile
 import typing
-from typing import Callable, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
+from typing import Callable, Container, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
 import pyhmmer
 from Bio import SeqIO
 from pyhmmer.hmmer import hmmsearch
 
-from .._meta import requires
+from .._meta import requires, UniversalContainer
 from ..model import Gene, Domain
 from ..interpro import InterPro
 
@@ -62,18 +62,22 @@ class DomainAnnotator(metaclass=abc.ABCMeta):
     """An abstract class for annotating genes with protein domains.
     """
 
-    def __init__(self, hmm: HMM, cpus: Optional[int] = None) -> None:
+    def __init__(self, hmm: HMM, cpus: Optional[int] = None, whitelist: Optional[Container[str]] = None) -> None:
         """Prepare a new HMMER annotation handler with the given ``hmms``.
 
         Arguments:
             hmm (str): The path to the file containing the HMMs.
             cpus (int, optional): The number of CPUs to allocate for the
                 ``hmmsearch`` command. Give ``None`` to use the default.
+            whitelist (container of str): If given, a container containing
+                the accessions of the individual HMMs to annotate with. If
+                `None` is given, annotate with the entire file.
 
         """
         super().__init__()
         self.hmm = hmm
         self.cpus = cpus
+        self.whitelist = UniversalContainer() if whitelist is None else whitelist
 
     @abc.abstractmethod
     def run(self, genes: Iterable[Gene]) -> List[Gene]:
@@ -114,11 +118,17 @@ class PyHMMER(DomainAnnotator):
             file = ctx.enter_context(open(self.hmm.path, "rb"))
             if self.hmm.path.endswith(".gz"):
                 file = ctx.enter_context(gzip.GzipFile(fileobj=file))
-            # Run search pipeline using the HMM
+            # Only retain the HMMs which are in the whitelist
             hmm_file = ctx.enter_context(pyhmmer.plan7.HMMFile(file))
+            profiles = (
+                hmm
+                for hmm in hmm_file
+                if self.hmm.relabel(hmm.accession.decode()) in self.whitelist
+            )
+            # Run search pipeline using the filtered HMMs
             cpus = 0 if self.cpus is None else self.cpus
             hmms_hits = hmmsearch(
-                hmm_file,
+                profiles,
                 esl_sqs,
                 cpus=cpus,
                 callback=progress,

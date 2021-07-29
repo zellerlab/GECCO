@@ -123,6 +123,17 @@ class OrderedPoolWrapper:
         return list(map(operator.itemgetter(1), results))
 
 
+class UniversalContainer(object):
+    """A container that contains everything.
+    """
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
+    def __contains__(self, item: object) -> bool:
+        return True
+
+
 @contextlib.contextmanager
 def patch_locale(name: str):
     """Create a context manager to locally change the locale in use.
