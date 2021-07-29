@@ -142,7 +142,7 @@ class Annotate(Command):  # noqa: D101
                 sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
-            raise CommandExit(e.errno) from err
+            raise CommandExit(err.errno) from err
         except ValueError as err:
             self.error("Failed to load sequences:", err)
             raise CommandExit(getattr(err, "errno", 1)) from err

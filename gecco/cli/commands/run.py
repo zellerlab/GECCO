@@ -25,6 +25,11 @@ from .annotate import Annotate
 from .._utils import patch_showwarnings
 from ...model import ProductType
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
+
 
 class Run(Annotate):  # noqa: D101
 
@@ -137,9 +142,15 @@ class Run(Annotate):  # noqa: D101
                 break
 
     def _load_model_domains(self) -> typing.Set[str]:
-        self.info("Loading", "domain whitelist from", repr(self.model), level=2)
-        try:
+        if self.model is None:
+            self.info("Loading", "features from internal model", level=2)
+            resource_context = importlib_resources.path("gecco.types", "domains.tsv")
+            domains_file = resource_context.__enter__()
+        else:
+            self.info("Loading", "domain whitelist from", repr(self.model), level=2)
+            resource_context = contextlib.nullcontext()
             domains_file = os.path.join(self.model, "domains.tsv")
+        try:
             with open(domains_file) as f:
                 domains = set(filter(None, map(str.strip, f)))
         except FileNotFoundError as err:
@@ -148,6 +159,8 @@ class Run(Annotate):  # noqa: D101
         else:
             self.success("Found", len(domains), "selected features", level=2)
             return domains
+        finally:
+            resource_context.__exit__(None, None, None)
 
     def _predict_probabilities(self, genes):
         from ...crf import ClusterCRF
@@ -301,8 +314,9 @@ class Run(Annotate):  # noqa: D101
             else:
                 self.warn("No genes were found")
                 return 0
-            # if given a custom model, use a whitelist for domain annotation
-            whitelist = None if self.model is None else self._load_model_domains()
+            # use a whitelist for domain annotation, so that we only annotate
+            # with features that are useful for the CRF
+            whitelist = self._load_model_domains()
             # annotate domains and predict probabilities
             genes = self._annotate_domains(genes, whitelist=whitelist)
             genes = self._predict_probabilities(genes)
