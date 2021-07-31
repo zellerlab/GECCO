@@ -142,25 +142,22 @@ class Run(Annotate):  # noqa: D101
                 break
 
     def _load_model_domains(self) -> typing.Set[str]:
-        if self.model is None:
-            self.info("Loading", "features from internal model", level=2)
-            resource_context = importlib_resources.path("gecco.types", "domains.tsv")
-            domains_file = resource_context.__enter__()
-        else:
-            self.info("Loading", "domain whitelist from", repr(self.model), level=2)
-            resource_context = contextlib.nullcontext()
-            domains_file = os.path.join(self.model, "domains.tsv")
         try:
-            with open(domains_file) as f:
+            if self.model is None:
+                self.info("Loading", "feature list from internal model", level=2)
+                domains_file = importlib_resources.open_text("gecco.types", "domains.tsv")
+            else:
+                self.info("Loading", "feature list from", repr(self.model), level=2)
+                domains_file = open(os.path.join(self.model, "domains.tsv"))
+            with domains_file as f:
                 domains = set(filter(None, map(str.strip, f)))
         except FileNotFoundError as err:
-            self.error("Could not find model domains:", repr(domains_file))
+            if self.model is not None:
+                self.error("Could not find domains list :", repr(self.model))
             raise CommandExit(e.errno) from err
         else:
             self.success("Found", len(domains), "selected features", level=2)
             return domains
-        finally:
-            resource_context.__exit__(None, None, None)
 
     def _predict_probabilities(self, genes):
         from ...crf import ClusterCRF
