@@ -5,7 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...master
+
+## [v0.8.2] - 2021-07-31
+[v0.8.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.1...v0.8.2
+### Fixed
+- `gecco run` crashing on Python 3.6 because of missing `contextlib.nullcontext` class.
+### Changed
+- `gecco run` and `gecco annotate` will not try to count the number of profiles when given an external HMM file with the `--hmm` flag.
+- `PyHMMER.run` now reports the *p-value* of each domain in addition to the *e-value* as a `/note` qualifier.
 
 ## [v0.8.1] - 2021-07-29
 [v0.8.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.0...v0.8.1
