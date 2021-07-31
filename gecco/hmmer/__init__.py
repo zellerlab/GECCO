@@ -155,10 +155,14 @@ class PyHMMER(DomainAnnotator):
                     # extract qualifiers
                     qualifiers: Dict[str, List[str]] = {
                         "inference": ["protein motif"],
-                        "note": ["e-value: {}".format(domain.i_evalue)],
                         "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
-                        "function": [] if entry is None else [entry.name]
+                        "note": [
+                            "e-value: {}".format(domain.i_evalue),
+                            "p-value: {}".format(domain.pvalue),
+                        ],
                     }
+                    if entry is not None:
+                        qualifiers["function"] = [entry.name]
                     if entry is not None and entry.integrated is not None:
                         qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
 
