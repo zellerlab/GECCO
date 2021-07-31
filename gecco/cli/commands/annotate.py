@@ -92,7 +92,6 @@ class Annotate(Command):  # noqa: D101
             raise CommandExit(1)
 
     def _custom_hmms(self):
-        import pyhmmer
         from ...hmmer import HMM
 
         for path in self.hmm:
@@ -102,17 +101,12 @@ class Annotate(Command):  # noqa: D101
                 base, _ = os.path.splitext(base)
                 file = gzip.GzipFile(fileobj=file)
             base, _ = os.path.splitext(base)
-            self.info("Counting", "profiles in HMM file", repr(path), level=1)
-            with file:
-                with pyhmmer.plan7.HMMFile(file) as hmm_file:
-                    size = sum(1 for _ in hmm_file)
-            self.success("Found", size, "profiles in HMM file", repr(path), level=1)
             yield HMM(
                 id=base,
                 version="?",
                 url="?",
                 path=path,
-                size=size,
+                size=1,
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
 
