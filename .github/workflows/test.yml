@@ -67,6 +67,7 @@ jobs:
     runs-on: macos-latest
     env:
       OS: OSX
+    if: "!startsWith(github.ref, 'refs/tags/')"
     strategy:
       matrix:
         include:
