@@ -68,7 +68,7 @@ class Run(Annotate):  # noqa: D101
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
                                           to be included.
             -p <p>, --p-filter <p>        the p-value cutoff for protein domains
-                                          to be included. [default: 1e-9]
+                                          to be included. [default: 1e-5]
 
         Parameters - Cluster Detection:
             -c, --cds <N>                 the minimum number of coding sequences a

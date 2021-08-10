@@ -53,7 +53,7 @@ class Cv(Train):  # noqa: D101
             -e <e>, --e-filter <e>          the e-value cutoff for domains to
                                             be included.
             -p <p>, --p-filter <p>          the p-value cutoff for domains
-                                            to be included. [default: 1e-9]
+                                            to be included. [default: 1e-5]
 
         Parameters - Training Data:
             --no-shuffle                    disable shuffling of the data
