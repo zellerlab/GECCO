@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 [Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...master
 
+## [v0.9.0] - 2021-08-10 - **YANKED**
+[v0.9.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...v0.9.0
+### Changed
+- Retrain internal model using `--select=0.35` instead of `--select=0.25` like before.
+- Change default *p-value* filter from 1e-9 to 1e-5 to detect more features.
+
 ## [v0.8.2] - 2021-07-31
 [v0.8.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.1...v0.8.2
 ### Fixed
