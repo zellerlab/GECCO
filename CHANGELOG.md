@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3...master
+
+## [v0.8.3] - 2021-08-23
+[v0.8.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...v0.8.3
+### Changed
+- Default probability threshold for segmentation to 0.3 (from 0.4).
 
 ## [v0.9.0] - 2021-08-10 - **YANKED**
 [v0.9.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...v0.9.0
