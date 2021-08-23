@@ -75,7 +75,7 @@ class Run(Annotate):  # noqa: D101
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster
                                           detection. Default depends on the
-                                          post-processing method (0.4 for gecco,
+                                          post-processing method (0.3 for gecco,
                                           0.6 for antismash).
             --postproc <method>           the method to use for cluster validation
                                           (antismash or gecco). [default: gecco]
