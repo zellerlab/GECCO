@@ -69,7 +69,7 @@ Additional parameters of interest are:
 - `--jobs`, which controls the number of threads that will be spawned by
   GECCO whenever a step can be parallelized. The default, *0*, will
   autodetect the number of CPUs on the machine using
-  [`multiprocessing.cpu_count`](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.cpu_count).
+  [`os.cpu_count`](https://docs.python.org/3/library/os.html#os.cpu_count).
 - `--cds`, controlling the minimum number of consecutive genes a BGC region
   must have to be detected by GECCO (default is 3).
 - `--threshold`, controlling the minimum probability for a gene to be
