@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 [Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3-post1...master
 
+## [v0.8.4] - 2021-09-26
+[v0.8.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3-post1...v0.8.4
+### Fixed
+- `gecco convert gbk --format bigslice` failing to run because of outdated code ([#5](https://github.com/zellerlab/GECCO/issues/5)).
+- `gecco convert gbk --format bigslice` not creating files with names conforming to BiG-SLiCE expected input.
+### Changed
+- Bump minimum `pyrodigal` version to `v0.6.2` to use platform-accelerated code if supported.
+
 ## [v0.8.3-post1] - 2021-08-23
 [v0.8.3-post1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3...v0.8.3-post1
 ### Fixed
