@@ -11,6 +11,7 @@ import os
 import operator
 import multiprocessing
 import random
+import re
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 
@@ -48,15 +49,19 @@ class Convert(Command):  # noqa: D101
         combination with other tools. The supported formats are listed
         below:
 
-        * ``gecco convert gbk --format=bigslice``: convert and alias the
-          GenBank files in the given directory so that they can be loaded by
-          BiG-SLiCE. Output files are named ``*.regionNNN.gbk``.
-        * ``gecco convert gbk --format=fna``: convert the GenBank files to
-          FASTA files containing the nucleotide sequence of the cluster.
-          Output files are named ``*.fna``.
-        * ``gecco convert gbk --format=faa``: convert the GenBank files to
-          FASTA files containing the amino-acid sequences of all the proteins
-          in a cluster. Output files are named ``*.faa``.
+        ``gecco convert gbk --format=bigslice``
+            Convert and alias the GenBank files in the given directory so that
+            they can be loaded by BiG-SLiCE. Output files are named
+            ``*.regionNNN.gbk``.
+
+        ``gecco convert gbk --format=fna``
+            Convert the GenBank files to FASTA files containing the nucleotide
+            sequence of the cluster. Output files are named ``*.fna``.
+
+        ``gecco convert gbk --format=faa``
+            Convert the GenBank files to FASTA files containing the amino-acid
+            sequences of all the proteins in a cluster. Output files are
+            named ``*.faa``.
 
         """
 
@@ -89,7 +94,7 @@ class Convert(Command):  # noqa: D101
         # load the original coordinates from the `*.clusters.tsv` files
         coordinates = {}
         types = {}
-        for cluster_file in self.progress.track(cluster_files, task_id=task, precision=""):
+        for cluster_file in self.progress.track(cluster_files, task_id=task):
             cluster_fh = ctx.enter_context(open(cluster_file))
             for row in ClusterTable.load(cluster_fh):
                 ty = ";".join(sorted(ty.name for ty in row.type.unpack()))
@@ -102,7 +107,7 @@ class Convert(Command):  # noqa: D101
         task = self.progress.add_task("Converting", total=len(gbk_files), unit=unit, precision="")
         done = 0
         # rewrite GenBank files
-        for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files), precision=""):
+        for gbk_file in self.progress.track(gbk_files, task_id=task, total=len(gbk_files)):
             # load record and ensure it comes from GECCO
             record = Bio.SeqIO.read(gbk_file, "genbank")
             if "GECCO-Data" not in record.annotations.get('structured_comment', {}):
@@ -123,7 +128,9 @@ class Convert(Command):  # noqa: D101
             subregion_feature.qualifiers["label"] = [types[record.id]]
             record.features.append(subregion_feature)
             # rename the {id}_cluster_{N}.gbk file to {id}.region{N}.gbk
-            new_name = gbk_file.replace("_cluster_", ".region")
+            gbk_name = os.path.basename(gbk_file)
+            contig_id, cluster_n = re.search("^(.*)_cluster_(\d+).gbk", gbk_file).groups()
+            new_name = os.path.join(self.input_dir, "{}.region{:03}.gbk".format(contig_id, int(cluster_n)))
             self.info(f"Rewriting {gbk_file!r} to {new_name!r}")
             Bio.SeqIO.write(record, new_name, "genbank")
             done += 1
