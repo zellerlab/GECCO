@@ -1,6 +1,10 @@
 Hi, I’m GECCO!
 ==============
 
+.. image:: https://raw.githubusercontent.com/zellerlab/GECCO/v0.6.2/static/gecco-square.png
+   :target: https://github.com/zellerlab/GECCO/
+
+
 🦎 ️Overview
 ---------------
 
@@ -20,18 +24,14 @@ supports `all versions <https://endoflife.date/python>`__ from Python
 3.6. It requires additional libraries that can be installed directly
 from `PyPI <https://pypi.org>`__, the Python Package Index.
 
-Use ```pip`` <https://pip.pypa.io/en/stable/>`__ to install GECCO on
-your machine:
-
-.. code:: console
+Use `pip <https://pip.pypa.io/en/stable/>`__ to install GECCO on
+your machine::
 
    $ pip install gecco-tool
 
 If you’d rather use `Conda <https://conda.io>`__, a package is available
-in the ```bioconda`` <https://bioconda.github.io/>`__ channel. You can
-install with:
-
-.. code:: console
+in the `bioconda <https://bioconda.github.io/>`__ channel. You can
+install with::
 
    $ conda install -c bioconda gecco
 
@@ -40,7 +40,7 @@ predictions. This requires around 100MB of data to be downloaded, so it
 could take some time depending on your Internet connection. Once done,
 you will have a ``gecco`` command available in your $PATH.
 
-*Note that GECCO uses*\ `HMMER3 <http://hmmer.org/>`__\ *, which can
+*Note that GECCO uses* `HMMER3 <http://hmmer.org/>`__, *which can
 only run on PowerPC and recent x86-64 machines running a POSIX operating
 system. Therefore, Linux and OSX are supported platforms, but GECCO will
 not be able to run on Windows.*
@@ -50,9 +50,7 @@ not be able to run on Windows.*
 
 Once ``gecco`` is installed, you can run it from the terminal by giving
 it a FASTA or GenBank file with the genomic sequence you want to
-analyze, as well as an output directory:
-
-.. code:: console
+analyze, as well as an output directory::
 
    $ gecco run --genome some_genome.fna -o some_output_dir
 
@@ -61,7 +59,7 @@ Additional parameters of interest are:
 -  ``--jobs``, which controls the number of threads that will be spawned
    by GECCO whenever a step can be parallelized. The default, *0*, will
    autodetect the number of CPUs on the machine using
-   ```os.cpu_count`` <https://docs.python.org/3/library/os.html#os.cpu_count>`__.
+   `os.cpu_count <https://docs.python.org/3/library/os.html#os.cpu_count>`__.
 -  ``--cds``, controlling the minimum number of consecutive genes a BGC
    region must have to be detected by GECCO (default is 3).
 -  ``--threshold``, controlling the minimum probability for a gene to be
@@ -95,7 +93,7 @@ recreate the same bug in a simple, easily reproducible situation.
 ~~~~~~~~~~~~~~~~
 
 Contributions are more than welcome! See
-```CONTRIBUTING.md`` <https://github.com/althonos/pyhmmer/blob/master/CONTRIBUTING.md>`__
+`CONTRIBUTING.md <https://github.com/althonos/pyhmmer/blob/master/CONTRIBUTING.md>`__
 for more details.
 
 ⚖️ License
