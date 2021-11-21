@@ -1,0 +1,36 @@
+{
+    "records": [
+        {
+            "name": "BGC0001866.1",
+            "subregions": [
+                {
+                    "details": {
+                        "alkaloid_probability": "0.000",
+                        "average_p": "0.997",
+                        "max_p": "1.000",
+                        "nrp_probability": "0.140",
+                        "other_probability": "0.000",
+                        "polyketide_probability": "0.980",
+                        "ripp_probability": "0.000",
+                        "saccharide_probability": "0.000",
+                        "terpene_probability": "0.000"
+                    },
+                    "end": 32979,
+                    "label": "Polyketide",
+                    "start": 347
+                }
+            ]
+        }
+    ],
+    "tool": {
+        "configuration": {
+            "cds": "3",
+            "e-filter": "None",
+            "postproc": "'gecco'",
+            "threshold": "0.3"
+        },
+        "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
+        "name": "GECCO",
+        "version": "0.8.4"
+    }
+}
