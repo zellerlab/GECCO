@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tool id="gecco" name="GECCO" version="0.8.4" python_template_version="3.5">
+<tool id="gecco" name="GECCO" version="0.8.5" python_template_version="3.5">
     <description>GECCO (Gene Cluster prediction with Conditional Random Fields) is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).</description>
     <requirements>
-        <requirement type="package" version="0.8.4">gecco</requirement>
+        <requirement type="package" version="0.8.5">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -14,13 +14,37 @@
         #end if
         ln -s '$input' input_tempfile.$file_extension &&
 
-        gecco -vv run -g input_tempfile.$file_extension &&
-        mv input_tempfile.features.tsv $features &&
-        mv input_tempfile.clusters.tsv $clusters
+        gecco -vv run 
+        --format $input.ext 
+        --genome input_tempfile.$file_extension 
+        --postproc $postproc
+        --force-clusters-tsv
+        #if $cds:
+            --cds $cds
+        #end if
+        #if $threshold:
+            --threshold $threshold
+        #end if
+        #if $antismash_sideload:
+            --antismash-sideload
+        #end if
+
+        && mv input_tempfile.features.tsv $features
+        && mv input_tempfile.clusters.tsv $clusters
+        #if $antismash_sideload
+        && mv input_tempfile.sideload.json $sideload
+        #end if
 
     ]]></command>
     <inputs>
-        <param name="input" type="data" format="genbank,fasta" label="Sequence file in GenBank or FASTA format"/>
+        <param name="input" type="data" format="genbank,fasta,embl" label="Sequence file in GenBank, EMBL or FASTA format"/>
+        <param argument="--cds" type="integer" min="0" value="" optional="true" label="Minimum number of genes required for a cluster"/>
+        <param argument="--threshold" type="float" min="0" max="1" value="" optional="true" label="Probability threshold for cluster detection"/>
+        <param argument="--postproc" type="select" label="Post-processing method for gene cluster validation">
+            <option value="antismash">antiSMASH</option>
+            <option value="gecco" selected="true">GECCO</option>
+        </param>
+        <param argument="--antismash-sideload" type="boolean" checked="false" label="Generate an antiSMASH v6 sideload JSON file"/>
     </inputs>
     <outputs>
         <collection name="records" type="list" label="${tool.name} detected Biosynthetic Gene Clusters on ${on_string} (GenBank)">
@@ -28,12 +52,25 @@
         </collection>
         <data name="features" format="tabular" label="${tool.name} summary of detected features on ${on_string} (TSV)"/>
         <data name="clusters" format="tabular" label="${tool.name} summary of detected BGCs on ${on_string} (TSV)"/>
+        <data name="sideload" format="json" label="antiSMASH v6 sideload file with ${tool.name} detected BGCs on ${on_string} (JSON)">
+            <filter>antismash_sideload</filter>
+        </data>
     </outputs>
     <tests>
         <test>
             <param name="input" value="BGC0001866.fna"/>
             <output name="features" file="features.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
+            <output_collection name="records" type="list">
+                <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" lines_diff="2"/>
+            </output_collection>
+        </test>
+        <test>
+            <param name="input" value="BGC0001866.fna"/>
+            <param name="antismash_sideload" value="True"/>
+            <output name="features" file="features.tsv"/>
+            <output name="clusters" file="clusters.tsv"/>
+            <output name="sideload" file="sideload.json"/>
             <output_collection name="records" type="list">
                 <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" lines_diff="2"/>
             </output_collection>
