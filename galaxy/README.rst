@@ -14,7 +14,7 @@ Clusters (BGCs) in genomic and metagenomic data using Conditional Random
 Fields (CRFs).
 
 |GitLabCI| |License| |Coverage| |Docs| |Source| |Mirror| |Changelog|
-|Issues| |Preprint| |PyPI| |Bioconda| |Versions| |Wheel|
+|Issues| |Preprint| |PyPI| |Bioconda| |Galaxy| |Versions| |Wheel|
 
 🔧 Installing GECCO
 -------------------
@@ -132,3 +132,5 @@ Heidelberg.
    :target: https://pypi.org/project/gecco-tool/#files
 .. |Wheel| image:: https://img.shields.io/pypi/wheel/gecco-tool?style=flat-square&maxAge=3600
    :target: https://pypi.org/project/gecco-tool/#files
+.. |Galaxy| image:: https://img.shields.io/badge/Galaxy-GECCO-darkblue?style=flat-square&maxAge=3600
+   :target: https://toolshed.g2.bx.psu.edu/repository?repository_id=c29bc911b3fc5f8c
