@@ -1,0 +1,13 @@
+categories:
+- Genome annotation
+- Sequence Analysis
+- Metagenomics
+description: 'Biosynthetic Gene Cluster prediction with Conditional Random Fields with GECCO.'
+name: gecco
+owner: althonos
+homepage_url: https://gecco.embl.de
+long_description: |
+  GECCO is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).
+  It is developed in the Zeller group and is part of the suite of computational microbiome analysis tools hosted at EMBL.
+remote_repository_url: https://github.com/zellerlab/GECCO/tree/master/galaxy
+type: unrestricted
