@@ -1,0 +1,33 @@
+name: Galaxy
+on:
+  - push
+  - pull_request
+
+jobs:
+
+  lint:
+    name: Lint tool
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Install planemo
+      run: pip install -U planemo
+    - name: Lint repository
+      run: planemo shed_lint --tools ./galaxy
+
+  test:
+    name: Test tool
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Install planemo
+      run: pip install -U planemo
+    - name: Test tool
+      run: planemo test ./galaxy/gecco.xml
