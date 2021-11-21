@@ -38,7 +38,7 @@ To bump the version of the internal HMMs (for instance, to switch to a newer
 version of Pfam), simply edit the INI file for that HMM in the
 ``gecco/hmmer`` folder.
 
-Then simply clean and rebuild data files to download the latest version of
+Then clean and rebuild data files to download the latest version of
 the HMMs:
 
 ```console
@@ -48,7 +48,7 @@ $ python setup.py clean build_data --inplace
 
 ### Upgrading the internal CRF model
 
-After having trained a new version of the model, simply run the following
+After having trained a new version of the model, run the following
 command to update the internal GECCO model as well as the hash signature file:
 
 ```console

@@ -98,7 +98,7 @@ in a simple, easily reproducible situation.
 
 ### 🏗️ Contributing
 
-Contributions are more than welcome! See [`CONTRIBUTING.md`](https://github.com/althonos/pyhmmer/blob/master/CONTRIBUTING.md)
+Contributions are more than welcome! See [`CONTRIBUTING.md`](https://github.com/zellerlab/GECCO/blob/master/CONTRIBUTING.md)
 for more details.
 
 ## ⚖️ License
