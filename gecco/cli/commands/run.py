@@ -63,6 +63,8 @@ class Run(Annotate):  # noqa: D101
                                           output files. [default: .]
             --antismash-sideload          write an AntiSMASH v6 sideload JSON
                                           file next to the output files.
+            --force-clusters-tsv          always write a ``clusters.tsv`` file
+                                          even when no clusters were found.
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -117,6 +119,7 @@ class Run(Annotate):  # noqa: D101
             self.hmm = self._check_flag("--hmm")
             self.output_dir = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
+            self.force_clusters_tsv = self._check_flag("--force-clusters-tsv", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -324,6 +327,8 @@ class Run(Annotate):  # noqa: D101
                 self.success("Found", len(clusters), "potential gene clusters", level=1)
             else:
                 self.warn("No gene clusters were found")
+                if self.force_clusters_tsv:
+                    self._write_cluster_table(clusters)
                 return 0
             # predict types for putative clusters
             clusters = self._predict_types(clusters)
