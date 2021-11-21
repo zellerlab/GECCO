@@ -11,8 +11,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-      with:
-        submodules: true
+    - name: Update build dependencies
+      run: pip install -U wheel pip setuptools
     - name: Install planemo
       run: pip install -U planemo
     - name: Lint repository
@@ -25,9 +25,25 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-      with:
-        submodules: true
+    - name: Update build dependencies
+      run: pip install -U wheel pip setuptools
     - name: Install planemo
       run: pip install -U planemo
     - name: Test tool
       run: planemo test ./galaxy/gecco.xml
+
+  deploy:
+    environment: Tool Shed
+    name: Deploy tool
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Update build dependencies
+      run: pip install -U wheel pip setuptools
+    - name: Install planemo
+      run: pip install -U planemo
+    - name: Deploy repository to Tool Shed
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: planemo shed_update ./galaxy --owner althonos --name gecco -t toolshed -m ${{ github.event.head_commit.message }} --shed_key ${{ secrets.TOOL_SHED_API_KEY }}
