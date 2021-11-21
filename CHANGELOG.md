@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3-post1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.5...master
+
+## [v0.8.5] - 2021-11-21
+[v0.8.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.4...v0.8.5
+### Added
+- Minimal compatibility support for running GECCO inside of Galaxy workflows.
 
 ## [v0.8.4] - 2021-09-26
 [v0.8.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3-post1...v0.8.4
