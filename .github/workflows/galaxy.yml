@@ -45,4 +45,5 @@ jobs:
     - name: Install planemo
       run: pip install -U planemo
     - name: Deploy repository to Tool Shed
-      run: planemo shed_update ./galaxy --owner althonos --name gecco -t toolshed -m ${{ github.event.head_commit.message }} --shed_key ${{ secrets.TOOL_SHED_API_KEY }}
+      run: planemo shed_update ./galaxy --owner althonos --name gecco -t toolshed -m '${{ github.event.head_commit.message }}' --shed_key '${{ secrets.TOOL_SHED_API_KEY }}'
+      

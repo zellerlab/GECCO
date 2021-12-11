@@ -15,7 +15,7 @@ REFERENCE   1
   JOURNAL   bioRxiv (2021.05.03.442509)
   REMARK    doi:10.1101/2021.05.03.442509
 COMMENT     ##GECCO-Data-START##
-            version                :: GECCO v0.8.4
+            version                :: GECCO v0.8.5
             creation_date          :: 2021-11-21T16:33:58.470847
             biosyn_class           :: Polyketide
             alkaloid_probability   :: 0.0

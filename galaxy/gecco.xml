@@ -62,7 +62,7 @@
             <output name="features" file="features.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
             <output_collection name="records" type="list">
-                <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" lines_diff="2"/>
+                <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" compare="diff" lines_diff="4"/>
             </output_collection>
         </test>
         <test>
@@ -72,7 +72,7 @@
             <output name="clusters" file="clusters.tsv"/>
             <output name="sideload" file="sideload.json"/>
             <output_collection name="records" type="list">
-                <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" lines_diff="2"/>
+                <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" compare="diff" lines_diff="4"/>
             </output_collection>
         </test>
     </tests>
