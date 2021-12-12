@@ -45,14 +45,13 @@ $ conda install -c bioconda gecco
 ```
 
 This will install GECCO, its dependencies, and the data needed to run
-predictions. This requires around 100MB of data to be downloaded, so
-it could take some time depending on your Internet connection. Once done, you
-will have a ``gecco`` command available in your $PATH.
+predictions. This requires around 40MB of data to be downloaded, so
+it could take some time depending on your Internet connection. Once done,
+you will have a ``gecco`` command available in your $PATH.
 
 *Note that GECCO uses [HMMER3](http://hmmer.org/), which can only run
 on PowerPC and recent x86-64 machines running a POSIX operating system.
-Therefore, Linux and OSX are supported platforms, but GECCO will not be able
-to run on Windows.*
+Therefore, GECCO will work on Linux and OSX, but not on Windows.*
 
 
 ## 🧬 Running GECCO
@@ -72,10 +71,30 @@ Additional parameters of interest are:
   autodetect the number of CPUs on the machine using
   [`os.cpu_count`](https://docs.python.org/3/library/os.html#os.cpu_count).
 - `--cds`, controlling the minimum number of consecutive genes a BGC region
-  must have to be detected by GECCO (default is 3).
+  must have to be detected by GECCO. The default is *3*.
 - `--threshold`, controlling the minimum probability for a gene to be
   considered part of a BGC region. Using a lower number will increase the
-  number (and possibly length) of predictions, but reduce accuracy.
+  number (and possibly length) of predictions, but reduce accuracy. The
+  default of *0.3* was selected to optimize precision/recall on a test set
+  of 364 BGCs from [MIBiG 2.0](https://mibig.secondarymetabolites.org/).
+
+## 🔎 Results
+
+GECCO will create the following files:
+
+- `{genome}.features.tsv`: The *features* file, containing the identified
+  proteins and domains in the input sequences, in tabular format.
+- `{genome}.clusters.tsv`: If any were found, a *clusters* file, containing
+  the coordinates of the predicted clusters along their putative biosynthetic
+  type, in tabular format.
+- `{genome}_cluster_{N}.gbk`: If any were found, a GenBank file per cluster,
+  containing the cluster sequence annotated with its member proteins and domains.
+
+To get a more visual way of exploring of the predictions, you
+can open the GenBank files in a genome editing software like [UGENE](http://ugene.net/),
+or you can load the results into an AntiSMASH report.
+Check the [Integrations](https://gecco.embl.de/integrations.html#antismash) page of the
+documentation for a step-by-step guide.
 
 
 ## 🔖 Reference
