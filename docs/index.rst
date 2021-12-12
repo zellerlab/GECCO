@@ -78,8 +78,8 @@ Or with Conda, using the `bioconda` channel:
 Predictions
 ^^^^^^^^^^^
 
-GECCO works with DNA sequences, and loads them using Biopython, allowing it
-to support a `large variety of formats <https://biopython.org/wiki/SeqIO>`_,
+GECCO works with DNA sequences, and loads them using `Biopython <http://biopython.org/>`_,
+allowing it to support a `large variety of formats <https://biopython.org/wiki/SeqIO>`_,
 including the common FASTA and GenBank files.
 
 Run a prediction on a FASTA file named ``sequence.fna`` and output the
@@ -170,8 +170,8 @@ the software contains the complete license text.
 About
 -----
 
-GECCO is developped by the `Zeller group <https://www.embl.de/research/units/scb/zeller/index.html>`_
-at the European Molecular Biology Laboratory in Heidelberg. The following
+GECCO is developped by the `Zeller Team <https://www.embl.de/research/units/scb/zeller/index.html>`_
+at the `European Molecular Biology Laboratory <https://www.embl.de/>`_ in Heidelberg. The following
 individuals contributed to the development of GECCO:
 
 - `Laura M. Carroll <https://github.com/lmc297>`_
