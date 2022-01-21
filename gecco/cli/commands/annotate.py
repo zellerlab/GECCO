@@ -195,13 +195,17 @@ class Annotate(Command):  # noqa: D101
         if self.e_filter is not None:
             self.info("Filtering", "domains with e-value under", self.e_filter, level=1)
             key = lambda d: d.i_evalue < self.e_filter
-            for gene in genes:
-                gene.protein.domains = list(filter(key, gene.protein.domains))
+            genes = [
+                gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
+                for gene in genes
+            ]
         if self.p_filter is not None:
             self.info("Filtering", "domains with p-value under", self.p_filter, level=1)
             key = lambda d: d.pvalue < self.p_filter
-            for gene in genes:
-                gene.protein.domains = list(filter(key, gene.protein.domains))
+            genes = [
+                gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
+                for gene in genes
+            ]
         if self.p_filter is not None or self.e_filter is not None:
             count = sum(1 for gene in genes for domain in gene.protein.domains)
             self.info("Using", "remaining", count, "domains", level=1)

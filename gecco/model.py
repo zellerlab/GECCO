@@ -130,7 +130,7 @@ class Domain:
         """
         return Domain(
             self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
-            probability, self.qualifiers
+            probability, self.qualifiers.copy()
         )
 
     def to_seq_feature(self, protein_coordinates: bool = False) -> SeqFeature:
@@ -149,7 +149,7 @@ class Domain:
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Protein:
     """A sequence of amino-acids translated from a gene.
 
@@ -179,8 +179,11 @@ class Protein:
 
         return record
 
+    def with_domains(self, domains: Iterable[Domain]) -> "Protein":
+        return Protein(self.id, self.seq, list(domains))
 
-@dataclass
+
+@dataclass(frozen=True)
 class Gene:
     """A nucleotide sequence coding a protein.
 
@@ -239,6 +242,14 @@ class Gene:
         qualifiers.setdefault("locus_tag", self.protein.id)
         qualifiers.setdefault("translation", str(self.protein.seq))
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
+
+    def with_protein(self, protein: "Protein") -> "Gene":
+        """Copy the current domain and assign it a BGC probability.
+        """
+        return Gene(
+            self.source, self.start, self.end, self.strand, protein,
+            self.qualifiers.copy(),
+        )
 
 
 @dataclass
