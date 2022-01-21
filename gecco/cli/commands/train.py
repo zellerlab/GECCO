@@ -302,9 +302,13 @@ class Train(Command):  # noqa: D101
                     cluster_row.start <= gene.start and gene.end <= cluster_row.end
                     for cluster_row in cluster_by_seq[seq_id]
                 ):
-                    gene.protein.domains = [d.with_probability(1) for d in gene.protein.domains]
+                    gene = gene.with_protein(
+                        gene.protein.with_domains([d.with_probability(1) for d in gene.protein.domains])
+                    )
                 else:
-                    gene.protein.domains = [d.with_probability(0) for d in gene.protein.domains]
+                    gene = gene.with_protein(
+                        gene.protein.with_domains([d.with_probability(0) for d in gene.protein.domains])
+                    )
                 labelled_genes.append(gene)
                 self.progress.update(task_id=task, advance=1)
 

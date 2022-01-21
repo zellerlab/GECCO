@@ -16,7 +16,6 @@ import random
 import textwrap
 import typing
 import warnings
-from multiprocessing.pool import Pool
 from typing import (
     Callable,
     Dict,
@@ -36,7 +35,6 @@ import sklearn.model_selection
 import sklearn.preprocessing
 
 from ..model import Gene
-from .._meta import OrderedPoolWrapper
 from . import features
 from .cv import LeaveOneGroupOut
 from .select import fisher_significance
@@ -96,7 +94,6 @@ class ClusterCRF(object):
         feature_type: str = "protein",
         algorithm: str = "lbfgs",
         overlap: int = 2,
-        pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = Pool,
         **kwargs: Dict[str, object],
     ) -> None:
         """Create a new `ClusterCRF` instance.
@@ -110,11 +107,6 @@ class ClusterCRF(object):
             overlap (`int`): In case of ``feature_type = "overlap"``, defines
                 the sliding window size to use. The resulting window width is
                 ``2*overlap+1``.
-            pool_factory (`multiprocessing.pool.Pool` subclass, or callable):
-                The factory to use to create a new pool instance for methods
-                that can perform operations in parallel. *It is called with
-                a single argument which is the number of workers to create,
-                or* `None` *to create a much workers as there are CPUs.*
 
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
@@ -130,7 +122,6 @@ class ClusterCRF(object):
         self.feature_type: str = feature_type
         self.overlap: int = overlap
         self.algorithm = algorithm
-        self.pool_factory = pool_factory
         self.significance: Optional[Dict[str, float]] = None
         self.significant_features: Optional[FrozenSet[str]] = None
         self.model = sklearn_crfsuite.CRF(
@@ -160,12 +151,10 @@ class ClusterCRF(object):
         else:
             raise ValueError("invalid feature type")
 
-        # proces each sequence / group in parallel
-        with OrderedPoolWrapper(self.pool_factory(_cpus)) as pool:
-            # extract features in parallel and predict cluster probabilities
-            marginals = self.model.predict_marginals(pool.map(extract, seqs))
-            # Annotate the genes with the predicted probabilities
-            annotated_seqs = pool.starmap(annotate, zip(seqs, marginals))
+        # extract features and predict cluster probabilities
+        marginals = self.model.predict_marginals([list(extract(seq)) for seq in seqs])
+        # Annotate the genes with the predicted probabilities
+        annotated_seqs = [annotate(seq, m) for seq, m in zip(seqs, marginals)]
 
         # return the genes that were passed as input but now having BGC
         # probabilities set
@@ -222,17 +211,16 @@ class ClusterCRF(object):
             # remove non significant domains
             for i, seq in enumerate(seqs):
                 for j, gene in enumerate(seq):
-                    seqs[i][j] = gene = copy.deepcopy(gene)
-                    gene.protein.domains = [
-                        domain for domain in gene.protein.domains
-                        if domain.name in self.significant_features
-                    ]
+                    seqs[i][j] = gene.with_protein(
+                         gene.protein.with_domains([
+                             domain for domain in gene.protein.domains
+                             if domain.name in self.significant_features
+                         ])
+                    )
 
-        # proces each sequence / group in parallel
-        with OrderedPoolWrapper(self.pool_factory(_cpus)) as pool:
-            # extract features in parallel and predict cluster probabilities
-            X = pool.map(extract_features, seqs)
-            Y = pool.map(extract_labels, seqs)
+        # extract features and labels
+        X = [list(extract_features(seq)) for seq in seqs]
+        Y = [list(extract_labels(seq)) for seq in seqs]
 
         # check labels
         if all(y == "1" for y in Y):
