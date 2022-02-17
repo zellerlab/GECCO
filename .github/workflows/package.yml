@@ -57,7 +57,8 @@ jobs:
   upload:
     environment: PyPI
     runs-on: ubuntu-latest
-    name: Upload
+    name: Upload to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
     needs:
     - sdist
     - wheel
@@ -80,3 +81,46 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
         skip_existing: false
+
+  changelog:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    name: Update GitHub release notes
+    needs: upload
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+    - name: Release a Changelog
+      uses: rasmus-saks/release-a-changelog-action@v1.0.1
+      with:
+        github-token: '${{ secrets.GITHUB_TOKEN }}'
+
+  attach:
+    runs-on: ubuntu-latest
+    name: Attach artifacts to GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: changelog
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: List project dependencies
+      run: python setup.py list_requirements
+    - name: Install project dependencies
+      run: python -m pip install -r requirements.txt
+    - name: Build new HMM artifacts
+      run: python setup.py build_data -f -r
+    - name: Compress Pfam HMM
+      run: gzip -c build/lib/gecco/hmmer/Pfam.h3m > Pfam.h3m.gz
+    - name: Upload HMM
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: Pfam.h3m.gz
