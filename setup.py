@@ -16,6 +16,7 @@ import ssl
 import struct
 import sys
 import tarfile
+import time
 import urllib.request
 from functools import partial
 from xml.etree import ElementTree as etree
@@ -107,13 +108,15 @@ class update_interpro(setuptools.Command):
     def run(self):
         # Update the interpro entries
         entries = []
-        path = os.path.join("gecco", "interpro", "interpro.json.gz")
+        path = os.path.join("gecco", "interpro", "interpro.json")
         self.info("getting Pfam entries from InterPro")
         entries.extend(self.download_interpro_entries("pfam"))
         self.info("getting Tigrfam entries from InterPro")
         entries.extend(self.download_interpro_entries("tigrfams"))
-        with gzip.open(path, "wt") as dest:
-            json.dump(entries, dest)
+        # sort by id
+        entries.sort(key=lambda entry: entry["accession"])
+        with open(path, "wt") as dest:
+            json.dump(entries, dest, sort_keys=True, indent=4)
 
     def download_interpro_entries(self, db):
         next = f"https://www.ebi.ac.uk:443/interpro/api/entry/all/{db}/?page_size=200"
@@ -121,11 +124,12 @@ class update_interpro(setuptools.Command):
         context = ssl._create_unverified_context()
         with tqdm(desc=db, leave=False) as pbar:
             while next:
+                time.sleep(1) # wait between query to avoid being throttled by the server
                 with urllib.request.urlopen(next, context=context) as res:
                     payload = json.load(res)
                     pbar.total = payload["count"]
                     next = payload["next"]
-                    entries.extend(payload["results"])
+                    entries.extend(entry["metadata"] for entry in payload["results"])
                     pbar.update(len(payload["results"]))
         return entries
 

@@ -42,7 +42,6 @@ class InterPro:
 
     @classmethod
     def load(cls) -> "InterPro":
-        with importlib_resources.open_binary(__name__, "interpro.json.gz") as f:
-            data = json.load(gzip.open(f, mode="rt"))
-            entries = [ InterProEntry(**entry["metadata"]) for entry in data ]
+        with importlib_resources.open_binary(__name__, "interpro.json") as f:
+            entries = [ InterProEntry(**entry) for entry in json.load(f) ]
         return cls(entries)
