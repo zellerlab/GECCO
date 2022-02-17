@@ -180,6 +180,8 @@ class Protein:
         return record
 
     def with_domains(self, domains: Iterable[Domain]) -> "Protein":
+        """Copy the current protein and assign it new domains.
+        """
         return Protein(self.id, self.seq, list(domains))
 
 
