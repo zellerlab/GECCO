@@ -61,6 +61,7 @@ class PyrodigalFinder(ORFFinder):
         def __init__(
             self,
             metagenome: bool,
+            mask: bool,
             record_count: "Value",
             record_queue: "queue.Queue[typing.Optional[typing.Tuple[int, SeqRecord]]]",
             orfs_queue: "queue.Queue[Gene]",
@@ -69,7 +70,7 @@ class PyrodigalFinder(ORFFinder):
             callback: Optional[Callable[[SeqRecord, int], None]],
         ) -> None:
             super().__init__()
-            self.pyrodigal = pyrodigal.Pyrodigal(meta=metagenome)
+            self.pyrodigal = pyrodigal.OrfFinder(meta=metagenome, mask=mask)
             self.record_queue = record_queue
             self.record_count = record_count
             self.orfs_queue = orfs_queue
@@ -122,18 +123,21 @@ class PyrodigalFinder(ORFFinder):
             self.callback(record, len(orfs), self.record_count.value)
 
 
-    def __init__(self, metagenome: bool = True, cpus: int = 0) -> None:
+    def __init__(self, metagenome: bool = True, mask: bool = False, cpus: int = 0) -> None:
         """Create a new `PyrodigalFinder` instance.
 
         Arguments:
-            metagenome (bool): Whether or not to run PRODIGAL in metagenome
+            metagenome (bool): Whether or not to run Prodigal in metagenome
                 mode, defaults to `True`.
+            mask (bool): Whether or not to mask genes running across regions
+                containing unknown nucleotides, defaults to `False`.
             cpus (int): The number of threads to use to run Pyrodigal in
                 parallel. Pass ``0`` to use the number of CPUs on the machine.
 
         """
         super().__init__()
         self.metagenome = metagenome
+        self.mask = mask
         self.cpus = cpus
 
     def find_genes(
@@ -172,6 +176,7 @@ class PyrodigalFinder(ORFFinder):
         for _ in range(_cpus):
             thread = self._Worker(
                 self.metagenome,
+                self.mask,
                 record_count,
                 record_queue,
                 orfs_queue,
