@@ -41,9 +41,7 @@ class TestConvert(TestCommand, unittest.TestCase):
         source = Bio.SeqIO.read(sequence, "fasta")
         with open(os.path.join(self.folder, "data", "BGC0001866.features.tsv")) as f:
             features = FeatureTable.load(f)
-            genes = list(features.to_genes())
-            for gene in genes:
-                gene.source = source
+            genes = [gene.with_source(source) for gene in features.to_genes()]
 
         # create a cluster containing the whole sequence and write it down as
         # a GenBank file to the mock "output" folder

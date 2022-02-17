@@ -244,10 +244,18 @@ class Gene:
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
     def with_protein(self, protein: "Protein") -> "Gene":
-        """Copy the current domain and assign it a BGC probability.
+        """Copy the current gene and assign it a different protein.
         """
         return Gene(
             self.source, self.start, self.end, self.strand, protein,
+            self.qualifiers.copy(),
+        )
+
+    def with_source(self, source: "SeqRecord") -> "Gene":
+        """Copy the current gene and assign it a different source.
+        """
+        return Gene(
+            source, self.start, self.end, self.strand, self.protein,
             self.qualifiers.copy(),
         )
 
