@@ -75,6 +75,7 @@ class ClusterRefiner:
         n_cds: int = 5,
         n_biopfams: int = 5,
         average_threshold: float = 0.6,
+        edge_distance: int = 10,
     ) -> None:
         """Create a new `ClusterRefiner` instance.
 
@@ -84,7 +85,7 @@ class ClusterRefiner:
             criterion (`str`): The criterion to use when checking for BGC
                 validity. See `gecco.bgc.BGC.is_valid` documentation for
                 allowed values and expected behaviours.
-            n_cds (`int`): The minimum number of CDS a gene cluster must
+            n_cds (`int`): The minimum number of genes a gene cluster must
                 contain to be considered valid. If ``criterion`` is ``gecco``,
                 then this is the minimum number of **annotated** CDS.
             n_biopfams (`int`): The minimum number of biosynthetic Pfam
@@ -93,6 +94,12 @@ class ClusterRefiner:
             average_threshold (`int`): The average probability threshold to
                 use to consider a BGC valid (*only when the criterion is*
                 ``antismash``).
+            edge_distance (`int`): The minimum distance from the edge the BGC
+                must be located (it may start at an edge, but must span for
+                longer than ``edge_distance``), in number of annotated genes.
+                Lowering this number will increase the number of false-positives
+                in the case of very short sequences. (*only when the criterion
+                is* ``gecco``).
 
         """
         self.threshold = threshold
@@ -100,6 +107,7 @@ class ClusterRefiner:
         self.n_cds = n_cds
         self.n_biopfams = n_biopfams
         self.average_threshold = average_threshold
+        self.edge_distance = edge_distance
 
     def iter_clusters(self, genes: List[Gene]) -> Iterator[Cluster]:
         """Find all clusters in a table of CRF predictions.
@@ -113,14 +121,27 @@ class ClusterRefiner:
             respect to the postprocessing criterion given at initialisation.
 
         """
-        unfiltered_clusters = map(self._trim_cluster, self._iter_clusters(genes))
-        return filter(self._validate_cluster, unfiltered_clusters)
+        for seq, cluster in self._iter_clusters(genes):
+            trimmed = self._trim_cluster(cluster)
+            if self._validate_cluster(seq, cluster):
+                yield cluster
+        #
+        # unfiltered_clusters = map(self._trim_cluster, self._iter_clusters(genes))
+        # return filter(self._validate_cluster, unfiltered_clusters)
 
-    def _validate_cluster(self, cluster: Cluster) -> bool:
+    def _validate_cluster(self, seq: List[Gene], cluster: Cluster) -> bool:
         """Check a cluster validity depending on the postprocessing criterion.
         """
         if self.criterion == "gecco":
-            annotated = [ g for g in cluster.genes if g.protein.domains ]
+            # extract IDs of annotated genes that are too close to the edge
+            if self.edge_distance > 0:
+                annotated_ids = [g.id for g in seq if g.protein.domains]
+                edge_genes = set(annotated_ids[:self.edge_distance]).union(annotated_ids[-self.edge_distance:])
+            else:
+                edge_genes = set()
+            # check that the number of cluster genes that are outside of
+            # the edge region is above the number of required CDS
+            annotated = [ g for g in cluster.genes if g.protein.domains and g.id not in edge_genes ]
             cds_crit = len(annotated) >= self.n_cds
             return cds_crit
         elif self.criterion == "antismash":
@@ -144,7 +165,7 @@ class ClusterRefiner:
     def _iter_clusters(
         self,
         genes: List[Gene],
-    ) -> Iterator[Cluster]:
+    ) -> Iterator[Tuple[List[Gene], Cluster]]:
         """Iterate over contiguous BGC segments from a list of genes.
         """
         grouper = GeneGrouper(self.threshold)
@@ -159,4 +180,4 @@ class ClusterRefiner:
             # filter out regions that are not identified to be clusters
             bgcs = (genes for in_bgc, genes in groups if in_bgc)
             for i, bgc in enumerate(bgcs):
-                yield Cluster(id=f"{seq_id}_cluster_{i+1}", genes=list(bgc))
+                yield seqsort, Cluster(id=f"{seq_id}_cluster_{i+1}", genes=list(bgc))
