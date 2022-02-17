@@ -44,7 +44,7 @@ class Annotate(Command):  # noqa: D101
                                           one of the sequences format supported
                                           by Biopython.
 
-        Parameters:
+        Parameters - Output:
             -f <fmt>, --format <fmt>      the format of the input file, as a
                                           Biopython format string. GECCO is able
                                           to recognize FASTA and GenBank files
@@ -54,6 +54,11 @@ class Annotate(Command):  # noqa: D101
             -j <jobs>, --jobs <jobs>      the number of CPUs to use for
                                           multithreading. Use 0 to use all of the
                                           available CPUs. [default: 0]
+
+        Parameters - Gene Calling:
+            -M, --mask                    Enable unknown region masking to
+                                          prevent genes from stretching across
+                                          unknown nucleotides.
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -88,6 +93,7 @@ class Annotate(Command):  # noqa: D101
             self.genome = self._check_flag("--genome")
             self.hmm = self._check_flag("--hmm")
             self.output = self._check_flag("--output")
+            self.mask = self._check_flag("--mask", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -148,7 +154,7 @@ class Annotate(Command):  # noqa: D101
         from ...orf import PyrodigalFinder
 
         self.info("Extracting", "genes from input sequences", level=1)
-        orf_finder = PyrodigalFinder(metagenome=True, cpus=self.jobs)
+        orf_finder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
 
         unit = "contigs" if len(sequences) > 1 else "contig"
         task = self.progress.add_task(description="ORFs finding", total=len(sequences), unit=unit, precision="")

@@ -66,6 +66,11 @@ class Run(Annotate):  # noqa: D101
             --force-clusters-tsv          always write a ``clusters.tsv`` file
                                           even when no clusters were found.
 
+        Parameters - Gene Calling:
+            -M, --mask                    Enable unknown region masking to
+                                          prevent genes from stretching across
+                                          unknown nucleotides.
+
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
                                           to be included.
@@ -120,6 +125,7 @@ class Run(Annotate):  # noqa: D101
             self.output_dir = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_clusters_tsv = self._check_flag("--force-clusters-tsv", bool)
+            self.mask = self._check_flag("--mask", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
