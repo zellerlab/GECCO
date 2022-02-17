@@ -190,7 +190,7 @@ class Cv(Train):  # noqa: D101
                 splits = self._kfold_splits(seqs)
             # run CV
             unit = "fold" if len(splits) == 1 else "folds"
-            task = self.progress.add_task(description="Cross-Validation", total=len(splits), unit=unit, precision="")
+            task = self.progress.add_task(description="Cross-validating", total=len(splits), unit=unit, precision="")
             self.info("Performing cross-validation")
             for i, (train_indices, test_indices) in enumerate(self.progress.track(splits, task_id=task)):
                 train_data = self._get_train_data(train_indices, seqs)

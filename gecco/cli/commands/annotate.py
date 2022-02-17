@@ -159,7 +159,7 @@ class Annotate(Command):  # noqa: D101
         orf_finder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
 
         unit = "contigs" if len(sequences) > 1 else "contig"
-        task = self.progress.add_task(description="ORFs finding", total=len(sequences), unit=unit, precision="")
+        task = self.progress.add_task(description="Finding ORFs", total=len(sequences), unit=unit, precision="")
 
         def callback(record, found, total):
             self.success("Found", found, "genes in record", repr(record.id), level=2)
@@ -174,9 +174,9 @@ class Annotate(Command):  # noqa: D101
 
         # Run all HMMs over ORFs to annotate with protein domains
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
-        task = self.progress.add_task(description=f"HMM annotation", unit="HMMs", total=len(hmms), precision="")
+        task = self.progress.add_task(description=f"Annotating domains", unit="HMMs", total=len(hmms), precision="")
         for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
-            task = self.progress.add_task(description=f"{hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
+            task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback)

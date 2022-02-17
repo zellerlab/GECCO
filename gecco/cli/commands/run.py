@@ -189,7 +189,7 @@ class Run(Annotate):  # noqa: D101
 
         self.info("Predicting", "cluster probabilitites with the CRF model", level=1)
         unit = "genes" if len(genes) > 1 else "gene"
-        task = self.progress.add_task("Prediction", total=len(genes), unit=unit, precision="")
+        task = self.progress.add_task("Predicting marginals", total=len(genes), unit=unit, precision="")
         return list(crf.predict_probabilities(
             self.progress.track(genes, task_id=task, total=len(genes)),
             cpus=self.jobs
@@ -217,7 +217,7 @@ class Run(Annotate):  # noqa: D101
 
         total = len({gene.source.id for gene in genes})
         unit = "contigs" if total > 1 else "contig"
-        task = self.progress.add_task("Segmentation", total=total, unit=unit, precision="")
+        task = self.progress.add_task("Extracting clusters", total=total, unit=unit, precision="")
 
         clusters = []
         gene_groups = itertools.groupby(genes, lambda g: g.source.id)
@@ -233,7 +233,7 @@ class Run(Annotate):  # noqa: D101
         self.info("Predicting", "BGC types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"
-        task = self.progress.add_task("Type prediction", total=len(clusters), unit=unit, precision="")
+        task = self.progress.add_task("Predicting types", total=len(clusters), unit=unit, precision="")
 
         clusters_new = []
         classifier = TypeClassifier.trained(self.model)

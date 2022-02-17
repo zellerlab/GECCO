@@ -90,7 +90,7 @@ class Convert(Command):  # noqa: D101
         # collect `*.clusters.tsv` files
         cluster_files = glob.glob(os.path.join(self.input_dir, "*.clusters.tsv"))
         unit = "table" if len(cluster_files) == 1 else "tables"
-        task = self.progress.add_task("Loading", total=len(cluster_files), unit=unit, precision="")
+        task = self.progress.add_task("Loading clusters", total=len(cluster_files), unit=unit, precision="")
         # load the original coordinates from the `*.clusters.tsv` files
         coordinates = {}
         types = {}
