@@ -425,7 +425,7 @@ class Cluster:
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
             "creation_date": now.isoformat(),
-            "biosyn_class": ";".join(sorted(ty.name for ty in self.type.unpack())),
+            "biosyn_class": ";".join(sorted(ty.name for ty in self.type.unpack())) or "Unknown",
             "alkaloid_probability": self.type_probabilities.get(ProductType.Alkaloid, 0.0),
             "polyketide_probability": self.type_probabilities.get(ProductType.Polyketide, 0.0),
             "ripp_probability": self.type_probabilities.get(ProductType.RiPP, 0.0),
