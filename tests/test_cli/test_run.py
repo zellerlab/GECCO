@@ -54,7 +54,7 @@ class TestRun(TestCommand, unittest.TestCase):
             # stack.enter_context(
             #     mock.patch.object(gecco.cli.commands.run.PyrodigalFinder, "find_genes", new=_find_genes)
             # )
-            argv = ["-vv", "run", "--genome", sequence, "--output", self.tmpdir]
+            argv = ["-vv", "run", "-E", "0", "--genome", sequence, "--output", self.tmpdir]
             with io.StringIO() as stderr:
                 retcode = main(argv, stream=stderr)
                 self.assertEqual(retcode, 0, stderr.getvalue())

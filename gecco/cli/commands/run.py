@@ -73,12 +73,14 @@ class Run(Annotate):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
-                                          to be included.
+                                          to be included. This is not stable
+                                          across versions, so consider using
+                                          a p-value filter instead.
             -p <p>, --p-filter <p>        the p-value cutoff for protein domains
                                           to be included. [default: 1e-9]
 
         Parameters - Cluster Detection:
-            -c, --cds <N>                 the minimum number of coding sequences a
+            -c <N>, --cds <N>             the minimum number of coding sequences a
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster
                                           detection. Default depends on the
@@ -86,6 +88,13 @@ class Run(Annotate):  # noqa: D101
                                           0.6 for antismash).
             --postproc <method>           the method to use for cluster validation
                                           (antismash or gecco). [default: gecco]
+            -E <N>, --edge-distance <N>   the minimum number of annotated genes
+                                          that must separate a cluster from the
+                                          edge. Edge clusters will still be
+                                          included if they are longer. A lower
+                                          number will increase the number of
+                                          false positives on small contigs.
+                                          [default: 10]
 
         Parameters - Debug:
             --model <directory>           the path to an alternative CRF model
@@ -118,6 +127,7 @@ class Run(Annotate):  # noqa: D101
                 self.threshold = self._check_flag("--threshold", float, lambda x: 0 <= x <= 1, hint="number between 0 and 1")
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
             self.postproc = self._check_flag("--postproc", str, lambda x: x in ("gecco", "antismash"), hint="'gecco' or 'antismash'")
+            self.edge_distance = self._check_flag("--edge-distance", int, lambda x: x >= 0, hint="positive or null integer")
             self.format = self._check_flag("--format")
             self.genome = self._check_flag("--genome")
             self.model = self._check_flag("--model")
@@ -198,7 +208,12 @@ class Run(Annotate):  # noqa: D101
         from ...refine import ClusterRefiner
 
         self.info("Extracting", "predicted biosynthetic regions", level=1)
-        refiner = ClusterRefiner(self.threshold, self.postproc, self.cds)
+        refiner = ClusterRefiner(
+            threshold=self.threshold,
+            criterion=self.postproc,
+            n_cds=self.cds,
+            edge_distance=self.edge_distance
+        )
 
         total = len({gene.source.id for gene in genes})
         unit = "contigs" if total > 1 else "contig"

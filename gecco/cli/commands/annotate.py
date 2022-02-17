@@ -62,7 +62,9 @@ class Annotate(Command):  # noqa: D101
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
-                                          to be included.
+                                          to be included. This is not stable
+                                          across versions, so consider using
+                                          a p-value filter instead.
             -p <p>, --p-filter <p>        the p-value cutoff for protein domains
                                           to be included. [default: 1e-9]
 
