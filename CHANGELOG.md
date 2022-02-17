@@ -5,7 +5,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.5...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.6...master
+
+## [v0.8.6] - 2022-02-17
+[v0.8.6]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.5...v0.8.6
+### Added
+- CLI flag for enabling region masking for contigs processed by Prodigal.
+- CLI flag for controlling region distance used for edge distance filtering.
+### Changed
+- `gecco.model.Gene` and `gecco.model.Protein` are now immutable data classes.
+- Bump minimum `pyrodigal` version to `v0.6.4` to use region masking.
+- Implement filtering for extracted clusters based on distance to the contig edge.
+- Store InterPro metadata file uncompressed for version-control integration.
+### Fixed
+- Mark `BGC0000930` as `Terpene` in the type classifier data.
+- Progress bar messages are now in consistent format.
 
 ## [v0.8.5] - 2021-11-21
 [v0.8.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.4...v0.8.5
