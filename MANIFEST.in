@@ -3,7 +3,8 @@ include LICENSE
 include static/gecco.png
 include gecco/py.typed
 
+include gecco/interpro/interpro.json
+
 recursive-include gecco/crf *.pkl *.pkl.md5
 recursive-include gecco/hmmer *.ini
 recursive-include gecco/types *.tsv *.npz
-recursive-include gecco/interpro *.json.gz
