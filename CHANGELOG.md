@@ -5,9 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.6...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.7...master
 
-## [v0.8.6] - 2022-02-17
+## [v0.8.7] - 2022-02-18
+[v0.8.7]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.6...v0.8.7
+### Fixed
+- `interpro.json` metadata file not being included in distribution files.
+- Missing docstring for `Protein.with_domains` method.
+### Changed
+- Bump minimum `scikit-learn` version to `v1.0` for Python3.7+.
+
+## [v0.8.6] - 2022-02-17 - YANKED
 [v0.8.6]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.5...v0.8.6
 ### Added
 - CLI flag for enabling region masking for contigs processed by Prodigal.
