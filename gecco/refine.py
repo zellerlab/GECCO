@@ -133,17 +133,21 @@ class ClusterRefiner:
         """Check a cluster validity depending on the postprocessing criterion.
         """
         if self.criterion == "gecco":
+            # check that the number of cluster genes that are outside of
+            # the edge region is above the number of required CDS
+            annotated = [g for g in cluster.genes if g.protein.domains]
+            cds_crit = len(annotated) >= self.n_cds
             # extract IDs of annotated genes that are too close to the edge
             if self.edge_distance > 0:
                 annotated_ids = [g.id for g in seq if g.protein.domains]
                 edge_genes = set(annotated_ids[:self.edge_distance]).union(annotated_ids[-self.edge_distance:])
             else:
                 edge_genes = set()
-            # check that the number of cluster genes that are outside of
-            # the edge region is above the number of required CDS
-            annotated = [ g for g in cluster.genes if g.protein.domains and g.id not in edge_genes ]
-            cds_crit = len(annotated) >= self.n_cds
-            return cds_crit
+            # NOTE (@althonos): it is needed for compatibility with the post-processed results
+            #                   that we filter on any number of cluster genes, but it would be 
+            #                   better to filter on the number of annotated cluster genes instead.
+            edge_crit = len(set(g.id for g in cluster.genes).difference(edge_genes)) >= self.n_cds
+            return cds_crit and edge_crit
         elif self.criterion == "antismash":
             domains = {d.name for gene in cluster.genes for d in gene.protein.domains}
             p_crit = numpy.mean([g.average_probability for g in cluster.genes]) >= self.average_threshold
