@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.7...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.8...master
+
+## [v0.8.8] - 2022-02-21
+[v0.8.8]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.7...v0.8.8
+### Fixed
+- `ClusterRefiner` filtering method for edge genes not working as intended.
+- `gecco run` and `gecco annotate` commands crashing on missing input files instead of nicely rendering the error.
 
 ## [v0.8.7] - 2022-02-18
 [v0.8.7]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.6...v0.8.7
