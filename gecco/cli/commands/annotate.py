@@ -123,23 +123,21 @@ class Annotate(Command):  # noqa: D101
     def _load_sequences(self):
         from Bio import SeqIO
 
-        # guess format or use the one given in CLI
-        if self.format is not None:
-            format = self.format
-            self.info("Using", "user-provided sequence format", repr(format), level=2)
-        else:
-            self.info("Detecting", "sequence format from file contents", level=2)
-            format = guess_sequences_format(self.genome)
-            self.success("Detected", "format of input as", repr(format), level=2)
-
-        # get filesize and unit
-        input_size = os.stat(self.genome).st_size
-        total, scale, unit = ProgressReader.scale_size(input_size)
-        task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
-
-        # load sequences
-        self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
         try:
+            # guess format or use the one given in CLI
+            if self.format is not None:
+                format = self.format
+                self.info("Using", "user-provided sequence format", repr(format), level=2)
+            else:
+                self.info("Detecting", "sequence format from file contents", level=2)
+                format = guess_sequences_format(self.genome)
+                self.success("Detected", "format of input as", repr(format), level=2)
+            # get filesize and unit
+            input_size = os.stat(self.genome).st_size
+            total, scale, unit = ProgressReader.scale_size(input_size)
+            task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
+            # load sequences
+            self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
             with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
                 sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))
         except FileNotFoundError as err:
