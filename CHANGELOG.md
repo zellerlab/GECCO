@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.8...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.9...master
+
+## [v0.8.9] - 2022-02-22
+[v0.8.9]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.8...v0.8.9
+### Removed
+- Prediction and support for the *Other* biosynthetic type of MIBiG clusters.
 
 ## [v0.8.8] - 2022-02-21
 [v0.8.8]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.7...v0.8.8
