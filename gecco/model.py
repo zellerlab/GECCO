@@ -46,7 +46,6 @@ class ProductType(enum.IntFlag):
     """
 
     Unknown    = 0b00000000
-    Other      = 0b00000001
     Alkaloid   = 0b00000010
     Polyketide = 0b00000100
     RiPP       = 0b00001000
@@ -442,7 +441,6 @@ class Cluster:
             "saccharide_probability": self.type_probabilities.get(ProductType.Saccharide, 0.0),
             "terpene_probability": self.type_probabilities.get(ProductType.Terpene, 0.0),
             "nrp_probability": self.type_probabilities.get(ProductType.NRP, 0.0),
-            "other_probability": self.type_probabilities.get(ProductType.Other, 0.0),
         }
 
         # add proteins as CDS features
@@ -691,7 +689,6 @@ class ClusterTable(Dumpable, Sized):
     saccharide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
     terpene_probability: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
     nrp_probability: List[float] = field(default_factory = lambda: array("d"))         # type: ignore
-    other_probability: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
 
     proteins: List[List[str]] = field(default_factory = list)
     domains: List[List[str]] = field(default_factory = list)
@@ -713,7 +710,6 @@ class ClusterTable(Dumpable, Sized):
         saccharide_probability: float
         terpene_probability: float
         nrp_probability: float
-        other_probability: float
         proteins: List[str]
         domains: List[str]
 
@@ -737,7 +733,6 @@ class ClusterTable(Dumpable, Sized):
             table.saccharide_probability.append(cluster.type_probabilities.get(ProductType.Saccharide, 0))
             table.terpene_probability.append(cluster.type_probabilities.get(ProductType.Terpene, 0))
             table.nrp_probability.append(cluster.type_probabilities.get(ProductType.NRP, 0))
-            table.other_probability.append(cluster.type_probabilities.get(ProductType.Other, 0))
 
             table.proteins.append([ gene.protein.id for gene in cluster.genes ])
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
@@ -831,7 +826,6 @@ class ClusterTable(Dumpable, Sized):
             "saccharide_probability",
             "terpene_probability",
             "nrp_probability",
-            "other_probability",
             "proteins",
             "domains"
         })
@@ -851,7 +845,7 @@ class ClusterTable(Dumpable, Sized):
                     getattr(table, col).append(0.0)
             for i,value in enumerate(row):
                 col = columns.get(i)
-                if col in ("i_evalue", "pvalue") or col.endswith(("_p", "_probability")):
+                if col in ("i_evalue", "pvalue"):
                     getattr(table, col).append(float(value))
                 elif col in ("start", "end", "domain_start", "domain_end"):
                     getattr(table, col).append(int(value))
@@ -859,6 +853,9 @@ class ClusterTable(Dumpable, Sized):
                     types = [ProductType.__members__[x] for x in value.split(";")]
                     table.type.append(ProductType.pack(types))
                 elif col in cls.__annotations__:
-                    getattr(table, col).append(value)
+                    if col.endswith(("_p", "_probability")):
+                        getattr(table, col).append(float(value))
+                    else:
+                        getattr(table, col).append(value)
 
         return table

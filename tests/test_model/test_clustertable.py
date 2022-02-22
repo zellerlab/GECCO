@@ -19,7 +19,7 @@ class TestClusterTable(unittest.TestCase):
         cls.header = list(ClusterTable.__annotations__.keys())
         cls.row = [
             "BGC1", "BGC1_cluster_1", "1", "100", "1.0", "1.0", "Unknown",
-            "0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "0.0",
+            "0.0", "0.0", "0.0", "0.0", "0.0", "0.0", 
             "BGC0001866.1_1;BGC0001866.1_2", "PF00106;PF00107;TIGR04532"
         ]
         rows = ["\t".join(x) for x in (cls.header, cls.row)]
