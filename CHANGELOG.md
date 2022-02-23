@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.9...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.10...master
+
+## [v0.8.10] - 2022-02-23
+[v0.8.10]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.9...v0.8.10
+### Fixed
+- `--antismash-sideload` flag of `gecco run` causing command to crash.
 
 ## [v0.8.9] - 2022-02-22
 [v0.8.9]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.8...v0.8.9
