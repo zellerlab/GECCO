@@ -281,6 +281,8 @@ class Run(Annotate):  # noqa: D101
                     "e-filter": repr(self.e_filter),
                     "postproc": repr(self.postproc),
                     "threshold": repr(self.threshold),
+                    "mask": repr(self.mask),
+                    "edge-distance": repr(self.edge_distance),
                 }
             }
         }
