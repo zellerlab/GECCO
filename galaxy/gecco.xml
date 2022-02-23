@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tool id="gecco" name="GECCO" version="0.8.9" python_template_version="3.5">
+<tool id="gecco" name="GECCO" version="0.8.10" python_template_version="3.5">
     <description>is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).</description>
     <requirements>
-        <requirement type="package" version="0.8.9">gecco</requirement>
+        <requirement type="package" version="0.8.10">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[

@@ -9,7 +9,6 @@
                         "average_p": "0.997",
                         "max_p": "1.000",
                         "nrp_probability": "0.140",
-                        "other_probability": "0.000",
                         "polyketide_probability": "0.980",
                         "ripp_probability": "0.000",
                         "saccharide_probability": "0.000",
@@ -31,6 +30,6 @@
         },
         "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
         "name": "GECCO",
-        "version": "0.8.9"
+        "version": "0.8.10"
     }
 }
