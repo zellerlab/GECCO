@@ -15,7 +15,7 @@ REFERENCE   1
   JOURNAL   bioRxiv (2021.05.03.442509)
   REMARK    doi:10.1101/2021.05.03.442509
 COMMENT     ##GECCO-Data-START##
-            version                :: GECCO v0.8.5
+            version                :: GECCO v0.8.9
             creation_date          :: 2021-11-21T16:33:58.470847
             biosyn_class           :: Polyketide
             alkaloid_probability   :: 0.0
@@ -24,7 +24,6 @@ COMMENT     ##GECCO-Data-START##
             saccharide_probability :: 0.0
             terpene_probability    :: 0.0
             nrp_probability        :: 0.14
-            other_probability      :: 0.0
             ##GECCO-Data-END##
 FEATURES             Location/Qualifiers
      CDS             complement(1..1143)

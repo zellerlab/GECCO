@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tool id="gecco" name="GECCO" version="0.8.5" python_template_version="3.5">
+<tool id="gecco" name="GECCO" version="0.8.9" python_template_version="3.5">
     <description>is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).</description>
     <requirements>
-        <requirement type="package" version="0.8.5">gecco</requirement>
+        <requirement type="package" version="0.8.9">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -18,7 +18,11 @@
         --format $input.ext
         --genome input_tempfile.$file_extension
         --postproc $postproc
+        --edge-distance $edge_distance
         --force-clusters-tsv
+        #if $mask
+            --mask
+        #end if
         #if $cds:
             --cds $cds
         #end if
@@ -38,12 +42,14 @@
     ]]></command>
     <inputs>
         <param name="input" type="data" format="genbank,fasta,embl" label="Sequence file in GenBank, EMBL or FASTA format"/>
+        <param argument="--mask" type="boolean" checked="false" label="Enable masking of regions with unknown nucleotides when finding ORFs"/>
         <param argument="--cds" type="integer" min="0" value="" optional="true" label="Minimum number of genes required for a cluster"/>
         <param argument="--threshold" type="float" min="0" max="1" value="" optional="true" label="Probability threshold for cluster detection"/>
         <param argument="--postproc" type="select" label="Post-processing method for gene cluster validation">
             <option value="antismash">antiSMASH</option>
             <option value="gecco" selected="true">GECCO</option>
         </param>
+        <param argument="--edge-distance" type="integer" min="0" value="10" label="Number of genes from the contig edges to filter out"/>
         <param argument="--antismash-sideload" type="boolean" checked="false" label="Generate an antiSMASH v6 sideload JSON file"/>
     </inputs>
     <outputs>
@@ -61,6 +67,12 @@
             <param name="input" value="BGC0001866.fna"/>
             <output name="features" file="features.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
+        </test>
+        <test>
+            <param name="input" value="BGC0001866.fna"/>
+            <param name="edge_distance" value="0"/>
+            <output name="features" file="features.tsv"/>
+            <output name="clusters" file="clusters.tsv"/>
             <output_collection name="records" type="list">
                 <element name="BGC0001866.1_cluster_1" file="BGC0001866.1_cluster_1.gbk" ftype="genbank" compare="diff" lines_diff="4"/>
             </output_collection>
@@ -68,6 +80,7 @@
         <test>
             <param name="input" value="BGC0001866.fna"/>
             <param name="antismash_sideload" value="True"/>
+            <param name="edge_distance" value="0"/>
             <output name="features" file="features.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
             <output name="sideload" file="sideload.json"/>
