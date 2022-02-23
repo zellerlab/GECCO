@@ -307,7 +307,6 @@ class Run(Annotate):  # noqa: D101
                         "saccharide_probability": f"{cluster.type_probabilities.get(ProductType.Saccharide, 0.0):.3f}",
                         "terpene_probability": f"{cluster.type_probabilities.get(ProductType.Terpene, 0.0):.3f}",
                         "nrp_probability": f"{cluster.type_probabilities.get(ProductType.NRP, 0.0):.3f}",
-                        "other_probability": f"{cluster.type_probabilities.get(ProductType.Other, 0.0):.3f}",
                     }
                 })
         # write the JSON file to the output folder
