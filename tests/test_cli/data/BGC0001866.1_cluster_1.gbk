@@ -23,7 +23,7 @@ COMMENT     ##GECCO-Data-START##
             ripp_probability       :: 0.0
             saccharide_probability :: 0.0
             terpene_probability    :: 0.0
-            nrp_probability        :: 0.14
+            nrp_probability        :: 0.09999999999999998
             ##GECCO-Data-END##
 FEATURES             Location/Qualifiers
      CDS             complement(1..1143)
