@@ -1,3 +1,3 @@
 [build-system]
-requires = ['setuptools >=46.4', 'tqdm ~=4.41', 'pyhmmer ~=0.4.0', 'wheel >=0.30']
+requires = ['setuptools >=46.4', 'tqdm ~=4.41', 'pyhmmer ~=0.5.0', 'wheel >=0.30']
 build-backend = "setuptools.build_meta"
