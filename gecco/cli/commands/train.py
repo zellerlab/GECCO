@@ -42,6 +42,10 @@ class Train(Command):  # noqa: D101
             -c <data>, --clusters <table>   a cluster annotation table, used to
                                             extract the domain composition for
                                             the type classifier.
+            -g <file>, --genome <file>      a genomic file containing the raw
+                                            training sequences to extract genes
+                                            from. Only supports GenBank file
+                                            with annotated CDS.
 
         Parameters:
             -o <out>, --output-dir <out>    the directory to use for the model
@@ -90,7 +94,9 @@ class Train(Command):  # noqa: D101
                 "--feature-type",
                 str,
                 lambda x: x in {"single", "overlap", "group"},
-                hint="'single', 'overlap' or 'group'"
+                hint="'single', 'overlap' or 'group'",
+                default="group",
+                optional=True,
             )
             self.overlap = self._check_flag(
                 "--overlap",
@@ -138,7 +144,8 @@ class Train(Command):  # noqa: D101
             self.seed = self._check_flag("--seed", int)
             self.output_dir = self._check_flag("--output-dir", str)
             self.features = self._check_flag("--features", list)
-            self.clusters = self._check_flag("--clusters", str)
+            self.clusters = self._check_flag("--clusters", str, check=os.path.exists)
+            self.genome = self._check_flag("--genome", str, check=os.path.exists)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -169,6 +176,28 @@ class Train(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
+    def _load_genes(self) -> List["Gene"]:
+        import Bio.SeqIO
+        from Bio.Seq import Seq
+        from ...model import Gene, Protein, Strand
+
+        genes = []
+        for record in Bio.SeqIO.parse(self.genome, "genbank"):
+            if not any(feat.type == "CDS" for feat in record.features):
+                raise ValueError("No `CDS` feature in record {}".format(record.id))
+            for i, cds in enumerate(filter(lambda feat: feat.type == "CDS", record.features)):
+                seq = Seq(cds.qualifiers["translation"][0])
+                prot = Protein(f"{record.id}_{i+1}", seq)
+                gene = Gene(
+                    record,
+                    cds.location.start,
+                    cds.location.end,
+                    Strand(cds.location.strand),
+                    prot
+                )
+                genes.append(gene)
+        return genes
+
     def _load_features(self) -> "FeatureTable":
         from ...model import FeatureTable
 
@@ -190,28 +219,41 @@ class Train(Command):  # noqa: D101
         self.success("Loaded", "a total of", len(features), "features", level=1)
         return features
 
-    def _convert_to_genes(self, features: "FeatureTable") -> List["Gene"]:
-        self.info("Converting", "features to genes")
+    def _annotate_genes(self, genes: List["Gene"], features: "FeatureTable") -> List["Gene"]:
+        from ...model import Domain
 
-        gene_count = len(set(features.protein_id))
-        unit = "gene" if gene_count == 1 else "genes"
-        task = self.progress.add_task("Converting features", total=gene_count, unit=unit, precision="")
+        # index genes by protein_id
+        gene_index = { gene.protein.id:gene for gene in genes }
+        if len(gene_index) < len(genes):
+            raise ValueError("Duplicate gene names in input genes")
 
-        genes = list(self.progress.track(
-            features.to_genes(),
-            total=gene_count,
-            task_id=task
-        ))
+        # add domains from the feature table
+        unit = "row" if len(features) == 1 else "rows"
+        task = self.progress.add_task("Annotating genes with features", total=len(features), unit=unit, precision="")
+        for row in self.progress.track(features, total=len(features), task_id=task):
+            # get gene by ID and check consistency
+            gene = gene_index[row.protein_id]
+            if gene.source.id != row.sequence_id:
+                raise ValueError(f"Mismatched source sequence for {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
+            elif gene.start != row.start:
+                raise ValueError(f"Mismatched gene start for {row.protein_id!r}: {gene.start!r} != {row.start!r}")
+            elif gene.end != row.end:
+                raise ValueError(f"Mismatched gene end for {row.protein_id!r}: {gene.end!r} != {row.end!r}")
+            elif gene.strand.sign != row.strand:
+                raise ValueError(f"Mismatched gene strand for {row.protein_id!r}: {gene.strand.sign!r} != {row.strand!r}")
+            # add the row domain to the gene
+            domain = Domain(
+                name=row.domain,
+                start=row.domain_start,
+                end=row.domain_end,
+                hmm=row.hmm,
+                i_evalue=row.i_evalue,
+                pvalue=row.pvalue,
+            )
+            gene.protein.domains.append(domain)
 
-        # filter domains out
-        Annotate._filter_domains(self, genes)
-
-        self.info("Sorting", "genes by genomic coordinates")
-        genes.sort(key=operator.attrgetter("source.id", "start", "end"))
-        self.info("Sorting", "domains by protein coordinates")
-        for gene in genes:
-            gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
-        return genes
+        # return
+        return list(gene_index.values())
 
     def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
@@ -377,9 +419,14 @@ class Train(Command):  # noqa: D101
             # attempt to create the output directory
             self._make_output_directory()
             # load features
+            genes = self._load_genes()
             features = self._load_features()
-            genes = self._convert_to_genes(features)
-            del features
+            genes = self._annotate_genes(genes, features)
+            # Sort genes
+            self.info("Sorting", "genes by coordinates", level=2)
+            genes.sort(key=operator.attrgetter("source.id", "start", "end"))
+            for gene in genes:
+                gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
