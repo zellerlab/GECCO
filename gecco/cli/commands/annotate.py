@@ -91,9 +91,9 @@ class Annotate(Command):  # noqa: D101
                 optional=True,
             )
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
-            self.format = self._check_flag("--format")
+            self.format = self._check_flag("--format", optional=True)
             self.genome = self._check_flag("--genome")
-            self.hmm = self._check_flag("--hmm")
+            self.hmm = self._check_flag("--hmm", optional=True)
             self.output = self._check_flag("--output")
             self.mask = self._check_flag("--mask", bool)
         except InvalidArgument:

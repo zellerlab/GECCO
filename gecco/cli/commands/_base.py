@@ -125,11 +125,15 @@ class Command(metaclass=abc.ABCMeta):
         message: Optional[str] = None,
         hint: Optional[str] = None,
         optional: bool = False,
+        default: _T = None
     ) -> _T:
         _convert = (lambda x: x) if convert is None else convert
         _check = (lambda x: True) if check is None else check
-        if optional and self.args[name] is None:
-            return None
+        if self.args[name] is None:
+            if optional:
+                return default
+            self.error(f"Missing value for argument [purple]{name}[/]")
+            raise InvalidArgument(self.args[name])
         try:
             value = _convert(self.args[name])
             if not _check(value):
