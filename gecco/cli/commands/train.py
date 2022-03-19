@@ -233,7 +233,7 @@ class Train(Command):  # noqa: D101
 
         # add domains from the feature table
         unit = "row" if len(features) == 1 else "rows"
-        task = self.progress.add_task("Annotating genes with features", total=len(features), unit=unit, precision="")
+        task = self.progress.add_task("Annotating genes", total=len(features), unit=unit, precision="")
         for row in self.progress.track(features, total=len(features), task_id=task):
             # get gene by ID and check consistency
             gene = gene_index[row.protein_id]
@@ -247,6 +247,8 @@ class Train(Command):  # noqa: D101
                 raise ValueError(f"Mismatched gene end for {row.protein_id!r}: {gene.end!r} != {row.end!r}")
             elif gene.strand.sign != row.strand:
                 raise ValueError(f"Mismatched gene strand for {row.protein_id!r}: {gene.strand.sign!r} != {row.strand!r}")
+            elif gene.source.id != row.sequence_id:
+                raise ValueError(f"Mismatched sequence ID {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
             # add the row domain to the gene
             domain = Domain(
                 name=row.domain,
@@ -257,6 +259,7 @@ class Train(Command):  # noqa: D101
                 pvalue=row.pvalue,
             )
             gene.protein.domains.append(domain)
+
 
         # return
         return list(gene_index.values())
@@ -362,31 +365,6 @@ class Train(Command):  # noqa: D101
 
         return labelled_genes
 
-    def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
-        filtered = False
-        if self.p_filter is not None:
-            filtered = True
-            self.info("Excluding", f"domains with p-value over {self.p_filter}", level=2)
-            genes = [
-                gene.with_protein(gene.protein.with_domains(
-                    [d for d in gene.protein.domains if d.pvalue <= self.p_filter]
-                ))
-                for gene in genes
-            ]
-        if self.e_filter is not None:
-            filtered = True
-            self.info("Excluding", f"domains with e-value over {self.e_filter}", level=2)
-            genes = [
-                gene.with_protein(gene.protein.with_domains(
-                    [d for d in gene.protein.domains if d.i_evalue <= self.e_filter]
-                ))
-                for gene in genes
-            ]
-        if filtered:
-            n_domains = sum(len(gene.protein.domains) for gene in genes)
-            self.success("Using", "remaining", n_domains, "domains", level=1)
-        return genes
-
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
         from ...model import Cluster
 
@@ -462,7 +440,7 @@ class Train(Command):  # noqa: D101
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
             # filter domains by p-value and/or e-value
-            genes = self._filter_domains(genes)
+            genes = Annotate._filter_domains(self, genes)
             # fit CRF
             crf = self._fit_model(genes)
             # save model

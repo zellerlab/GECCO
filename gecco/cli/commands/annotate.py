@@ -202,14 +202,14 @@ class Annotate(Command):  # noqa: D101
     def _filter_domains(self, genes):
         # Filter i-evalue and p-value if required
         if self.e_filter is not None:
-            self.info("Filtering", "domains with e-value under", self.e_filter, level=1)
+            self.info("Excluding", "domains with e-value over", self.e_filter, level=1)
             key = lambda d: d.i_evalue < self.e_filter
             genes = [
                 gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
                 for gene in genes
             ]
         if self.p_filter is not None:
-            self.info("Filtering", "domains with p-value under", self.p_filter, level=1)
+            self.info("Excluding", "domains with p-value over", self.p_filter, level=1)
             key = lambda d: d.pvalue < self.p_filter
             genes = [
                 gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
