@@ -363,7 +363,9 @@ class Train(Command):  # noqa: D101
         return labelled_genes
 
     def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
+        filtered = False
         if self.p_filter is not None:
+            filtered = True
             self.info("Excluding", f"domains with p-value over {self.p_filter}", level=2)
             genes = [
                 gene.with_protein(gene.protein.with_domains(
@@ -372,6 +374,7 @@ class Train(Command):  # noqa: D101
                 for gene in genes
             ]
         if self.e_filter is not None:
+            filtered = True
             self.info("Excluding", f"domains with e-value over {self.e_filter}", level=2)
             genes = [
                 gene.with_protein(gene.protein.with_domains(
@@ -379,6 +382,9 @@ class Train(Command):  # noqa: D101
                 ))
                 for gene in genes
             ]
+        if filtered:
+            n_domains = sum(len(gene.protein.domains) for gene in genes)
+            self.success("Using", "remaining", n_domains, "domains", level=1)
         return genes
 
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
