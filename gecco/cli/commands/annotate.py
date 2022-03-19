@@ -44,16 +44,19 @@ class Annotate(Command):  # noqa: D101
                                           one of the sequences format supported
                                           by Biopython.
 
-        Parameters - Output:
+        Parameters:
             -f <fmt>, --format <fmt>      the format of the input file, as a
                                           Biopython format string. GECCO is able
                                           to recognize FASTA and GenBank files
                                           automatically if this is not given.
+            -j <jobs>, --jobs <jobs>      the number of CPUs to use for
+                                          multithreading. Use 0 to use all of
+                                          the available CPUs. [default: 0]
+
+        Parameters - Output:
             -o <out>, --output <out>      the file where to write the feature
                                           table. [default: features.tsv]
-            -j <jobs>, --jobs <jobs>      the number of CPUs to use for
-                                          multithreading. Use 0 to use all of the
-                                          available CPUs. [default: 0]
+
 
         Parameters - Gene Calling:
             -M, --mask                    Enable unknown region masking to

@@ -13,7 +13,7 @@ import pickle
 import random
 import signal
 import typing
-from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
+from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping
 
 from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
@@ -34,7 +34,7 @@ class Train(Command):  # noqa: D101
         gecco train - {cls.summary}
 
         Usage:
-            gecco train --features <table>... --clusters <table> [options]
+            gecco train --features <table>... [options]
 
         Arguments:
             -f <data>, --features <table>   a domain annotation table, used to
@@ -42,17 +42,18 @@ class Train(Command):  # noqa: D101
             -c <data>, --clusters <table>   a cluster annotation table, used to
                                             extract the domain composition for
                                             the type classifier.
-            -g <file>, --genome <file>      a genomic file containing the raw
-                                            training sequences to extract genes
-                                            from. Only supports GenBank file
-                                            with annotated CDS.
+            -g <file>, --genes <file>       a GFF file containing the
+                                            coordinates of the genes inside
+                                            the training sequence.
 
         Parameters:
-            -o <out>, --output-dir <out>    the directory to use for the model
-                                            files. [default: model]
             -j <jobs>, --jobs <jobs>        the number of CPUs to use for
                                             multithreading. Use 0 to use all
                                             the available CPUs. [default: 0]
+
+        Parameters - Output:
+            -o <out>, --output-dir <out>    the directory to use for the model
+                                            files. [default: model]
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>          the e-value cutoff for domains to
@@ -144,8 +145,8 @@ class Train(Command):  # noqa: D101
             self.seed = self._check_flag("--seed", int)
             self.output_dir = self._check_flag("--output-dir", str)
             self.features = self._check_flag("--features", list)
-            self.clusters = self._check_flag("--clusters", str, check=os.path.exists)
-            self.genome = self._check_flag("--genome", str, check=os.path.exists)
+            self.clusters = self._check_flag("--clusters", str)
+            self.genes = self._check_flag("--genes", str)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -176,27 +177,30 @@ class Train(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-    def _load_genes(self) -> List["Gene"]:
-        import Bio.SeqIO
-        from Bio.Seq import Seq
-        from ...model import Gene, Protein, Strand
+    def _load_genes(self) -> Iterator["Gene"]:
+        from Bio.SeqRecord import SeqRecord
+        from ...model import Gene, Protein, Strand, _UnknownSeq
 
-        genes = []
-        for record in Bio.SeqIO.parse(self.genome, "genbank"):
-            if not any(feat.type == "CDS" for feat in record.features):
-                raise ValueError("No `CDS` feature in record {}".format(record.id))
-            for i, cds in enumerate(filter(lambda feat: feat.type == "CDS", record.features)):
-                seq = Seq(cds.qualifiers["translation"][0])
-                prot = Protein(f"{record.id}_{i+1}", seq)
-                gene = Gene(
-                    record,
-                    cds.location.start,
-                    cds.location.end,
-                    Strand(cds.location.strand),
-                    prot
-                )
-                genes.append(gene)
-        return genes
+        try:
+            # get filesize and unit
+            input_size = os.stat(self.genes).st_size
+            total, scale, unit = ProgressReader.scale_size(input_size)
+            task = self.progress.add_task("Loading genes", total=total, unit=unit, precision=".1f")
+            #
+            self.info("Loading", "gene coordinates from file", repr(self.genes))
+            with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as gff_file:
+                for row in csv.reader(io.TextIOWrapper(gff_file), dialect="excel-tab"):
+                    name, _, _, start, end, _, strand, *_ = row
+                    yield Gene(
+                        SeqRecord(_UnknownSeq(), id=name.rsplit("_", 1)[0]),
+                        int(start),
+                        int(end),
+                        Strand.Coding if strand == "+" else Strand.Reverse,
+                        Protein(name, _UnknownSeq()),
+                    )
+        except OSError as err:
+            self.error("Fail to parse genes coordinates: {}", err)
+            raise CommandExit(err.errno) from err
 
     def _load_features(self) -> "FeatureTable":
         from ...model import FeatureTable
@@ -235,6 +239,8 @@ class Train(Command):  # noqa: D101
             gene = gene_index[row.protein_id]
             if gene.source.id != row.sequence_id:
                 raise ValueError(f"Mismatched source sequence for {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
+            elif gene.end - gene.start != row.end - row.start:
+                raise ValueError(f"Mismatched gene length for {row.protein_id!r}: {gene.end - gene.start!r} != {row.end - row.start!r}")
             elif gene.start != row.start:
                 raise ValueError(f"Mismatched gene start for {row.protein_id!r}: {gene.start!r} != {row.start!r}")
             elif gene.end != row.end:
@@ -356,6 +362,25 @@ class Train(Command):  # noqa: D101
 
         return labelled_genes
 
+    def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
+        if self.p_filter is not None:
+            self.info("Excluding", f"domains with p-value over {self.p_filter}", level=2)
+            genes = [
+                gene.with_protein(gene.protein.with_domains(
+                    [d for d in gene.protein.domains if d.pvalue <= self.p_filter]
+                ))
+                for gene in genes
+            ]
+        if self.e_filter is not None:
+            self.info("Excluding", f"domains with e-value over {self.e_filter}", level=2)
+            genes = [
+                gene.with_protein(gene.protein.with_domains(
+                    [d for d in gene.protein.domains if d.i_evalue <= self.e_filter]
+                ))
+                for gene in genes
+            ]
+        return genes
+
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
         from ...model import Cluster
 
@@ -419,7 +444,7 @@ class Train(Command):  # noqa: D101
             # attempt to create the output directory
             self._make_output_directory()
             # load features
-            genes = self._load_genes()
+            genes = list(self._load_genes())
             features = self._load_features()
             genes = self._annotate_genes(genes, features)
             # Sort genes
@@ -430,6 +455,8 @@ class Train(Command):  # noqa: D101
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
+            # filter domains by p-value and/or e-value
+            genes = self._filter_domains(genes)
             # fit CRF
             crf = self._fit_model(genes)
             # save model
