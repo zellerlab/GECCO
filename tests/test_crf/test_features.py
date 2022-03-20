@@ -48,17 +48,17 @@ class _TestFeatureExtraction(object):
 
 class TestSingleFeatureExtraction(_TestFeatureExtraction, unittest.TestCase):
 
-    extract = staticmethod(gecco.crf.features.extract_features_single)
+    extract = staticmethod(gecco.crf.features.extract_features_domain)
 
     def test_extraction(self):
         X = self.extract(self.genes)
-        self.assertEqual(X, [{"A": 0.5}, {"B": 1.0}, {"C": 0.8}])
+        self.assertEqual(X, [{"A": True}, {"B": True}, {"C": True}])
 
 
 class TestGroupFeatureExtraction(_TestFeatureExtraction, unittest.TestCase):
 
-    extract = staticmethod(gecco.crf.features.extract_features_group)
+    extract = staticmethod(gecco.crf.features.extract_features_protein)
 
     def test_extraction(self):
         X = self.extract(self.genes)
-        self.assertEqual(X, [{"A": 0.5, "B": 1.0}, {"C": 0.8}])
+        self.assertEqual(X, [{"A": True, "B": True}, {"C": True}])
