@@ -23,11 +23,30 @@ class TestTrain(TestCommand, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
-    def test_train_embedding(self):
+    def test_train_feature_type_domain(self):
         base = os.path.join(self.folder, "data", "mibig-2.0.proG2")
         clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.gff"
 
-        argv = ["-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir, "-g", genes]
+        argv = [
+            "-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir,
+            "-g", genes, "--feature-type", "domain"
+        ]
+        with io.StringIO() as stream:
+            retcode = main(argv, stream=stream)
+            self.assertEqual(retcode, 0, stream.getvalue())
+
+        files = os.listdir(self.tmpdir)
+        self.assertIn("model.pkl", files)
+        self.assertIn("model.pkl.md5", files)
+
+    def test_train_feature_type_protein(self):
+        base = os.path.join(self.folder, "data", "mibig-2.0.proG2")
+        clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.gff"
+
+        argv = [
+            "-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir,
+            "-g", genes, "--feature-type", "protein"
+        ]
         with io.StringIO() as stream:
             retcode = main(argv, stream=stream)
             self.assertEqual(retcode, 0, stream.getvalue())

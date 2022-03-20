@@ -73,9 +73,9 @@ class Train(Command):  # noqa: D101
                                             [default: 0.15]
             --c2 <C2>                       parameter for L2 regularisation.
                                             [default: 0.15]
-            --feature-type <type>           how features should be extracted
-                                            (single, overlap, or group).
-                                            [default: group]
+            --feature-type <type>           at which level features should be
+                                            extracted (protein or domain).
+                                            [default: protein]
             --overlap <N>                   how much overlap to consider if
                                             features overlap. [default: 2]
             --select <N>                    fraction of most significant features
@@ -94,9 +94,9 @@ class Train(Command):  # noqa: D101
             self.feature_type = self._check_flag(
                 "--feature-type",
                 str,
-                lambda x: x in {"single", "overlap", "group"},
-                hint="'single', 'overlap' or 'group'",
-                default="group",
+                lambda x: x in {"protein", "domain"},
+                hint="'protein' or 'domain'",
+                default="protein",
                 optional=True,
             )
             self.overlap = self._check_flag(
@@ -260,7 +260,6 @@ class Train(Command):  # noqa: D101
             )
             gene.protein.domains.append(domain)
 
-
         # return
         return list(gene_index.values())
 
@@ -353,13 +352,9 @@ class Train(Command):  # noqa: D101
                     cluster_row.start <= gene.start and gene.end <= cluster_row.end
                     for cluster_row in cluster_by_seq[seq_id]
                 ):
-                    gene = gene.with_protein(
-                        gene.protein.with_domains([d.with_probability(1) for d in gene.protein.domains])
-                    )
+                    gene = gene.with_probability(1)
                 else:
-                    gene = gene.with_protein(
-                        gene.protein.with_domains([d.with_probability(0) for d in gene.protein.domains])
-                    )
+                    gene = gene.with_probability(0)
                 labelled_genes.append(gene)
                 self.progress.update(task_id=task, advance=1)
 
@@ -436,11 +431,11 @@ class Train(Command):  # noqa: D101
             genes.sort(key=operator.attrgetter("source.id", "start", "end"))
             for gene in genes:
                 gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
+            # filter domains by p-value and/or e-value
+            genes = Annotate._filter_domains(self, genes)
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
-            # filter domains by p-value and/or e-value
-            genes = Annotate._filter_domains(self, genes)
             # fit CRF
             crf = self._fit_model(genes)
             # save model

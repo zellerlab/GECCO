@@ -73,7 +73,7 @@ def fisher_significance(
     +-------------+-------------------------+-------------------------------+
 
     Then, we run a Fisher Exact Test on this distribution, which gives us the
-    probability to observe the same table under the hypothesis of independece
+    probability to observe the same table under the hypothesis of independence
     of the two variables.
 
     Arguments:

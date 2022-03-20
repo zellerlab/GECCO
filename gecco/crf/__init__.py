@@ -21,8 +21,11 @@ from typing import (
     Dict,
     FrozenSet,
     Iterable,
+    Iterator,
     List,
+    NamedTuple,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -34,6 +37,7 @@ import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
 
+from .._meta import sliding_window
 from ..model import Gene
 from . import features
 from .cv import LeaveOneGroupOut
@@ -100,7 +104,7 @@ class ClusterCRF(object):
 
         Arguments:
             feature_type (`str`): Defines how features should be extracted.
-                Should be either *domain*, *protein*, or *overlap*.
+                Should be either *domain* or *protein*.
             algorithm (`str`): The optimization algorithm for the model. See
                 https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
@@ -116,8 +120,8 @@ class ClusterCRF(object):
             `TypeError`: if one of the ``*_columns`` argument is not iterable.
 
         """
-        if feature_type not in {"single", "overlap", "group"}:
-            raise ValueError(f"unexpected feature type: {feature_type!r}")
+        if feature_type not in {"protein", "domain"}:
+            raise ValueError(f"invalid feature type: {feature_type!r}")
 
         self.feature_type: str = feature_type
         self.overlap: int = overlap
@@ -126,39 +130,49 @@ class ClusterCRF(object):
         self.significant_features: Optional[FrozenSet[str]] = None
         self.model = sklearn_crfsuite.CRF(
             algorithm=algorithm,
-            all_possible_transitions=True,
-            all_possible_states=True,
+            # all_possible_transitions=True,
+            # all_possible_states=True,
             **kwargs,
         )
+
+        self.window_size = 5 # FIXME: configure
+        self.window_step = 1 # FIXME: configure
+
 
     def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
         """
-        _cpus = os.cpu_count() if not cpus else cpus
-        # group input genes by sequence
-        groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
-        seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
-
         # select the feature extraction method
-        if self.feature_type == "group":
-            extract = features.extract_features_group
-            annotate = features.annotate_probabilities_group
-        elif self.feature_type == "single":
-            extract = features.extract_features_single
-            annotate = features.annotate_probabilities_single
-        elif self.feature_type == "overlap":
-            raise NotImplementedError("todo: `features.extract_features_overlap`")
+        if self.feature_type == "protein":
+            extract_features = features.extract_features_protein
+            annotate_probabilities = features.annotate_probabilities_protein
+        elif self.feature_type == "domain":
+            extract_features = features.extract_features_domain
+            annotate_probabilities = features.annotate_probabilities_domain
         else:
-            raise ValueError("invalid feature type")
+            raise ValueError(f"invalid feature type: {self.feature_type!r}")
 
-        # extract features and predict cluster probabilities
-        marginals = self.model.predict_marginals([list(extract(seq)) for seq in seqs])
-        # Annotate the genes with the predicted probabilities
-        annotated_seqs = [annotate(seq, m) for seq, m in zip(seqs, marginals)]
+        # sort genes by sequence id and domains inside genes by coordinate
+        genes = sorted(genes, key=operator.attrgetter("source.id"))
+        for gene in genes:
+            gene.protein.domains.sort(key=operator.attrgetter("start"))
+
+        # predict sequence by sequence
+        predicted = []
+        for _, group in itertools.groupby(genes, key=operator.attrgetter("source.id")):
+            # extract features
+            sequence: List[Gene] = sorted(group, key=operator.attrgetter("start"))
+            feats: List[Dict[str, bool]] = extract_features(sequence)
+            # predict marginals over a sliding window, storing maximum probabilities
+            probabilities = numpy.zeros(len(sequence))
+            for win in sliding_window(len(feats), self.window_size, self.window_step):
+                marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
+                numpy.maximum(probabilities[win], marginals, out=probabilities[win])
+            # label genes with maximal probabilities
+            predicted.extend(annotate_probabilities(sequence, probabilities))
 
         # return the genes that were passed as input but now having BGC
-        # probabilities set
-        return list(itertools.chain.from_iterable(annotated_seqs)) # type: ignore
+        return predicted
 
     def fit(
         self,
@@ -171,24 +185,19 @@ class ClusterCRF(object):
     ) -> None:
         _cpus = os.cpu_count() if not cpus else cpus
         # select the feature extraction method
-        if self.feature_type == "group":
-            extract_features = features.extract_features_group
-            extract_labels = features.extract_labels_group
-        elif self.feature_type == "single":
-            extract_features = features.extract_features_single
-            extract_labels = features.extract_labels_single
-        elif self.feature_type == "overlap":
-            raise NotImplementedError("todo: `features.extract_features_overlap`")
+        if self.feature_type == "protein":
+            extract_features = features.extract_features_protein
+            extract_labels = features.extract_labels_protein
+        elif self.feature_type == "domain":
+            extract_features = features.extract_features_domain
+            extract_labels = features.extract_labels_domain
         else:
-            raise ValueError("invalid feature type")
+            raise ValueError(f"invalid feature type: {self.feature_type!r}")
 
-        # group input genes by sequence
-        groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
-        seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
-
-        # shuffle sequences
-        if shuffle:
-            random.shuffle(seqs)
+        # sort genes by sequence id and domains inside genes by coordinate
+        genes = sorted(genes, key=operator.attrgetter("source.id"))
+        for gene in genes:
+            gene.protein.domains.sort(key=operator.attrgetter("start"))
 
         # perform feature selection
         if select is not None:
@@ -196,7 +205,7 @@ class ClusterCRF(object):
                 raise ValueError(f"invalid value for select: {select}")
             # find most significant features
             self.significance = sig = fisher_significance(
-                (g.protein for seq in seqs for g in seq),
+                (gene.protein for gene in genes),
                 correction_method=correction_method,
             )
             sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
@@ -209,24 +218,42 @@ class ClusterCRF(object):
                     UserWarning
                 )
             # remove non significant domains
-            for i, seq in enumerate(seqs):
-                for j, gene in enumerate(seq):
-                    seqs[i][j] = gene.with_protein(
-                         gene.protein.with_domains([
-                             domain for domain in gene.protein.domains
-                             if domain.name in self.significant_features
-                         ])
-                    )
+            genes = [
+                gene.with_protein(
+                    gene.protein.with_domains([
+                        domain for domain in gene.protein.domains
+                        if domain.name in self.significant_features
+                    ])
+                )
+                for gene in genes
+            ]
 
-        # extract features and labels
-        X = [list(extract_features(seq)) for seq in seqs]
-        Y = [list(extract_labels(seq)) for seq in seqs]
+        # group input genes by sequence
+        groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
+        sequences = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
+        # shuffle sequences if needed
+        if shuffle:
+            random.shuffle(sequences)
+
+        # build training instances
+        training_features, training_labels = [], []
+        for sequence in sequences:
+            # extract features and labels
+            feats: List[Dict[str, bool]] = extract_features(sequence)
+            labels: List[str] = extract_labels(sequence)
+            # check we have as many observations as we have labels
+            if len(feats) != len(labels):
+                raise ValueError("different number of features and labels found, something is wrong")
+            # record every window in the sequence
+            for win in sliding_window(len(feats), self.window_size, self.window_step):
+                training_features.append(feats[win])
+                training_labels.append(labels[win])
 
         # check labels
-        if all(y == "1" for y in Y):
+        if all(label == "1" for y in training_labels for label in y):
             raise ValueError("only positives labels found, something is wrong.")
-        elif all(y == "0" for y in Y):
+        elif all(label == "0" for y in training_labels for label in y):
             raise ValueError("only negative labels found, something is wrong.")
 
         # fit the model
-        self.model.fit(X, Y)
+        self.model.fit(training_features, training_labels)
