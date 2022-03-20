@@ -272,6 +272,8 @@ class Gene:
         )
 
     def with_probability(self, probability: float) -> "Gene":
+        """Copy the current gene and assign it a different probability.
+        """
         return Gene(
             self.source, self.start, self.end, self.strand,
             self.protein.with_domains([
