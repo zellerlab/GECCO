@@ -101,12 +101,6 @@ class Train(Command):  # noqa: D101
                 default="protein",
                 optional=True,
             )
-            self.overlap = self._check_flag(
-                "--overlap",
-                int,
-                lambda x: x > 0,
-                hint="positive integer",
-            )
             self.c1 = self._check_flag("--c1", float, hint="real number")
             self.c2 = self._check_flag("--c2", float, hint="real number")
             self.e_filter = self._check_flag(
@@ -283,7 +277,8 @@ class Train(Command):  # noqa: D101
         self.info("Creating", f"the CRF in [bold blue]{self.feature_type}[/] mode", level=1)
         self.info("Using", f"hyperparameters C1={self.c1}, C2={self.c2}", level=1)
         if self.select is not None:
-            self.info("Using", f"Fisher Exact Test significance threshold of {self.select}", level=1)
+            self.info("Selecting", f"features with Fisher Exact Test threshold of {self.select}", level=1)
+        self.info("Iterating", f"over features with a sliding window of size {self.window_size} and step {self.window_step}", level=1)
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",

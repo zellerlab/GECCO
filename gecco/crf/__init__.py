@@ -244,6 +244,9 @@ class ClusterCRF(object):
             # check we have as many observations as we have labels
             if len(feats) != len(labels):
                 raise ValueError("different number of features and labels found, something is wrong")
+            # check we have enough genes for the desired sliding window
+            if len(feats) < self.window_size:
+                raise ValueError(f"{sequence[0].source.id!r} has not enough observations ({len(feats)}) for requested window size ({self.window_size})")
             # record every window in the sequence
             for win in sliding_window(len(feats), self.window_size, self.window_step):
                 training_features.append(feats[win])
