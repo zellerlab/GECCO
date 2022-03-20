@@ -94,7 +94,7 @@ class Run(Annotate):  # noqa: D101
                                           included if they are longer. A lower
                                           number will increase the number of
                                           false positives on small contigs.
-                                          [default: 10]
+                                          [default: 0]
 
         Parameters - Debug:
             --model <directory>           the path to an alternative CRF model
