@@ -210,6 +210,7 @@ class Gene:
     strand: Strand
     protein: Protein
     qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
+    _probability: Optional[float] = field(default_factory=lambda: None)
 
     @property
     def id(self) -> str:
@@ -221,13 +222,21 @@ class Gene:
     def average_probability(self) -> Optional[float]:
         """`float`: The average of domain probabilities of being biosynthetic.
         """
+        if self._probability is not None:
+            return self._probability
         p = [d.probability for d in self.protein.domains if d.probability is not None]
         return sum(p) / len(p) if p else None
+
+    @average_probability.setter
+    def average_probability(self, probability: Optional[float]):
+        self._probability = probability
 
     @property
     def maximum_probability(self) -> Optional[float]:
         """`float`: The highest of domain probabilities of being biosynthetic.
         """
+        if self._probability is not None:
+            return self._probability
         p = [d.probability for d in self.protein.domains if d.probability is not None]
         return max(p) if p else None
 
@@ -250,6 +259,7 @@ class Gene:
         return Gene(
             self.source, self.start, self.end, self.strand, protein,
             self.qualifiers.copy(),
+            _probability=self._probability,
         )
 
     def with_source(self, source: "SeqRecord") -> "Gene":
@@ -258,6 +268,18 @@ class Gene:
         return Gene(
             source, self.start, self.end, self.strand, self.protein,
             self.qualifiers.copy(),
+            _probability=self._probability,
+        )
+
+    def with_probability(self, probability: float) -> "Gene":
+        return Gene(
+            self.source, self.start, self.end, self.strand,
+            self.protein.with_domains([
+                domain.with_probability(probability)
+                for domain in self.protein.domains
+            ]),
+            self.qualifiers.copy(),
+            _probability=probability
         )
 
 
