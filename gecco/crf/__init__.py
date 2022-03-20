@@ -163,6 +163,13 @@ class ClusterCRF(object):
             # extract features
             sequence: List[Gene] = sorted(group, key=operator.attrgetter("start"))
             feats: List[Dict[str, bool]] = extract_features(sequence)
+            # ignore sequences too small with a warning
+            if len(feats) < self.window_size:
+                warnings.warn(
+                    f"Contig {sequence[0].source.id!r} does not contain enough"
+                    f" genes for sliding window of size {self.window_size}"
+                )
+                continue
             # predict marginals over a sliding window, storing maximum probabilities
             probabilities = numpy.zeros(len(sequence))
             for win in sliding_window(len(feats), self.window_size, self.window_step):
