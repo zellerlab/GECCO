@@ -35,11 +35,14 @@ class Cv(Train):  # noqa: D101
             gecco cv loto  --features <table>... --clusters <table> [options]
 
         Arguments:
-            -f <data>, --features <table>   a domain annotation table, used to
-                                            labeled as BGCs and non-BGCs.
+            -f <data>, --features <table>   a domain annotation table, used
+                                            to train the CRF.
             -c <data>, --clusters <table>   a cluster annotation table, used
                                             to stratify clusters by type in
                                             LOTO mode.
+            -g <file>, --genes <file>       a GFF file containing the
+                                            coordinates of the genes inside
+                                            the training sequence.
 
         Parameters:
             -o <out>, --output <out>        the name of the output file where
@@ -63,15 +66,17 @@ class Cv(Train):  # noqa: D101
                                             [default: 42]
 
         Parameters - Training:
+            -W <N>, --window-size <N>       the size of the sliding window for
+                                            CRF predictions. [default: 5]
+            --window-step <N>               the step of the sliding window for
+                                            CRF predictions. [default: 1]
             --c1 <C1>                       parameter for L1 regularisation.
                                             [default: 0.15]
             --c2 <C2>                       parameter for L2 regularisation.
                                             [default: 0.15]
-            --feature-type <type>           how features should be extracted
-                                            (single, overlap, or group).
-                                            [default: group]
-            --overlap <N>                   how much overlap to consider if
-                                            features overlap. [default: 2]
+            --feature-type <type>           at which level features should be
+                                            extracted (protein or domain).
+                                            [default: protein]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
             --correction <method>           the multiple test correction method

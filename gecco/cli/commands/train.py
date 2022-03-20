@@ -69,6 +69,10 @@ class Train(Command):  # noqa: D101
                                             [default: 42]
 
         Parameters - Training:
+            -W <N>, --window-size <N>       the size of the sliding window for
+                                            CRF predictions. [default: 5]
+            --window-step <N>               the step of the sliding window for
+                                            CRF predictions. [default: 1]
             --c1 <C1>                       parameter for L1 regularisation.
                                             [default: 0.15]
             --c2 <C2>                       parameter for L2 regularisation.
@@ -76,8 +80,6 @@ class Train(Command):  # noqa: D101
             --feature-type <type>           at which level features should be
                                             extracted (protein or domain).
                                             [default: protein]
-            --overlap <N>                   how much overlap to consider if
-                                            features overlap. [default: 2]
             --select <N>                    fraction of most significant features
                                             to select from the training data.
             --correction <method>           the multiple test correction method
@@ -147,6 +149,18 @@ class Train(Command):  # noqa: D101
             self.features = self._check_flag("--features", list)
             self.clusters = self._check_flag("--clusters", str)
             self.genes = self._check_flag("--genes", str)
+            self.window_size = self._check_flag(
+                "--window-size",
+                int,
+                lambda x: x > 0,
+                hint="positive integer",
+            )
+            self.window_step = self._check_flag(
+                "--window-step",
+                int,
+                lambda x: x > 0 and x <= self.window_size,
+                hint="positive integer smaller than `--window-size`",
+            )
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -273,7 +287,8 @@ class Train(Command):  # noqa: D101
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",
-            overlap=self.overlap,
+            window_size=self.window_size,
+            window_step=self.window_step,
             c1=self.c1,
             c2=self.c2,
         )

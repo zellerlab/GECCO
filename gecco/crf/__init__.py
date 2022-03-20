@@ -97,7 +97,8 @@ class ClusterCRF(object):
         self,
         feature_type: str = "protein",
         algorithm: str = "lbfgs",
-        overlap: int = 2,
+        window_size: int = 5,
+        window_step: int = 1,
         **kwargs: Dict[str, object],
     ) -> None:
         """Create a new `ClusterCRF` instance.
@@ -108,9 +109,7 @@ class ClusterCRF(object):
             algorithm (`str`): The optimization algorithm for the model. See
                 https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
-            overlap (`int`): In case of ``feature_type = "overlap"``, defines
-                the sliding window size to use. The resulting window width is
-                ``2*overlap+1``.
+            window_size (`int`):
 
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
@@ -122,9 +121,14 @@ class ClusterCRF(object):
         """
         if feature_type not in {"protein", "domain"}:
             raise ValueError(f"invalid feature type: {feature_type!r}")
+        if window_size <= 0:
+            raise ValueError("Window size must be strictly positive")
+        if window_step <= 0 or window_step > window_size:
+            raise ValueError("Window step must be strictly positive and under `window_size`")
 
-        self.feature_type: str = feature_type
-        self.overlap: int = overlap
+        self.feature_type = feature_type
+        self.window_size = window_size
+        self.window_step = window_step
         self.algorithm = algorithm
         self.significance: Optional[Dict[str, float]] = None
         self.significant_features: Optional[FrozenSet[str]] = None
@@ -134,10 +138,6 @@ class ClusterCRF(object):
             # all_possible_states=True,
             **kwargs,
         )
-
-        self.window_size = 5 # FIXME: configure
-        self.window_step = 1 # FIXME: configure
-
 
     def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
@@ -231,7 +231,7 @@ class ClusterCRF(object):
         # group input genes by sequence
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         sequences = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
-        # shuffle sequences if needed
+        # shuffle sequences if requested
         if shuffle:
             random.shuffle(sequences)
 
