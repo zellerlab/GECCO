@@ -81,6 +81,8 @@ class TypeClassifier(object):
         with typs_file as typs_src:
             types = [
                 ProductType.pack(ProductType.__members__[ty] for ty in raw.split(";"))
+                if raw.strip()
+                else ProductType.Unknown
                 for raw in (line.split("\t")[1].strip() for line in typs_src)
             ]
 
