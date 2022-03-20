@@ -9,7 +9,7 @@ import locale
 import operator
 import typing
 from multiprocessing.pool import Pool
-from typing import Any, Callable, Iterable, List, Tuple, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, List, Tuple, Optional, Type
 
 if typing.TYPE_CHECKING:
     from types import TracebackType
@@ -76,53 +76,6 @@ class requires:
         return newfunc
 
 
-class OrderedPoolWrapper:
-    """A `Pool` wrapper that returns results in the order they were given.
-    """
-
-    class _OrderedFunc:
-
-        def __init__(self, inner: Callable[["_A"], "_R"], star: bool = False) -> None:
-            self.inner = inner
-            self.star = star
-
-        def __call__(self, args: Tuple[int, "_A"]) -> Tuple[int, "_R"]:
-            i, other = args
-            if self.star:
-                return i, self.inner(*other)  # type: ignore
-            else:
-                return i, self.inner(other)
-
-    def __init__(self, inner: Pool) -> None:
-        self.inner = inner
-
-    def __enter__(self) -> "OrderedPoolWrapper":
-        self.inner.__enter__()
-        return self
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional["TracebackType"],
-    ) -> Optional[bool]:
-        return self.inner.__exit__(exc_type, exc_value, traceback)
-
-    def map(self, func: Callable[["_A"], "_R"], it: Iterable["_A"]) -> List["_R"]:
-        wrapped_it = enumerate(it)
-        wrapped_func = self._OrderedFunc(func)
-        results = self.inner.map(wrapped_func, wrapped_it)
-        results.sort(key=operator.itemgetter(0))
-        return list(map(operator.itemgetter(1), results))
-
-    def starmap(self, func: Callable[..., "_R"], it: Iterable[Iterable[Any]]) -> List["_R"]:
-        wrapped_it = enumerate(it)
-        wrapped_func = self._OrderedFunc(func, star=True)
-        results = self.inner.map(wrapped_func, wrapped_it)
-        results.sort(key=operator.itemgetter(0))
-        return list(map(operator.itemgetter(1), results))
-
-
 class UniversalContainer(object):
     """A container that contains everything.
     """
@@ -132,6 +85,17 @@ class UniversalContainer(object):
 
     def __contains__(self, item: object) -> bool:
         return True
+
+
+def sliding_window(length: int, window: int, step: int) -> Iterator[slice]:
+    """Iterate over a sequence of length `length` with a sliding window.
+    """
+    if window <= 0:
+        raise ValueError("Window size must be strictly positive")
+    if step <= 0 or step > window:
+        raise ValueError("Window step must be strictly positive and under `window_size`")
+    for i in range(0, length + 1 - window, step):
+        yield slice(i, i+window)
 
 
 @contextlib.contextmanager
