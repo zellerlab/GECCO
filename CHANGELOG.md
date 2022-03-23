@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha2...master
+
+## [v0.9.1-alpha2] - 2022-03-23
+[v0.9.1-alpha1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha1...v0.9.1-alpha2
+
+### Fixed
+- `TypeClassifier.trained` not being able to read unknown types from type tables.
 
 ## [v0.9.1-alpha1] - 2022-03-20
 [v0.9.1-alpha1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.10...v0.9.1-alpha1
