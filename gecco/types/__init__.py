@@ -6,6 +6,7 @@ import functools
 import operator
 import os
 import typing
+import warnings
 from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy
@@ -79,12 +80,18 @@ class TypeClassifier(object):
         with doms_file as doms_src:
             domains = [ line.strip() for line in doms_src ]
         with typs_file as typs_src:
-            types = [
-                ProductType.pack(ProductType.__members__[ty] for ty in raw.split(";"))
-                if raw.strip()
-                else ProductType.Unknown
-                for raw in (line.split("\t")[1].strip() for line in typs_src)
-            ]
+            types = []
+            for line in typs_src:
+                unpacked = set()
+                for ty in line.split("\t")[1].strip().split(";"):
+                    if ty in ProductType.__members__:
+                        unpacked.add(ProductType.__members__[ty])
+                    elif not ty:
+                        unpacked.add(ProductType.Unknown)
+                    else:
+                        warnings.warn(f"Unknown type in types table: {ty!r}")
+                        unpacked.add(ProductType.Unknown)
+                types.append(ProductType.pack(unpacked))
 
         classifier = cls(random_state=0)
         types_bin = classifier.binarizer.transform(types)
