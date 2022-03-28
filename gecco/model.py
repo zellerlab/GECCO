@@ -883,3 +883,154 @@ class ClusterTable(Dumpable, Sized):
                         getattr(table, col).append(value)
 
         return table
+
+
+@dataclass(frozen=True)
+class GeneTable(Dumpable, Sized):
+    """A table storing gene coordinates and optional biosynthetic probabilities.
+    """
+
+    sequence_id: List[str] = field(default_factory = list)
+    protein_id: List[str] = field(default_factory = list)
+    start: List[int] = field(default_factory = lambda: array("l"))    # type: ignore
+    end: List[int] = field(default_factory = lambda: array("l"))      # type: ignore
+    strand: List[str] = field(default_factory = list)
+    average_p: List[Optional[float]] = field(default_factory = list)  # type: ignore
+    max_p: List[Optional[float]] = field(default_factory = list)      # type: ignore
+
+    class Row(NamedTuple):
+        """A single row in a gene table.
+        """
+
+        sequence_id: str
+        protein_id: str
+        start: int
+        end: int
+        strand: str
+        average_p: Optional[float]
+        max_p: Optional[float]
+
+    @classmethod
+    def from_genes(cls, genes: Iterable[Gene]) -> "GeneTable":
+        """Create a new gene table from an iterable of genes.
+        """
+        table = cls()
+        for gene in genes:
+            table.sequence_id.append(gene.source.id)
+            table.protein_id.append(gene.protein.id)
+            table.start.append(gene.start)
+            table.end.append(gene.end)
+            table.strand.append(gene.strand.sign)
+            table.average_p.append(gene.average_probability)
+            table.max_p.append(gene.maximum_probability)
+        return table
+
+    def to_genes(self) -> Iterable[Gene]:
+        """Convert a gene table to actual genes.
+
+        Since the source sequence cannot be known, a *dummy* sequence is
+        built for each gene of size ``gene.end``, so that each gene can still
+        be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
+
+        """
+        for row in self:
+            source = SeqRecord(id=row.sequence_id, seq=_UnknownSeq())
+            strand = Strand.Coding if row.strand == "+" else Strand.Reverse
+            seq = Seq("X" * (row.end - row.start // 3))
+            protein = Protein(rows[0].protein_id, seq=seq)
+            yield Gene(source, row.start, row.end, strand, protein, _probability=row.average_p)
+
+    def __iadd__(self, rhs: "GeneTable") -> "GeneTable":  # noqa: D105
+        if not isinstance(rhs, FeatureTable):
+            return NotImplemented
+        for col in self.__annotations__:
+            getattr(self, col).extend(getattr(rhs, col))
+        return self
+
+    def __bool__(self) -> bool:  # noqa: D105
+        return len(self) != 0
+
+    def __len__(self) -> int:  # noqa: D105
+        return len(self.protein_id)
+
+    def __iter__(self) -> Iterator[Row]:  # noqa: D105
+        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
+        for i in range(len(self)):
+            yield self[i]
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "GeneTable":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: int) -> Row:  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "Row"]:   # noqa: D105
+        columns = [getattr(self, col)[item] for col in self.__annotations__]
+        if isinstance(item, slice):
+            return type(self)(*columns)
+        else:
+            return self.Row(*columns)
+
+    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
+        """Write the feature table in CSV format to the given file.
+
+        Arguments:
+            fh (file-like `object`): A writable file-handle opened in text mode
+                to write the feature table to.
+            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
+                for allowed values.
+            header (`bool`): Whether or not to include the column header when
+                writing the table (useful for appending to an existing table).
+                Defaults to `True`.
+
+        """
+        writer = csv.writer(fh, dialect=dialect)
+        columns = list(self.__annotations__)
+
+        # do not write optional columns if they are completely empty
+        if all(proba is None for proba in self.max_p):
+            columns.remove("max_p")
+        if all(proba is None for proba in self.average_p):
+            columns.remove("average_p")
+
+        if header:
+            writer.writerow(columns)
+        for row in self:
+            writer.writerow([ getattr(row, col) for col in columns ])
+
+    @classmethod
+    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "GeneTable":
+        """Load a feature table in CSV format from a file handle in text mode.
+        """
+        table = cls()
+        reader = csv.reader(fh, dialect=dialect)
+        header = next(reader)
+
+        # get the name of each column
+        columns = {i:col for i, col in enumerate(header)}
+
+        # check that if a column is missing, it is one of the optional values
+        missing = set(cls.__annotations__).difference(columns.values())
+        missing_required = missing.difference({"average_p", "max_p"})
+        if missing_required:
+            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
+
+        # extract elements from the CSV rows
+        for row in reader:
+            for i,value in enumerate(row):
+                col = columns.get(i)
+                if col == "average_p" or col == "max_p":
+                    if value:
+                        getattr(table, col).append(float(value))
+                    else:
+                        getattr(table, col).append(None)
+                elif col == "start" or col == "end":
+                    getattr(table, col).append(int(value))
+                elif col in cls.__annotations__:
+                    getattr(table, col).append(value)
+        for col in missing:
+            getattr(table, col).extend(None for _ in range(self.protein_id))
+
+        return table
