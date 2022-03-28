@@ -98,6 +98,40 @@ class TestGeneTable(unittest.TestCase):
         self.assertIs(row3.average_p, None)
         self.assertIs(row3.max_p, None)
 
+    def test_to_genes(self):
+        table = GeneTable(
+            sequence_id=["seq1", "seq2", "seq2"],
+            protein_id=["seq1_1", "seq2_1", "seq2_2"],
+            start=[100, 200, 300],
+            end=[160, 260, 360],
+            strand=["+", "-", "+"],
+            average_p=[0.6, 0.2, None],
+            max_p=[0.8, 0.2, None],
+        )
+
+        genes = list(table.to_genes())
+
+        self.assertEqual(genes[0].source.id, "seq1")
+        self.assertEqual(genes[0].protein.id, "seq1_1")
+        self.assertEqual(genes[0].start, 100)
+        self.assertEqual(genes[0].end, 160)
+        self.assertEqual(genes[0].strand, Strand.Coding)
+        self.assertEqual(genes[0].average_probability, 0.6)
+
+        self.assertEqual(genes[1].source.id, "seq2")
+        self.assertEqual(genes[1].protein.id, "seq2_1")
+        self.assertEqual(genes[1].start, 200)
+        self.assertEqual(genes[1].end, 260)
+        self.assertEqual(genes[1].strand, Strand.Reverse)
+        self.assertEqual(genes[1].average_probability, 0.2)
+
+        self.assertEqual(genes[2].source.id, "seq2")
+        self.assertEqual(genes[2].protein.id, "seq2_2")
+        self.assertEqual(genes[2].start, 300)
+        self.assertEqual(genes[2].end, 360)
+        self.assertEqual(genes[2].strand, Strand.Coding)
+        self.assertIs(genes[2].average_probability, None)
+
     def test_dump(self):
         table = GeneTable(
             sequence_id=["seq_1", "seq_2", "seq_2"],

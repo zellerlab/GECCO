@@ -937,7 +937,7 @@ class GeneTable(Dumpable, Sized):
             source = SeqRecord(id=row.sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if row.strand == "+" else Strand.Reverse
             seq = Seq("X" * (row.end - row.start // 3))
-            protein = Protein(rows[0].protein_id, seq=seq)
+            protein = Protein(row.protein_id, seq=seq)
             yield Gene(source, row.start, row.end, strand, protein, _probability=row.average_p)
 
     def __iadd__(self, rhs: "GeneTable") -> "GeneTable":  # noqa: D105

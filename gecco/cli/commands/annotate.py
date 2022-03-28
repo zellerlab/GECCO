@@ -144,7 +144,6 @@ class Annotate(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-
     def _load_sequences(self):
         from Bio import SeqIO
 
