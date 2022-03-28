@@ -141,25 +141,6 @@ class Run(Annotate):  # noqa: D101
 
     # ---
 
-    def _make_output_directory(self) -> None:
-        # Make output directory
-        self.info("Using", "output folder", repr(self.output_dir), level=1)
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
-        except OSError as err:
-            self.error("Could not create output directory: {}", err)
-            raise CommandExit(err.errno) from err
-
-        # Check if output files already exist
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        output_exts = ["features.tsv", "clusters.tsv"]
-        if self.antismash_sideload:
-            output_exts.append("sideload.json")
-        for ext in output_exts:
-            if os.path.isfile(os.path.join(self.output_dir, f"{base}.{ext}")):
-                self.warn("Output folder contains files that will be overwritten")
-                break
-
     def _load_model_domains(self) -> typing.Set[str]:
         try:
             if self.model is None:
@@ -194,15 +175,6 @@ class Run(Annotate):  # noqa: D101
             self.progress.track(genes, task_id=task, total=len(genes)),
             cpus=self.jobs
         ))
-
-    def _write_feature_table(self, genes):
-        from ...model import FeatureTable
-
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
-        self.info("Writing", "feature table to", repr(pred_out), level=1)
-        with open(pred_out, "w") as f:
-            FeatureTable.from_genes(genes).dump(f)
 
     def _extract_clusters(self, genes):
         from ...refine import ClusterRefiner
@@ -326,8 +298,12 @@ class Run(Annotate):  # noqa: D101
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
-            # attempt to create the output directory
-            self._make_output_directory()
+            # attempt to create the output directory, checking it doesn't
+            # already contain output files (or raise a warning)
+            extensions = ["features.tsv", "genes.tsv", "clusters.tsv"]
+            if self.antismash_sideload:
+                extensions.append("sideload.json")
+            self._make_output_directory(extensions)
             # load sequences and extract genes
             sequences = self._load_sequences()
             genes = self._extract_genes(sequences)
@@ -342,6 +318,7 @@ class Run(Annotate):  # noqa: D101
             # annotate domains and predict probabilities
             genes = self._annotate_domains(genes, whitelist=whitelist)
             genes = self._predict_probabilities(genes)
+            self._write_genes_table(genes)
             self._write_feature_table(genes)
             # extract clusters from probability vector
             clusters = self._extract_clusters(genes)

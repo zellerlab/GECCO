@@ -54,8 +54,8 @@ class Annotate(Command):  # noqa: D101
                                           the available CPUs. [default: 0]
 
         Parameters - Output:
-            -o <out>, --output <out>      the file where to write the feature
-                                          table. [default: features.tsv]
+            -o <out>, --output-dir <out>  the directory in which to write the
+                                          output files. [default: .]
 
 
         Parameters - Gene Calling:
@@ -97,7 +97,7 @@ class Annotate(Command):  # noqa: D101
             self.format = self._check_flag("--format", optional=True)
             self.genome = self._check_flag("--genome")
             self.hmm = self._check_flag("--hmm", optional=True)
-            self.output = self._check_flag("--output")
+            self.output_dir = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
         except InvalidArgument:
             raise CommandExit(1)
@@ -122,6 +122,28 @@ class Annotate(Command):  # noqa: D101
             )
 
     # ---
+
+    _OUTPUT_FILES = ["features.tsv", "genes.tsv"]
+
+    def _make_output_directory(self, extensions: List[str]) -> None:
+        # Make output directory
+        self.info("Using", "output folder", repr(self.output_dir), level=1)
+        try:
+            os.makedirs(self.output_dir, exist_ok=True)
+        except OSError as err:
+            self.error("Could not create output directory: {}", err)
+            raise CommandExit(err.errno) from err
+
+        # Check if output files already exist
+        base, _ = os.path.splitext(os.path.basename(self.genome))
+        # output_exts = ["features.tsv", "genes.tsv", "clusters.tsv"]
+        # if self.antismash_sideload:
+        #     output_exts.append("sideload.json")
+        for ext in extensions:
+            if os.path.isfile(os.path.join(self.output_dir, f"{base}.{ext}")):
+                self.warn("Output folder contains files that will be overwritten")
+                break
+
 
     def _load_sequences(self):
         from Bio import SeqIO
@@ -223,9 +245,20 @@ class Annotate(Command):  # noqa: D101
     def _write_feature_table(self, genes):
         from ...model import FeatureTable
 
-        self.info("Writing", "feature table to", repr(self.output), level=1)
-        with open(self.output, "w") as f:
+        base, _ = os.path.splitext(os.path.basename(self.genome))
+        pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
+        self.info("Writing", "feature table to", repr(pred_out), level=1)
+        with open(pred_out, "w") as f:
             FeatureTable.from_genes(genes).dump(f)
+
+    def _write_genes_table(self, genes):
+        from ...model import GeneTable
+
+        base, _ = os.path.splitext(os.path.basename(self.genome))
+        pred_out = os.path.join(self.output_dir, f"{base}.genes.tsv")
+        self.info("Writing", "gene table to", repr(pred_out), level=1)
+        with open(pred_out, "w") as f:
+            GeneTable.from_genes(genes).dump(f)
 
     # ---
 
@@ -235,9 +268,13 @@ class Annotate(Command):  # noqa: D101
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))
+            # attempt to create the output directory, checking it doesn't
+            # already contain output files (or raise a warning)
+            self._make_output_directory(extensions=["features.tsv", "genes.tsv"])
             # load sequences and extract genes
             sequences = self._load_sequences()
             genes = self._extract_genes(sequences)
+            self._write_genes_table(genes)
             if genes:
                 self.success("Found", "a total of", len(genes), "genes", level=1)
             else:
