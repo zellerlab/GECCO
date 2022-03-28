@@ -42,7 +42,7 @@ class Train(Command):  # noqa: D101
             -c <data>, --clusters <table>   a cluster annotation table, used to
                                             extract the domain composition for
                                             the type classifier.
-            -g <file>, --genes <file>       a GFF file containing the
+            -g <file>, --genes <file>       a gene table containing the
                                             coordinates of the genes inside
                                             the training sequence.
 
@@ -186,26 +186,17 @@ class Train(Command):  # noqa: D101
                 break
 
     def _load_genes(self) -> Iterator["Gene"]:
-        from Bio.SeqRecord import SeqRecord
-        from ...model import Gene, Protein, Strand, _UnknownSeq
+        from ...model import GeneTable
 
         try:
             # get filesize and unit
             input_size = os.stat(self.genes).st_size
             total, scale, unit = ProgressReader.scale_size(input_size)
             task = self.progress.add_task("Loading genes", total=total, unit=unit, precision=".1f")
-            #
-            self.info("Loading", "gene coordinates from file", repr(self.genes))
-            with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as gff_file:
-                for row in csv.reader(io.TextIOWrapper(gff_file), dialect="excel-tab"):
-                    name, _, _, start, end, _, strand, *_ = row
-                    yield Gene(
-                        SeqRecord(_UnknownSeq(), id=name.rsplit("_", 1)[0]),
-                        int(start),
-                        int(end),
-                        Strand.Coding if strand == "+" else Strand.Reverse,
-                        Protein(name, _UnknownSeq()),
-                    )
+            # load gene table
+            self.info("Loading", "genes table from file", repr(self.genes))
+            with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as genes_file:
+                yield from GeneTable.load(io.TextIOWrapper(genes_file)).to_genes()
         except OSError as err:
             self.error("Fail to parse genes coordinates: {}", err)
             raise CommandExit(err.errno) from err

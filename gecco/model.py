@@ -582,7 +582,7 @@ class FeatureTable(Dumpable, Sized):
             assert all(x.end == rows[0].end for x in rows)
             source = SeqRecord(id=rows[0].sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
-            protein = Protein(rows[0].protein_id, seq=None)
+            protein = Protein(rows[0].protein_id, seq=_UnknownSeq)
             gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
             for row in rows:
                 domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.pvalue, row.bgc_probability)
@@ -937,7 +937,7 @@ class GeneTable(Dumpable, Sized):
             source = SeqRecord(id=row.sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if row.strand == "+" else Strand.Reverse
             seq = Seq("X" * (row.end - row.start // 3))
-            protein = Protein(row.protein_id, seq=seq)
+            protein = Protein(row.protein_id, seq=_UnknownSeq())
             yield Gene(source, row.start, row.end, strand, protein, _probability=row.average_p)
 
     def __iadd__(self, rhs: "GeneTable") -> "GeneTable":  # noqa: D105
@@ -1031,6 +1031,6 @@ class GeneTable(Dumpable, Sized):
                 elif col in cls.__annotations__:
                     getattr(table, col).append(value)
         for col in missing:
-            getattr(table, col).extend(None for _ in range(self.protein_id))
+            getattr(table, col).extend(None for _ in table.protein_id)
 
         return table

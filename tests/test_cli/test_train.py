@@ -25,7 +25,7 @@ class TestTrain(TestCommand, unittest.TestCase):
 
     def test_train_feature_type_domain(self):
         base = os.path.join(self.folder, "data", "mibig-2.0.proG2")
-        clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.gff"
+        clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.genes.tsv"
 
         argv = [
             "-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir,
@@ -41,7 +41,7 @@ class TestTrain(TestCommand, unittest.TestCase):
 
     def test_train_feature_type_protein(self):
         base = os.path.join(self.folder, "data", "mibig-2.0.proG2")
-        clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.gff"
+        clusters, features, genes = f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.genes.tsv"
 
         argv = [
             "-vv", "train", "-f", features, "-c", clusters, "-o", self.tmpdir,
