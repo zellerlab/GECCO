@@ -24,8 +24,8 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Refere
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
-from ._base import Dumpable
-from ._meta import requires, patch_locale
+from ._base import Dumpable, Table
+from ._meta import patch_locale
 
 
 __all__ = [
@@ -507,7 +507,7 @@ class _UnknownSeq(Seq):
 
 
 @dataclass(frozen=True)
-class FeatureTable(Dumpable, Sized):
+class FeatureTable(Table):
     """A table storing condensed domain annotations from different genes.
     """
 
@@ -589,113 +589,22 @@ class FeatureTable(Dumpable, Sized):
                 gene.protein.domains.append(domain)
             yield gene
 
-    @requires("pandas")
-    def to_dataframe(self) -> "pandas.DataFrame":
-        """Convert the feature table to a `~pandas.DataFrame`.
-
-        Raises:
-            ImportError: if the `pandas` module could not be imported.
-
-        """
-        frame = pandas.DataFrame()  # type: ignore
-        for column in self.__annotations__:
-            frame[column] = getattr(self, column)
-        return frame
-
-    def __iadd__(self, rhs: "FeatureTable") -> "FeatureTable":  # noqa: D105
-        if not isinstance(rhs, FeatureTable):
-            return NotImplemented
-        for col in self.__annotations__:
-            getattr(self, col).extend(getattr(rhs, col))
-        return self
-
-    def __bool__(self) -> bool:  # noqa: D105
-        return len(self) != 0
-
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    def __iter__(self) -> Iterator[Row]:  # noqa: D105
-        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
-        for i in range(len(self)):
-            row = { c: getter(self)[i] for c, getter in columns.items() }
-            yield self.Row(**row)
 
-    @typing.overload
-    def __getitem__(self, item: slice) -> "FeatureTable":  # noqa: D105
-        pass
+def _format_product_type(value: "ProductType") -> str:
+    types = value.unpack() or [ProductType.Unknown]
+    return ";".join(sorted(map(operator.attrgetter("name"), types)))
 
-    @typing.overload
-    def __getitem__(self, item: int) -> Row:  # noqa: D105
-        pass
 
-    def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "Row"]:   # noqa: D105
-        columns = [getattr(self, col)[item] for col in self.__annotations__]
-        if isinstance(item, slice):
-            return type(self)(*columns)
-        else:
-            return self.Row(*columns)
-
-    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
-        """Write the feature table in CSV format to the given file.
-
-        Arguments:
-            fh (file-like `object`): A writable file-handle opened in text mode
-                to write the feature table to.
-            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
-                for allowed values.
-            header (`bool`): Whether or not to include the column header when
-                writing the table (useful for appending to an existing table).
-                Defaults to `True`.
-
-        """
-        writer = csv.writer(fh, dialect=dialect)
-        columns = list(self.__annotations__)
-
-        # do not write optional columns if they are completely empty
-        if all(proba is None for proba in self.bgc_probability):
-            columns.remove("bgc_probability")
-
-        if header:
-            writer.writerow(columns)
-        for row in self:
-            writer.writerow([ getattr(row, col) for col in columns ])
-
-    @classmethod
-    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "FeatureTable":
-        """Load a feature table in CSV format from a file handle in text mode.
-        """
-        table = cls()
-        reader = csv.reader(fh, dialect=dialect)
-        header = next(reader)
-
-        # get the name of each column
-        columns = {i:col for i, col in enumerate(header)}
-
-        # check that if a column is missing, it is one of the optional values
-        missing = set(cls.__annotations__).difference(columns.values())
-        missing_required = missing.difference({"bgc_probability"})
-        if missing_required:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
-
-        # extract elements from the CSV rows
-        for row in reader:
-            for col in missing:
-                getattr(table, col).append(None)
-            for i,value in enumerate(row):
-                col = columns.get(i)
-                if col in ("i_evalue", "pvalue", "bgc_probability"):
-                    getattr(table, col).append(float(value))
-                elif col in ("start", "end", "domain_start", "domain_end"):
-                    getattr(table, col).append(int(value))
-                elif col in cls.__annotations__:
-                    getattr(table, col).append(value)
-
-        return table
+def _parse_product_type(value: str) -> "ProductType":
+    types = [ProductType.__members__[x] for x in value.split(";")]
+    return ProductType.pack(types)
 
 
 @dataclass(frozen=True)
-class ClusterTable(Dumpable, Sized):
+class ClusterTable(Table):
     """A table storing condensed information from several clusters.
     """
 
@@ -703,19 +612,19 @@ class ClusterTable(Dumpable, Sized):
     bgc_id: List[str] = field(default_factory = list)
     start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
     end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
-    average_p: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
-    max_p: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
+    average_p: List[Optional[float]] = field(default_factory = list)    # type: ignore
+    max_p: List[Optional[float]] = field(default_factory = list)        # type: ignore
 
     type: List[ProductType] = field(default_factory = list)
-    alkaloid_probability: List[float] = field(default_factory = lambda: array("d"))    # type: ignore
-    polyketide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
-    ripp_probability: List[float] = field(default_factory = lambda: array("d"))        # type: ignore
-    saccharide_probability: List[float] = field(default_factory = lambda: array("d"))  # type: ignore
-    terpene_probability: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
-    nrp_probability: List[float] = field(default_factory = lambda: array("d"))         # type: ignore
+    alkaloid_probability: List[Optional[float]] = field(default_factory = list)    # type: ignore
+    polyketide_probability: List[Optional[float]] = field(default_factory = list)  # type: ignore
+    ripp_probability: List[Optional[float]] = field(default_factory = list)        # type: ignore
+    saccharide_probability: List[Optional[float]] = field(default_factory = list)  # type: ignore
+    terpene_probability: List[Optional[float]] = field(default_factory = list)     # type: ignore
+    nrp_probability: List[Optional[float]] = field(default_factory = list)         # type: ignore
 
-    proteins: List[List[str]] = field(default_factory = list)
-    domains: List[List[str]] = field(default_factory = list)
+    proteins: List[Optional[List[str]]] = field(default_factory = list)
+    domains: List[Optional[List[str]]] = field(default_factory = list)
 
     class Row(NamedTuple):
         """A single row in a cluster table.
@@ -725,17 +634,20 @@ class ClusterTable(Dumpable, Sized):
         bgc_id: str
         start: int
         end: int
-        average_p: float
-        max_p: float
+        average_p: Optional[float]
+        max_p: Optional[float]
         type: ProductType
-        alkaloid_probability: float
-        polyketide_probability: float
-        ripp_probability: float
-        saccharide_probability: float
-        terpene_probability: float
-        nrp_probability: float
-        proteins: List[str]
-        domains: List[str]
+        alkaloid_probability: Optional[float]
+        polyketide_probability: Optional[float]
+        ripp_probability: Optional[float]
+        saccharide_probability: Optional[float]
+        terpene_probability: Optional[float]
+        nrp_probability: Optional[float]
+        proteins: Optional[List[str]]
+        domains: Optional[List[str]]
+
+    _FORMAT_FIELD = {ProductType: _format_product_type, **Table._FORMAT_FIELD}
+    _PARSE_FIELD = {ProductType: _parse_product_type, **Table._PARSE_FIELD}
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
@@ -763,130 +675,12 @@ class ClusterTable(Dumpable, Sized):
             table.domains.append(sorted(domains))
         return table
 
-    def __iadd__(self, rhs: "ClusterTable") -> "ClusterTable":  # noqa: D105
-        if not isinstance(rhs, FeatureTable):
-            return NotImplemented
-        for col in self.__annotations__:
-            getattr(self, col).extend(getattr(rhs, col))
-        return self
-
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    def __iter__(self) -> Iterator[Row]:  # noqa: D105
-        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
-        for i in range(len(self)):
-            row = { c: getter(self)[i] for c, getter in columns.items() }
-            yield self.Row(**row)
-
-    def __bool__(self) -> bool:  # noqa: D105
-        return len(self) != 0
-
-    @typing.overload
-    def __getitem__(self, item: slice) -> "ClusterTable":  # noqa: D105
-        pass
-
-    @typing.overload
-    def __getitem__(self, item: int) -> Row:  # noqa: D105
-        pass
-
-    def __getitem__(self, item: Union[int, slice]) -> Union["ClusterTable", Row]:  # noqa: D105
-        columns = [getattr(self, col)[item] for col in self.__annotations__]
-        if isinstance(item, slice):
-            return type(self)(*columns)
-        else:
-            return self.Row(*columns)
-
-    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
-        """Write the cluster table in CSV format to the given file.
-
-        Arguments:
-            fh (file-like `object`): A writable file-handle opened in text mode
-                to write the cluster table to.
-            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
-                for allowed values.
-            header (`bool`): Whether or not to include the column header when
-                writing the table (useful for appending to an existing table).
-                Defaults to `True`.
-
-        """
-        writer = csv.writer(fh, dialect=dialect)
-        columns = list(self.__annotations__)
-        row = []
-        if header:
-            writer.writerow(columns)
-        for i in range(len(self)):
-            row.clear()
-            for col in columns:
-                value = getattr(self, col)[i]
-                if col == "type":
-                    types = value.unpack() or [ProductType.Unknown]
-                    value = ";".join(map(operator.attrgetter("name"), types))
-                elif isinstance(value, list):
-                    value = ";".join(map(str, value))
-                row.append(value)
-            writer.writerow(row)
-
-    @classmethod
-    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":
-        """Load a cluster table in CSV format from a file handle in text mode.
-        """
-        table = cls()
-        reader = csv.reader(fh, dialect=dialect)
-        header = next(reader)
-
-        # get the name of each column
-        columns = {i:col for i, col in enumerate(header)}
-
-        # check that if a column is missing, it is one of the optional values
-        missing = set(cls.__annotations__).difference(columns.values())
-        missing_required = missing.difference({
-            "average_p",
-            "max_p",
-            "type",
-            "alkaloid_probability",
-            "polyketide_probability",
-            "ripp_probability",
-            "saccharide_probability",
-            "terpene_probability",
-            "nrp_probability",
-            "proteins",
-            "domains"
-        })
-        if missing_required:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
-
-        # extract elements from the CSV rows
-        for row in reader:
-            for col in missing:
-                if col in ("proteins", "domains"):
-                    getattr(table, col).append(list())
-                elif col in ("average_p", "max_p"):
-                    getattr(table, col).append(1.0)
-                elif col == "type":
-                    table.type.append(ProductType.Unknown)
-                else:
-                    getattr(table, col).append(0.0)
-            for i,value in enumerate(row):
-                col = columns.get(i)
-                if col in ("i_evalue", "pvalue"):
-                    getattr(table, col).append(float(value))
-                elif col in ("start", "end", "domain_start", "domain_end"):
-                    getattr(table, col).append(int(value))
-                elif col == "type":
-                    types = [ProductType.__members__[x] for x in value.split(";")]
-                    table.type.append(ProductType.pack(types))
-                elif col in cls.__annotations__:
-                    if col.endswith(("_p", "_probability")):
-                        getattr(table, col).append(float(value))
-                    else:
-                        getattr(table, col).append(value)
-
-        return table
-
 
 @dataclass(frozen=True)
-class GeneTable(Dumpable, Sized):
+class GeneTable(Table):
     """A table storing gene coordinates and optional biosynthetic probabilities.
     """
 
@@ -940,97 +734,5 @@ class GeneTable(Dumpable, Sized):
             protein = Protein(row.protein_id, seq=_UnknownSeq())
             yield Gene(source, row.start, row.end, strand, protein, _probability=row.average_p)
 
-    def __iadd__(self, rhs: "GeneTable") -> "GeneTable":  # noqa: D105
-        if not isinstance(rhs, FeatureTable):
-            return NotImplemented
-        for col in self.__annotations__:
-            getattr(self, col).extend(getattr(rhs, col))
-        return self
-
-    def __bool__(self) -> bool:  # noqa: D105
-        return len(self) != 0
-
     def __len__(self) -> int:  # noqa: D105
         return len(self.protein_id)
-
-    def __iter__(self) -> Iterator[Row]:  # noqa: D105
-        columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
-        for i in range(len(self)):
-            yield self[i]
-
-    @typing.overload
-    def __getitem__(self, item: slice) -> "GeneTable":  # noqa: D105
-        pass
-
-    @typing.overload
-    def __getitem__(self, item: int) -> Row:  # noqa: D105
-        pass
-
-    def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "Row"]:   # noqa: D105
-        columns = [getattr(self, col)[item] for col in self.__annotations__]
-        if isinstance(item, slice):
-            return type(self)(*columns)
-        else:
-            return self.Row(*columns)
-
-    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:
-        """Write the feature table in CSV format to the given file.
-
-        Arguments:
-            fh (file-like `object`): A writable file-handle opened in text mode
-                to write the feature table to.
-            dialect (`str`): The CSV dialect to use. See `csv.list_dialects`
-                for allowed values.
-            header (`bool`): Whether or not to include the column header when
-                writing the table (useful for appending to an existing table).
-                Defaults to `True`.
-
-        """
-        writer = csv.writer(fh, dialect=dialect)
-        columns = list(self.__annotations__)
-
-        # do not write optional columns if they are completely empty
-        if all(proba is None for proba in self.max_p):
-            columns.remove("max_p")
-        if all(proba is None for proba in self.average_p):
-            columns.remove("average_p")
-
-        if header:
-            writer.writerow(columns)
-        for row in self:
-            writer.writerow([ getattr(row, col) for col in columns ])
-
-    @classmethod
-    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "GeneTable":
-        """Load a feature table in CSV format from a file handle in text mode.
-        """
-        table = cls()
-        reader = csv.reader(fh, dialect=dialect)
-        header = next(reader)
-
-        # get the name of each column
-        columns = {i:col for i, col in enumerate(header)}
-
-        # check that if a column is missing, it is one of the optional values
-        missing = set(cls.__annotations__).difference(columns.values())
-        missing_required = missing.difference({"average_p", "max_p"})
-        if missing_required:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
-
-        # extract elements from the CSV rows
-        for row in reader:
-            for i,value in enumerate(row):
-                col = columns.get(i)
-                if col == "average_p" or col == "max_p":
-                    if value:
-                        getattr(table, col).append(float(value))
-                    else:
-                        getattr(table, col).append(None)
-                elif col == "start" or col == "end":
-                    getattr(table, col).append(int(value))
-                elif col in cls.__annotations__:
-                    getattr(table, col).append(value)
-        for col in missing:
-            getattr(table, col).extend(None for _ in table.protein_id)
-
-        return table
