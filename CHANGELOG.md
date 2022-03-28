@@ -5,10 +5,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha3...master
+
+## [v0.9.1-alpha3] - 2022-03-23
+[v0.9.1-alpha3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha2...v0.9.1-alpha3
+
+### Added
+- `gecco.model.GeneTable` class to store gene coordinates independently of protein domains.
+
+### Changed
+- Refactored implementation of `load` and `dump` methods for `Table` classes into a dedicated base class.
+- `gecco run` and `gecco annotate` now output a gene table in addition to the feature and cluster tables.
+- `gecco train` expects a gene table instead of a GFF file for the gene coordinates.
 
 ## [v0.9.1-alpha2] - 2022-03-23
-[v0.9.1-alpha1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha1...v0.9.1-alpha2
+[v0.9.1-alpha2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha1...v0.9.1-alpha2
 
 ### Fixed
 - `TypeClassifier.trained` not being able to read unknown types from type tables.
