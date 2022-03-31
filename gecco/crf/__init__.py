@@ -167,8 +167,10 @@ class ClusterCRF(object):
             if len(feats) < self.window_size:
                 warnings.warn(
                     f"Contig {sequence[0].source.id!r} does not contain enough"
-                    f" genes for sliding window of size {self.window_size}"
+                    f" genes ({len(sequence)}) for sliding window of size"
+                    f" {self.window_size}"
                 )
+                predicted.extend(sequence)
                 continue
             # predict marginals over a sliding window, storing maximum probabilities
             probabilities = numpy.zeros(len(sequence))
