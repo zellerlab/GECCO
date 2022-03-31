@@ -5,7 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha3...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha4...master
+
+## [v0.9.1-alpha4] - 2022-03-31
+[v0.9.1-alpha4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha3...v0.9.1-alpha4
+
+Retrain internal model with:
+```
+$ python -m gecco -vv train --c1 0.4 --c2 0 --select 0.25 --window-size 20 \
+         -f mibig-2.0.proG2.Pfam-v35.0.features.tsv \
+         -c mibig-2.0.proG2.clusters.tsv \
+         -g GECCO-data/data/embeddings/mibig-2.0.proG2.genes.gff \
+         -o models/v0.9.1-alpha4
+```
 
 ## [v0.9.1-alpha3] - 2022-03-23
 [v0.9.1-alpha3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha2...v0.9.1-alpha3
