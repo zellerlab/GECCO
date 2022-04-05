@@ -86,7 +86,7 @@ class Run(Annotate):  # noqa: D101
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster
                                           detection. Default depends on the
-                                          post-processing method (0.3 for gecco,
+                                          post-processing method (0.8 for gecco,
                                           0.6 for antismash).
             --postproc <method>           the method to use for cluster validation
                                           (antismash or gecco). [default: gecco]
@@ -124,7 +124,7 @@ class Run(Annotate):  # noqa: D101
                 optional=True,
             )
             if self.args["--threshold"] is None:
-                self.threshold = 0.3 if self.args["--postproc"] == "gecco" else 0.6
+                self.threshold = 0.8 if self.args["--postproc"] == "gecco" else 0.6
             else:
                 self.threshold = self._check_flag("--threshold", float, lambda x: 0 <= x <= 1, hint="number between 0 and 1")
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")

@@ -70,7 +70,7 @@ class ClusterRefiner:
 
     def __init__(
         self,
-        threshold: float = 0.3,
+        threshold: float = 0.8,
         criterion: str = "gecco",
         n_cds: int = 5,
         n_biopfams: int = 5,
