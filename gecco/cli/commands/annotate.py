@@ -56,6 +56,9 @@ class Annotate(Command):  # noqa: D101
         Parameters - Output:
             -o <out>, --output-dir <out>  the directory in which to write the
                                           output files. [default: .]
+            --force-tsv                   always write TSV output files even
+                                          when they are empty (e.g. because 
+                                          no genes or no clusters were found).
 
 
         Parameters - Gene Calling:
@@ -99,6 +102,7 @@ class Annotate(Command):  # noqa: D101
             self.hmm = self._check_flag("--hmm", optional=True)
             self.output_dir = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
+            self.force_tsv = self._check_flag("--force-tsv", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -277,6 +281,8 @@ class Annotate(Command):  # noqa: D101
             if genes:
                 self.success("Found", "a total of", len(genes), "genes", level=1)
             else:
+                if self.force_tsv:
+                    self._write_feature_table([])
                 self.warn("No genes were found")
                 return 0
             # annotate domains and write results

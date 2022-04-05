@@ -63,8 +63,10 @@ class Run(Annotate):  # noqa: D101
                                           output files. [default: .]
             --antismash-sideload          write an AntiSMASH v6 sideload JSON
                                           file next to the output files.
-            --force-clusters-tsv          always write a ``clusters.tsv`` file
-                                          even when no clusters were found.
+            --force-tsv                   always write TSV output files even
+                                          when they are empty (e.g. because 
+                                          no genes or no clusters were found).
+                                          
 
         Parameters - Gene Calling:
             -M, --mask                    Enable unknown region masking to
@@ -134,7 +136,7 @@ class Run(Annotate):  # noqa: D101
             self.hmm = self._check_flag("--hmm")
             self.output_dir = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
-            self.force_clusters_tsv = self._check_flag("--force-clusters-tsv", bool)
+            self.force_tsv = self._check_flag("--force-tsv", bool)
             self.mask = self._check_flag("--mask", bool)
         except InvalidArgument:
             raise CommandExit(1)
@@ -310,6 +312,10 @@ class Run(Annotate):  # noqa: D101
             if genes:
                 self.success("Found", "a total of", len(genes), "genes", level=1)
             else:
+                if self.force_tsv:
+                    self._write_genes_table(genes)
+                    self._write_feature_table([])
+                    self._write_cluster_table([])
                 self.warn("No genes were found")
                 return 0
             # use a whitelist for domain annotation, so that we only annotate
@@ -326,7 +332,7 @@ class Run(Annotate):  # noqa: D101
                 self.success("Found", len(clusters), "potential gene clusters", level=1)
             else:
                 self.warn("No gene clusters were found")
-                if self.force_clusters_tsv:
+                if self.force_tsv:
                     self._write_cluster_table(clusters)
                 return 0
             # predict types for putative clusters
