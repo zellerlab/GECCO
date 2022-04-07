@@ -139,7 +139,7 @@ class ClusterCRF(object):
             **kwargs,
         )
 
-    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None) -> List[Gene]:
+    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None, pad: bool = False) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
         """
         # select the feature extraction method
@@ -165,20 +165,29 @@ class ClusterCRF(object):
             feats: List[Dict[str, bool]] = extract_features(sequence)
             # ignore sequences too small with a warning
             if len(feats) < self.window_size:
-                warnings.warn(
-                    f"Contig {sequence[0].source.id!r} does not contain enough"
-                    f" genes ({len(sequence)}) for sliding window of size"
-                    f" {self.window_size}"
-                )
-                predicted.extend(sequence)
-                continue
+                if pad:
+                    warnings.warn(
+                        f"Contig {sequence[0].source.id!r} does not contain enough"
+                        f" genes ({len(sequence)}) for sliding window of size"
+                        f" {self.window_size}, padding with"
+                        f" {self.window_size - len(feats)} domains"
+                    )
+                    feats.extend( {} for _ in range(len(feats), self.window_size) )
+                else:
+                    warnings.warn(
+                        f"Contig {sequence[0].source.id!r} does not contain enough"
+                        f" genes ({len(sequence)}) for sliding window of size"
+                        f" {self.window_size}, consider using `--pad`"
+                    )
+                    predicted.extend(sequence)
+                    continue
             # predict marginals over a sliding window, storing maximum probabilities
-            probabilities = numpy.zeros(len(sequence))
+            probabilities = numpy.zeros(max(len(sequence), self.window_size))
             for win in sliding_window(len(feats), self.window_size, self.window_step):
                 marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
                 numpy.maximum(probabilities[win], marginals, out=probabilities[win])
             # label genes with maximal probabilities
-            predicted.extend(annotate_probabilities(sequence, probabilities))
+            predicted.extend(annotate_probabilities(sequence, probabilities[:len(sequence)]))
 
         # return the genes that were passed as input but now having BGC
         return predicted
