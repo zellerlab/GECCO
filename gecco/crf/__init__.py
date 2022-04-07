@@ -166,11 +166,12 @@ class ClusterCRF(object):
             # ignore sequences too small with a warning
             if len(feats) < self.window_size:
                 if pad:
+                    unit = self.feature_type if self.window_size - len(feats) == 1 else f"{self.feature_type}s"
                     warnings.warn(
                         f"Contig {sequence[0].source.id!r} does not contain enough"
                         f" genes ({len(sequence)}) for sliding window of size"
                         f" {self.window_size}, padding with"
-                        f" {self.window_size - len(feats)} domains"
+                        f" {self.window_size - len(feats)} {unit}"
                     )
                     feats.extend( {} for _ in range(len(feats), self.window_size) )
                 else:
