@@ -82,6 +82,9 @@ class Run(Annotate):  # noqa: D101
                                           to be included. [default: 1e-9]
 
         Parameters - Cluster Detection:
+            -P, --pad                     enable padding of gene sequence
+                                          to predict BGCs in contigs smaller
+                                          than the CRF window length.
             -c <N>, --cds <N>             the minimum number of coding sequences a
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster
@@ -138,6 +141,7 @@ class Run(Annotate):  # noqa: D101
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.mask = self._check_flag("--mask", bool)
+            self.pad = self._check_flag("--pad", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -175,7 +179,8 @@ class Run(Annotate):  # noqa: D101
         task = self.progress.add_task("Predicting marginals", total=len(genes), unit=unit, precision="")
         return list(crf.predict_probabilities(
             self.progress.track(genes, task_id=task, total=len(genes)),
-            cpus=self.jobs
+            cpus=self.jobs,
+            pad=self.pad,
         ))
 
     def _extract_clusters(self, genes):
