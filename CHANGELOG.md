@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.2...master
+
+## [v0.9.2] - 2022-04-11
+[v0.9.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1...v0.9.2
+
+### Added
+- Padding of short sequences with empty genes when predicting probabilities in `ClusterCRF`.
 
 ## [v0.9.1] - 2022-04-05
 [v0.9.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha4...v0.9.1
