@@ -139,7 +139,7 @@ class ClusterCRF(object):
             **kwargs,
         )
 
-    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None, pad: bool = False) -> List[Gene]:
+    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None, pad: bool = True) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
         """
         # select the feature extraction method
@@ -163,22 +163,28 @@ class ClusterCRF(object):
             # extract features
             sequence: List[Gene] = sorted(group, key=operator.attrgetter("start"))
             feats: List[Dict[str, bool]] = extract_features(sequence)
+            delta: int = 0
             # ignore sequences too small with a warning
             if len(feats) < self.window_size:
                 if pad:
                     unit = self.feature_type if self.window_size - len(feats) == 1 else f"{self.feature_type}s"
                     warnings.warn(
                         f"Contig {sequence[0].source.id!r} does not contain enough"
-                        f" genes ({len(sequence)}) for sliding window of size"
-                        f" {self.window_size}, padding with"
+                        f" {self.feature_type}s ({len(sequence)}) for sliding window"
+                        f" of size {self.window_size}, padding with"
                         f" {self.window_size - len(feats)} {unit}"
                     )
-                    feats.extend( {} for _ in range(len(feats), self.window_size) )
+                    # insert on both ends
+                    delta = self.window_size - len(feats)
+                    for _ in range(delta // 2):
+                        feats.insert(0, {})
+                    for _ in range(delta // 2 + delta % 2):
+                        feats.append({})
                 else:
                     warnings.warn(
                         f"Contig {sequence[0].source.id!r} does not contain enough"
-                        f" genes ({len(sequence)}) for sliding window of size"
-                        f" {self.window_size}, consider using `--pad`"
+                        f" {self.feature_type}s ({len(sequence)}) for sliding window"
+                        f" of size {self.window_size}"
                     )
                     predicted.extend(sequence)
                     continue
@@ -188,7 +194,7 @@ class ClusterCRF(object):
                 marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
                 numpy.maximum(probabilities[win], marginals, out=probabilities[win])
             # label genes with maximal probabilities
-            predicted.extend(annotate_probabilities(sequence, probabilities[:len(sequence)]))
+            predicted.extend(annotate_probabilities(sequence, probabilities[delta//2:][:len(sequence)]))
 
         # return the genes that were passed as input but now having BGC
         return predicted
