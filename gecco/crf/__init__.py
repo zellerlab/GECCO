@@ -139,7 +139,7 @@ class ClusterCRF(object):
             **kwargs,
         )
 
-    def predict_probabilities(self, genes: Iterable[Gene], *, cpus: Optional[int] = None, pad: bool = True) -> List[Gene]:
+    def predict_probabilities(self, genes: Iterable[Gene], *, pad: bool = True) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
         """
         # select the feature extraction method

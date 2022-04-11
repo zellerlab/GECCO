@@ -179,7 +179,6 @@ class Run(Annotate):  # noqa: D101
         task = self.progress.add_task("Predicting marginals", total=len(genes), unit=unit, precision="")
         return list(crf.predict_probabilities(
             self.progress.track(genes, task_id=task, total=len(genes)),
-            cpus=self.jobs,
             pad=not self.no_pad,
         ))
 
