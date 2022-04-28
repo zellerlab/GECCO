@@ -154,7 +154,7 @@ class Annotate(Command):  # noqa: D101
         try:
             # guess format or use the one given in CLI
             if self.format is not None:
-                format = self.format
+                format = self.format.lower()
                 self.info("Using", "user-provided sequence format", repr(format), level=2)
             else:
                 self.info("Detecting", "sequence format from file contents", level=2)
