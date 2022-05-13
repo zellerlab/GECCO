@@ -101,16 +101,16 @@ class PyHMMER(DomainAnnotator):
         progress: Optional[Callable[[pyhmmer.plan7.HMM, int], None]] = None
     ) -> List[Gene]:
         # collect genes and build an index of genes by protein id
-        gene_index = collections.OrderedDict([(gene.id, gene) for gene in genes])
+        gene_index = list(genes)
 
         # convert proteins to Easel sequences
         esl_abc = pyhmmer.easel.Alphabet.amino()
         esl_sqs = [
             pyhmmer.easel.TextSequence(
-                name=gene.protein.id.encode(),
+                name=str(i).encode(),
                 sequence=str(gene.protein.seq)
             ).digitize(esl_abc)
-            for gene in genes
+            for i, gene in enumerate(gene_index)
         ]
 
         with contextlib.ExitStack() as ctx:
@@ -141,7 +141,7 @@ class PyHMMER(DomainAnnotator):
 
             # Transcribe HMMER hits to GECCO model
             for hit in itertools.chain.from_iterable(hmms_hits):
-                target_name = hit.name.decode('utf-8')
+                target_index = int(hit.name)
                 for domain in hit.domains:
                     # extract name and get InterPro metadata about hit
                     raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
@@ -171,10 +171,10 @@ class PyHMMER(DomainAnnotator):
                     assert domain.i_evalue >= 0
                     assert domain.pvalue >= 0
                     d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, qualifiers)
-                    gene_index[target_name].protein.domains.append(d)
+                    gene_index[target_index].protein.domains.append(d)
 
         # return the updated list of genes that was given in argument
-        return list(gene_index.values())
+        return gene_index
 
 
 def embedded_hmms() -> Iterator[HMM]:
