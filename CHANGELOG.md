@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.2...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.3...master
+
+
+## [v0.9.3] - 2022-05-13
+[v0.9.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.2...v0.9.3
+
+### Changed
+- `--format` flag of `gecco annotate` and `gecco run` CLI commands is now made lowercase before giving value to `Bio.SeqIO`.
+
+### Fixed
+- Genes with duplicate IDs being silently ignored in `HMMER.run`.
+
 
 ## [v0.9.2] - 2022-04-11
 [v0.9.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1...v0.9.2
