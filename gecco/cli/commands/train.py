@@ -398,7 +398,7 @@ class Train(Command):  # noqa: D101
         with open(os.path.join(self.output_dir, "types.tsv"), "w") as out:
             writer = csv.writer(out, dialect="excel-tab")
             for cluster in clusters:
-                types =  ";".join(ty.name for ty in cluster.type.unpack())
+                types = ";".join(sorted(cluster.type.names))
                 writer.writerow([cluster.id, types])
 
         self.info("Building", "new domain composition matrix")
