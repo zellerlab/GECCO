@@ -302,7 +302,7 @@ class Cluster:
     id: str
     genes: List[Gene]
     type: ProductType
-    type_probabilities: Mapping[ProductType, float]
+    type_probabilities: Mapping[str, float]
 
     def __init__(
         self,
@@ -585,7 +585,7 @@ class FeatureTable(Table):
 
 
 def _format_product_type(value: "ProductType") -> str:
-    return ";".join(sorted(map(value.members)))
+    return ";".join(sorted(value.names))
 
 
 def _parse_product_type(value: str) -> "ProductType":
@@ -605,12 +605,7 @@ class ClusterTable(Table):
     max_p: List[Optional[float]] = field(default_factory = list)        # type: ignore
 
     type: List[ProductType] = field(default_factory = list)
-    alkaloid_probability: List[Optional[float]] = field(default_factory = list)    # type: ignore
-    polyketide_probability: List[Optional[float]] = field(default_factory = list)  # type: ignore
-    ripp_probability: List[Optional[float]] = field(default_factory = list)        # type: ignore
-    saccharide_probability: List[Optional[float]] = field(default_factory = list)  # type: ignore
-    terpene_probability: List[Optional[float]] = field(default_factory = list)     # type: ignore
-    nrp_probability: List[Optional[float]] = field(default_factory = list)         # type: ignore
+    type_p: List[Dict[str, float]] = field(default_factory = list)
 
     proteins: List[Optional[List[str]]] = field(default_factory = list)
     domains: List[Optional[List[str]]] = field(default_factory = list)
@@ -625,13 +620,10 @@ class ClusterTable(Table):
         end: int
         average_p: Optional[float]
         max_p: Optional[float]
+
         type: ProductType
-        alkaloid_probability: Optional[float]
-        polyketide_probability: Optional[float]
-        ripp_probability: Optional[float]
-        saccharide_probability: Optional[float]
-        terpene_probability: Optional[float]
-        nrp_probability: Optional[float]
+        type_p: Dict[ProductType, float]
+
         proteins: Optional[List[str]]
         domains: Optional[List[str]]
 
@@ -652,12 +644,7 @@ class ClusterTable(Table):
             table.max_p.append(cluster.maximum_probability)
 
             table.type.append(cluster.type)
-            table.alkaloid_probability.append(cluster.type_probabilities.get(ProductType.Alkaloid, 0))
-            table.polyketide_probability.append(cluster.type_probabilities.get(ProductType.Polyketide, 0))
-            table.ripp_probability.append(cluster.type_probabilities.get(ProductType.RiPP, 0))
-            table.saccharide_probability.append(cluster.type_probabilities.get(ProductType.Saccharide, 0))
-            table.terpene_probability.append(cluster.type_probabilities.get(ProductType.Terpene, 0))
-            table.nrp_probability.append(cluster.type_probabilities.get(ProductType.NRP, 0))
+            table.type_p.append(cluster.type_probabilities.copy())
 
             table.proteins.append([ gene.protein.id for gene in cluster.genes ])
             domains = {d.name for g in cluster.genes for d in g.protein.domains}
@@ -667,6 +654,40 @@ class ClusterTable(Table):
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
+    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D105
+        writer = csv.writer(fh, dialect=dialect)
+        column_names = list(self.__annotations__)
+        type_p_col = column_names.index("type_p")
+        column_names.pop(type_p_col)
+        optional = self._optional_columns()
+
+        # do not write optional columns if they are completely empty
+        for name in optional:
+            if all(x is None for x in getattr(self, name)):
+                column_names.remove(name)
+
+        # build column formatters
+        columns = [getattr(self, name) for name in column_names]
+        formatters = [self._FORMAT_FIELD[self.Row.__annotations__[name]] for name in column_names]
+
+        # add probability columns if any row countains probabilities
+        if any(d for d in self.type_p):
+            classes = sorted({
+                name
+                for probabilities in self.type_p
+                for name in probabilities.keys()
+            })
+            for name in classes:
+                column_names.insert(type_p_col, f"{name.lower()}_probability")
+                columns.insert(type_p_col, [self.type_p[i][name] for i in range(len(self))])
+                formatters.insert(type_p_col, str)
+
+         # write header if desired
+        if header:
+            writer.writerow(column_names)
+        # write each row
+        for i in range(len(self)):
+            writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
 
 @dataclass(frozen=True)
 class GeneTable(Table):

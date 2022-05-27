@@ -97,7 +97,7 @@ class Convert(Command):  # noqa: D101
         for cluster_file in self.progress.track(cluster_files, task_id=task):
             cluster_fh = ctx.enter_context(open(cluster_file))
             for row in ClusterTable.load(cluster_fh):
-                ty = ";".join(sorted(ty.name for ty in row.type.unpack()))
+                ty = ";".join(sorted(row.type.names))
                 coordinates[row.bgc_id] = (row.start, row.end)
                 types[row.bgc_id] = ty or "Unknown"
 

@@ -204,9 +204,14 @@ class Run(Annotate):  # noqa: D101
 
         return clusters
 
-    def _predict_types(self, clusters):
-        from ...model import ProductType
+    def _load_type_classifier(self):
         from ...types import TypeClassifier
+
+        self.info("Loading", "type classifier from internal model", level=2)
+        return TypeClassifier.trained(self.model)
+
+    def _predict_types(self, clusters, classifier):
+        from ...model import ProductType
 
         self.info("Predicting", "BGC types", level=1)
 
@@ -214,12 +219,11 @@ class Run(Annotate):  # noqa: D101
         task = self.progress.add_task("Predicting types", total=len(clusters), unit=unit, precision="")
 
         clusters_new = []
-        classifier = TypeClassifier.trained(self.model)
         for cluster in self.progress.track(clusters, task_id=task):
             clusters_new.extend(classifier.predict_types([cluster]))
-            if cluster.type != ProductType.Unknown:
-                name = "/".join(f"[bold blue]{ty.name}[/]" for ty in cluster.type.unpack())
-                prob = "/".join(f"[bold purple]{cluster.type_probabilities[ty]:.0%}[/]" for ty in cluster.type.unpack())
+            if cluster.type:
+                name = "/".join(f"[bold blue]{name}[/]" for name in cluster.type.names)
+                prob = "/".join(f"[bold purple]{cluster.type_probabilities[name]:.0%}[/]" for name in cluster.type.names)
                 self.success(f"Predicted type of [bold blue]{cluster.id}[/] as {name} ({prob} confidence)")
             else:
                 ty = max(cluster.type_probabilities, key=cluster.type_probabilities.get)
@@ -273,20 +277,18 @@ class Run(Annotate):  # noqa: D101
         for seq_id, seq_clusters in itertools.groupby(clusters, key=lambda cluster: cluster.source.id):
             data["records"].append({"name": seq_id, "subregions": []})
             for cluster in seq_clusters:
-                ty = ";".join(sorted(ty.name for ty in cluster.type.unpack())) or "Unknown"
+                probabilities = {
+                    f"{key.lower()}_probability":f"{value:.3f}"
+                    for key, value in cluster.type_probabilities.items()
+                }
                 data["records"][-1]["subregions"].append({
                     "start": cluster.start,
                     "end": cluster.end,
-                    "label": ty,
+                    "label": ";".join(sorted(cluster.type.names)) or "Unknown",
                     "details": {
                         "average_p": f"{cluster.average_probability:.3f}",
                         "max_p": f"{cluster.maximum_probability:.3f}",
-                        "alkaloid_probability": f"{cluster.type_probabilities.get(ProductType.Alkaloid, 0.0):.3f}",
-                        "polyketide_probability": f"{cluster.type_probabilities.get(ProductType.Polyketide, 0.0):.3f}",
-                        "ripp_probability": f"{cluster.type_probabilities.get(ProductType.RiPP, 0.0):.3f}",
-                        "saccharide_probability": f"{cluster.type_probabilities.get(ProductType.Saccharide, 0.0):.3f}",
-                        "terpene_probability": f"{cluster.type_probabilities.get(ProductType.Terpene, 0.0):.3f}",
-                        "nrp_probability": f"{cluster.type_probabilities.get(ProductType.NRP, 0.0):.3f}",
+                        **probabilities,
                     }
                 })
         # write the JSON file to the output folder
@@ -340,7 +342,8 @@ class Run(Annotate):  # noqa: D101
                     self._write_cluster_table(clusters)
                 return 0
             # predict types for putative clusters
-            clusters = self._predict_types(clusters)
+            classifier = self._load_type_classifier()
+            clusters = self._predict_types(clusters, classifier)
             # write results
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
             self._write_cluster_table(clusters)
