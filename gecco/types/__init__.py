@@ -106,6 +106,10 @@ class TypeClassifier(object):
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
         self.binarizer = TypeBinarizer(classes)
 
+    @property
+    def classes_(self):
+        return self.binarizer.classes_
+
     _S = typing.TypeVar("_S", bound=Sequence["Cluster"])
 
     def predict_types(self, clusters: "_S") -> "_S":

@@ -49,7 +49,7 @@ class ProductType(object):
         self.names = frozenset(names)
 
     def __repr__(self):
-        return "ProductType({})".format(", ".join(map(repr, sorted(self.members))))
+        return "ProductType({})".format(", ".join(map(repr, sorted(self.names))))
 
     def __hash__(self):
         return hash(self.names)
@@ -58,6 +58,9 @@ class ProductType(object):
         if not isinstance(other, ProductType):
             return NotImplemented
         return self.names == other.names
+
+    def __bool__(self):
+        return len(self.names) != 0
 
     def unpack(self) -> List["ProductType"]:
         """Unpack a composite `ProductType` into a list of individual types.
@@ -68,7 +71,7 @@ class ProductType(object):
             [ProductType("Polyketide"), ProductType("Saccharide")]
 
         """
-        return [ ProductType(x) for x in sorted(self.members) ]
+        return [ ProductType(x) for x in sorted(self.names) ]
 
 
 class Strand(enum.IntEnum):
@@ -443,17 +446,16 @@ class Cluster:
         bgc.annotations.setdefault("references", []).append(ref)
 
         # add GECCO-specific annotations as a structured comment
+        probabilities = {
+            f"{key.lower()}_probability":f"{value:.3f}"
+            for key, value in self.type_probabilities.items()
+        }
         structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
             "creation_date": now.isoformat(),
-            "biosyn_class": ";".join(sorted(ty.name for ty in self.type.unpack())) or "Unknown",
-            "alkaloid_probability": self.type_probabilities.get(ProductType.Alkaloid, 0.0),
-            "polyketide_probability": self.type_probabilities.get(ProductType.Polyketide, 0.0),
-            "ripp_probability": self.type_probabilities.get(ProductType.RiPP, 0.0),
-            "saccharide_probability": self.type_probabilities.get(ProductType.Saccharide, 0.0),
-            "terpene_probability": self.type_probabilities.get(ProductType.Terpene, 0.0),
-            "nrp_probability": self.type_probabilities.get(ProductType.NRP, 0.0),
+            "biosyn_class": ";".join(sorted(self.type.names)) or "Unknown",
+            **probabilities,
         }
 
         # add proteins as CDS features
