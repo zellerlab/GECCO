@@ -57,7 +57,7 @@ class Annotate(Command):  # noqa: D101
             -o <out>, --output-dir <out>  the directory in which to write the
                                           output files. [default: .]
             --force-tsv                   always write TSV output files even
-                                          when they are empty (e.g. because 
+                                          when they are empty (e.g. because
                                           no genes or no clusters were found).
 
 

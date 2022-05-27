@@ -343,7 +343,8 @@ class Run(Annotate):  # noqa: D101
                 return 0
             # predict types for putative clusters
             classifier = self._load_type_classifier()
-            clusters = self._predict_types(clusters, classifier)
+            if len(classifier.classes_) > 1:
+                clusters = self._predict_types(clusters, classifier)
             # write results
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
             self._write_cluster_table(clusters)
