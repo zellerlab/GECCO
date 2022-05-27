@@ -41,40 +41,34 @@ __all__ = [
 
 
 # fmt: off
-class ProductType(enum.IntFlag):
-    """A flag to declare the type of product synthesized by a gene cluster.
+class ProductType(object):
+    """An immutable storage of type for the product synthesized by a cluster.
     """
 
-    Unknown    = 0b00000000
-    Alkaloid   = 0b00000010
-    Polyketide = 0b00000100
-    RiPP       = 0b00001000
-    Saccharide = 0b00010000
-    Terpene    = 0b00100000
-    NRP        = 0b01000000
+    def __init__(self, *names: List[str]):
+        self.names = frozenset(names)
 
-    @classmethod
-    def pack(cls, members: Iterable["ProductType"]) -> "ProductType":
-        """Pack together a list of individual product types.
+    def __repr__(self):
+        return "ProductType({})".format(", ".join(map(repr, sorted(self.members))))
 
-        Example:
-            >>> types = [ProductType.Polyketide, ProductType.Saccharide]
-            >>> ProductType.pack(types)
-            <ProductType.Saccharide|Polyketide: 20>
+    def __hash__(self):
+        return hash(self.names)
 
-        """
-        return functools.reduce(operator.or_, members, cls.Unknown)
+    def __eq__(self, other: "ProductType"):
+        if not isinstance(other, ProductType):
+            return NotImplemented
+        return self.names == other.names
 
     def unpack(self) -> List["ProductType"]:
         """Unpack a composite `ProductType` into a list of individual types.
 
         Example:
-            >>> ty = ProductType.Polyketide | ProductType.Saccharide
+            >>> ty = ProductType("Polyketide", "Saccharide")
             >>> ty.unpack()
-            [<ProductType.Polyketide: 4>, <ProductType.Saccharide: 16>]
+            [ProductType("Polyketide"), ProductType("Saccharide")]
 
         """
-        return [ x for x in ProductType.__members__.values() if (x & self) ]
+        return [ ProductType(x) for x in sorted(self.members) ]
 
 
 class Strand(enum.IntEnum):
@@ -311,18 +305,13 @@ class Cluster:
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
-        type: ProductType = ProductType.Unknown,
+        type: ProductType = ProductType(),
         type_probabilities: Optional[Dict[ProductType, float]] = None,
     ):  # noqa: D107
         self.id = id
         self.genes = genes or list()
         self.type = type
         self.type_probabilities = type_probabilities or dict()
-
-        # if len(self.types) != len(self.types_probabilities):
-        #     err = "type and type probability lists must have the same dimensions"
-        #     raise ValueError(err)
-
 
     @property
     def source(self) -> SeqRecord:  # type: ignore
