@@ -45,7 +45,7 @@ class TestConvert(TestCommand, unittest.TestCase):
 
         # create a cluster containing the whole sequence and write it down as
         # a GenBank file to the mock "output" folder
-        cluster = Cluster("BGC0001866.1_cluster_1", genes, type=ProductType.Polyketide)
+        cluster = Cluster("BGC0001866.1_cluster_1", genes, type=ProductType("Polyketide"))
         record = cluster.to_seq_record()
         with open(os.path.join(self.tmpdir, "{}.gbk".format(cluster.id)), "w") as f:
             Bio.SeqIO.write(record, f, "genbank")

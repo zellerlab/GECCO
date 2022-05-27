@@ -24,7 +24,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Refere
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
-from ._base import Dumpable, Table
+from ._base import Dumpable, Table, _SELF
 from ._meta import patch_locale
 
 
@@ -68,7 +68,7 @@ class ProductType(object):
         Example:
             >>> ty = ProductType("Polyketide", "Saccharide")
             >>> ty.unpack()
-            [ProductType("Polyketide"), ProductType("Saccharide")]
+            [ProductType('Polyketide'), ProductType('Saccharide')]
 
         """
         return [ ProductType(x) for x in sorted(self.names) ]
@@ -589,7 +589,7 @@ def _format_product_type(value: "ProductType") -> str:
 
 
 def _parse_product_type(value: str) -> "ProductType":
-    return ProductType(*map(str.strip, value.split(";")))
+    return ProductType(*map(str.strip, value.split(";"))) if value.strip() else ProductType()
 
 
 @dataclass(frozen=True)
@@ -681,6 +681,7 @@ class ClusterTable(Table):
                 column_names.insert(type_p_col, f"{name.lower()}_probability")
                 columns.insert(type_p_col, [self.type_p[i][name] for i in range(len(self))])
                 formatters.insert(type_p_col, str)
+                type_p_col += 1
 
          # write header if desired
         if header:
@@ -688,6 +689,45 @@ class ClusterTable(Table):
         # write each row
         for i in range(len(self)):
             writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
+
+    @classmethod
+    def load(cls: typing.Type[_SELF], fh: TextIO, dialect: str = "excel-tab") -> _SELF:
+        """Load a table in CSV format from a file handle in text mode.
+        """
+        table = cls()
+        reader = csv.reader(fh, dialect=dialect)
+        header = next(reader)
+
+        # check that if a column is missing, it is one of the optional values
+        optional = cls._optional_columns()
+        missing = set(cls.__annotations__).difference({"type_p"}).difference(header)
+        missing_required = missing.difference(optional)
+        if missing_required:
+            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
+
+        # get the name of each column and check which columns are optional
+        columns = [getattr(table, col, None) for col in header]
+        parsers = [
+            cls._PARSE_FIELD[table.Row.__annotations__[col]]
+            if col in table.Row.__annotations__
+            else None
+            for col in header
+        ]
+
+        # extract elements from the CSV rows
+        for row in reader:
+            probabilities = {}
+            for name, col, value, parser in zip(header, columns, row, parsers):
+                if parser is not None:
+                    col.append(parser(value))
+                elif name.endswith("_probability"):
+                    probabilities[name[:-12]] = float(value)
+            table.type_p.append(probabilities)
+
+        for col in missing:
+            getattr(table, col).extend(None for _ in range(len(table)))
+        return table
+
 
 @dataclass(frozen=True)
 class GeneTable(Table):
