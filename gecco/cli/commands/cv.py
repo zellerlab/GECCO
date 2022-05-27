@@ -151,16 +151,19 @@ class Cv(Train):  # noqa: D101
     @staticmethod
     def _get_test_data(test_indices, seqs):
         # make a clean copy of the test data without gene probabilities
-        test_data = [copy.deepcopy(gene) for i in test_indices for gene in seqs[i]]
-        for gene in test_data:
-            gene.protein.domains = [d.with_probability(None) for d in gene.protein.domains]
-        return test_data
+        return [
+            gene.with_protein(gene.protein.with_domains(
+                d.with_probability(None) for d in gene.protein.domains
+            ))
+            for i in test_indices
+            for gene in seqs[i]
+        ]
 
     def _fit_predict(self, train_data, test_data):
         from ...crf import ClusterCRF
 
         crf = self._fit_model(train_data)
-        return crf.predict_probabilities(test_data, cpus=self.jobs)
+        return crf.predict_probabilities(test_data)
 
     def _write_fold(self, fold, genes, append=False):
         from ...model import FeatureTable
@@ -180,9 +183,9 @@ class Cv(Train):  # noqa: D101
             # seed RNG
             self._seed_rng()
             # load features
+            genes = list(self._load_genes())
             features = self._load_features()
-            genes = self._convert_to_genes(features)
-            del features
+            genes = self._annotate_genes(genes, features)
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
