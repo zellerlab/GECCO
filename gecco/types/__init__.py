@@ -28,22 +28,22 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
     """A `MultiLabelBinarizer` working with `ProductType` instances.
     """
 
-    def __init__(self):
-        self.classes_ = sorted(x for x in ProductType.__members__.values() if x)
-        super().__init__(classes=self.classes_)
+    def __init__(self, classes, **kwargs: object):
+        self.classes_ = classes
+        super().__init__(classes=classes, **kwargs)
 
     def transform(self, y: Iterable[ProductType]) -> Iterable[Iterable[int]]:
         matrix = numpy.zeros((len(y), len(self.classes_)))
         for i, label in enumerate(y):
             for j, cls in enumerate(self.classes_):
-                matrix[i, j] = bool(label & cls)
+                matrix[i, j] = cls in label.names
         return matrix
 
     def inverse_transform(self, yt: Iterable[Iterable[int]]) -> Iterable[ProductType]:
         classes = []
         for y in yt:
-            filtered = [cls for i, cls in enumerate(self.classes_) if y[i]]
-            classes.append(ProductType.pack(filtered))
+            filtered = (cls for i, cls in enumerate(self.classes_) if y[i])
+            classes.append(ProductType(*filtered))
         return classes
 
 
@@ -81,25 +81,21 @@ class TypeClassifier(object):
             domains = [ line.strip() for line in doms_src ]
         with typs_file as typs_src:
             types = []
+            unique_types = set()
             for line in typs_src:
                 unpacked = set()
-                for ty in line.split("\t")[1].strip().split(";"):
-                    if ty in ProductType.__members__:
-                        unpacked.add(ProductType.__members__[ty])
-                    elif not ty:
-                        unpacked.add(ProductType.Unknown)
-                    else:
-                        warnings.warn(f"Unknown type in types table: {ty!r}")
-                        unpacked.add(ProductType.Unknown)
-                types.append(ProductType.pack(unpacked))
+                for ty in filter(None, line.split("\t")[1].strip().split(";")):
+                    unpacked.add(ty)
+                    unique_types.add(ty)
+                types.append(ProductType(*unpacked))
 
-        classifier = cls(random_state=0)
+        classifier = cls(classes=sorted(unique_types), random_state=0)
         types_bin = classifier.binarizer.transform(types)
         classifier.model.fit(compositions, y=types_bin)
         classifier.model.attributes_ = domains
         return classifier
 
-    def __init__(self, **kwargs: object) -> None:
+    def __init__(self, classes=(), **kwargs: object) -> None:
         """Instantiate a new type classifier.
 
         Keyword Arguments:
@@ -108,7 +104,7 @@ class TypeClassifier(object):
 
         """
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
-        self.binarizer = TypeBinarizer()
+        self.binarizer = TypeBinarizer(classes)
 
     _S = typing.TypeVar("_S", bound=Sequence["Cluster"])
 

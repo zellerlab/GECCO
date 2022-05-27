@@ -583,13 +583,11 @@ class FeatureTable(Table):
 
 
 def _format_product_type(value: "ProductType") -> str:
-    types = value.unpack() or [ProductType.Unknown]
-    return ";".join(sorted(map(operator.attrgetter("name"), types)))
+    return ";".join(sorted(map(value.members)))
 
 
 def _parse_product_type(value: str) -> "ProductType":
-    types = [ProductType.__members__[x] for x in value.split(";")]
-    return ProductType.pack(types)
+    return ProductType(*map(str.strip, value.split(";")))
 
 
 @dataclass(frozen=True)
