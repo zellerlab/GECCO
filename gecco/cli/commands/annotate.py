@@ -65,6 +65,13 @@ class Annotate(Command):  # noqa: D101
             -M, --mask                    Enable unknown region masking to
                                           prevent genes from stretching across
                                           unknown nucleotides.
+            --cds-feature <cds_feature>   Extract genes from annotated records
+                                          using a feature rather than calling
+                                          genes from scratch.
+            --locus-tag <locus_tag>       The name of the feature qualifier
+                                          to use for naming extracted genes
+                                          when using the ``--cds-feature``
+                                          flag. [default: locus_tag]
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -103,6 +110,8 @@ class Annotate(Command):  # noqa: D101
             self.output_dir = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
+            self.cds_feature = self._check_flag("--cds-feature", optional=True)
+            self.locus_tag = self._check_flag("--locus-tag")
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -179,10 +188,15 @@ class Annotate(Command):  # noqa: D101
             return sequences
 
     def _extract_genes(self, sequences):
-        from ...orf import PyrodigalFinder
+        from ...orf import PyrodigalFinder, CDSFinder
 
         self.info("Extracting", "genes from input sequences", level=1)
-        orf_finder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
+        if self.cds_feature is None:
+            self.info("Using", "Pyrodigal in metagenomic mode", level=2)
+            orf_finder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
+        else:
+            self.info("Using", f"record features named {self.cds_feature!r}", level=2)
+            orf_finder = CDSFinder(feature=self.cds_feature, locus_tag=self.locus_tag)
 
         unit = "contigs" if len(sequences) > 1 else "contig"
         task = self.progress.add_task(description="Finding ORFs", total=len(sequences), unit=unit, precision="")

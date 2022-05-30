@@ -71,9 +71,13 @@ class Run(Annotate):  # noqa: D101
             -M, --mask                    Enable unknown region masking to
                                           prevent genes from stretching across
                                           unknown nucleotides.
-            --orf-feature <orf_feature>   Extract genes from annotated records
+            --cds-feature <cds_feature>   Extract genes from annotated records
                                           using a feature rather than calling
                                           genes from scratch.
+            --locus-tag <locus_tag>       The name of the feature qualifier
+                                          to use for naming extracted genes
+                                          when using the ``--cds-feature``
+                                          flag. [default: locus_tag]
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -143,7 +147,8 @@ class Run(Annotate):  # noqa: D101
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.mask = self._check_flag("--mask", bool)
-            self.orf_feature = self._check_flag("--orf-feature", optional=True)
+            self.orf_feature = self._check_flag("--cds-feature", optional=True)
+            self.locus_tag = self._check_flag("--locus-tag")
             self.no_pad = self._check_flag("--no-pad", bool)
         except InvalidArgument:
             raise CommandExit(1)
