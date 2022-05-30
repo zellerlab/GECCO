@@ -10,7 +10,7 @@ import tempfile
 import typing
 import multiprocessing.pool
 from multiprocessing.sharedctypes import Value
-from typing import Callable, Iterable, Iterator, List, Optional
+from typing import Callable, Iterable, Iterator, List, Optional, Tuple
 
 import Bio.SeqIO
 import pyrodigal
@@ -133,10 +133,58 @@ class PyrodigalFinder(ORFFinder):
                         source=record,
                         start=min(orf.begin, orf.end),
                         end=max(orf.begin, orf.end),
-                        strand=Strand.Coding if orf.strand == 1 else Strand.Reverse,
+                        strand=Strand(orf.strand),
                         protein=protein,
                         qualifiers={
                             "inference": ["ab initio prediction:Prodigal:2.6"],
                             "transl_table": str(orf.translation_table),
                         }
                     )
+
+
+class CDSFinder(ORFFinder):
+    """An `ORFFinder` that simply extracts CDS annotations from records.
+    """
+
+    def __init__(
+        self,
+        feature: str = "CDS",
+        translation_table: int = 11,
+    ):
+        self.feature = feature
+        self.translation_table = translation_table
+
+    def find_genes(
+        self,
+        records: Iterable[SeqRecord],
+        progress: Optional[Callable[[SeqRecord, int], None]] = None,
+    ) -> Iterator[Gene]:
+        """Find all genes contained in a sequence of DNA records.
+        """
+        ids = set()
+        for record in records:
+            features = filter(lambda feat: feat.type == self.feature, record.features)
+            for i, feature in enumerate(features):
+                # get the gene translation
+                tt = feature.qualifiers.get("transl_table", [self.translation_table])[0]
+                if "translation" in feature.qualifiers:
+                    prot_seq = Seq(feature.qualifiers["translation"][0])
+                else:
+                    prot_seq = feature.location.extract(record.seq).translate(table=tt)
+                # get the gene name
+                if "locus_tag" in feature.qualifiers:
+                    protein = Protein(id=feature.qualifiers["locus_tag"][0], seq=prot_seq)
+                else:
+                    protein = Protein(id=f"{record.id}_{i+1}", seq=prot_seq)
+                # check IDs are unique
+                if protein.id in ids:
+                    raise ValueError(f"Duplicate gene identifier found in {record.id!r}: {protein.id!r}")
+                ids.add(protein.id)
+                # wrap the gene into a Gene
+                yield Gene(
+                    source=record,
+                    start=min(feature.location.start, feature.location.end),
+                    end=max(feature.location.start, feature.location.end),
+                    strand=Strand(feature.location.strand),
+                    protein=protein,
+                )
