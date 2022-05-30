@@ -162,7 +162,10 @@ class CDSFinder(ORFFinder):
         """Find all genes contained in a sequence of DNA records.
         """
         ids = set()
+        _progress = (lambda x,y: None) if progress is None else progress
+
         for record in records:
+            genes_found = 0
             features = filter(lambda feat: feat.type == self.feature, record.features)
             for i, feature in enumerate(features):
                 # get the gene translation
@@ -188,3 +191,5 @@ class CDSFinder(ORFFinder):
                     strand=Strand(feature.location.strand),
                     protein=protein,
                 )
+                genes_found += 1
+            _progress(record, genes_found)
