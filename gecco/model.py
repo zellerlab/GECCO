@@ -552,7 +552,7 @@ class FeatureTable(Table):
         def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "FeatureTable.Row"]:   # noqa: D105
             return super().__getitem__(item)  # type: ignore
 
-        def __iter__(self) -> Iterator["FeatureTable.Row"]:  # type: ignore
+        def __iter__(self) -> Iterator["FeatureTable.Row"]:  # type: ignore  # noqa: D105
             return super().__iter__()  # type: ignore
 
     @classmethod
@@ -690,7 +690,7 @@ class ClusterTable(Table):
         def __getitem__(self, item: Union[slice, int]) -> Union["ClusterTable", "ClusterTable.Row"]:   # noqa: D105
             return super().__getitem__(item)  # type: ignore
 
-        def __iter__(self) -> Iterator["ClusterTable.Row"]:  # type: ignore
+        def __iter__(self) -> Iterator["ClusterTable.Row"]:  # type: ignore  # noqa: D105
             return super().__iter__()  # type: ignore
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D102
@@ -804,7 +804,7 @@ class GeneTable(Table):
         def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "GeneTable.Row"]:   # noqa: D105
             return super().__getitem__(item)  # type: ignore
 
-        def __iter__(self) -> Iterator["GeneTable.Row"]:  # type: ignore
+        def __iter__(self) -> Iterator["GeneTable.Row"]:  # type: ignore  # noqa: D105
             return super().__iter__()  # type: ignore
 
     @classmethod
