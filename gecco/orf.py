@@ -150,9 +150,11 @@ class CDSFinder(ORFFinder):
         self,
         feature: str = "CDS",
         translation_table: int = 11,
+        locus_tag: str = "locus_tag",
     ):
         self.feature = feature
         self.translation_table = translation_table
+        self.locus_tag = locus_tag
 
     def find_genes(
         self,
@@ -175,8 +177,8 @@ class CDSFinder(ORFFinder):
                 else:
                     prot_seq = feature.location.extract(record.seq).translate(table=tt)
                 # get the gene name
-                if "locus_tag" in feature.qualifiers:
-                    protein = Protein(id=feature.qualifiers["locus_tag"][0], seq=prot_seq)
+                if self.locus_tag in feature.qualifiers:
+                    protein = Protein(id=feature.qualifiers[self.locus_tag][0], seq=prot_seq)
                 else:
                     protein = Protein(id=f"{record.id}_{i+1}", seq=prot_seq)
                 # check IDs are unique
