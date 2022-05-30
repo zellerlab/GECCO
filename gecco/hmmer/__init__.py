@@ -42,6 +42,7 @@ class HMM(typing.NamedTuple):
     url: str
     path: str
     size: int
+    exclusive: bool = False
     relabel_with: Optional[str] = None
     md5: Optional[str] = None
 
@@ -100,10 +101,12 @@ class PyHMMER(DomainAnnotator):
         genes: Iterable[Gene],
         progress: Optional[Callable[[pyhmmer.plan7.HMM, int], None]] = None
     ) -> List[Gene]:
-        # collect genes and build an index of genes by protein id
+        # collect genes and keep them in original order
         gene_index = list(genes)
 
-        # convert proteins to Easel sequences
+        # convert proteins to Easel sequences, namind them after
+        # their location in the original input to ignore any duplicate
+        # protein identifiers
         esl_abc = pyhmmer.easel.Alphabet.amino()
         esl_sqs = [
             pyhmmer.easel.TextSequence(
@@ -172,6 +175,24 @@ class PyHMMER(DomainAnnotator):
                     assert domain.pvalue >= 0
                     d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, qualifiers)
                     gene_index[target_index].protein.domains.append(d)
+
+        # deduplicate hits per gene for exclusive HMMs
+        if self.hmm.exclusive:
+            for i, gene in enumerate(gene_index):
+                # extract domains specific to this HMM
+                hmm_domains = [
+                    domain for domain in gene.protein.domains
+                    if domain.hmm == self.hmm.id
+                ]
+                # if more than one domain was found, keep the one with lowest p-value
+                # (but make sure to keep any domain found by other HMMs, if any)
+                if len(hmm_domains) > 1:
+                    best_domain = min(hmm_domains, key=lambda domain: domain.pvalue)
+                    gene_index[i] = gene.with_protein(gene.protein.with_domains([
+                        domain for domain in gene.protein.domains
+                        if domain.hmm != self.hmm.id
+                        or domain.name is best_domain.name
+                    ]))
 
         # return the updated list of genes that was given in argument
         return gene_index
