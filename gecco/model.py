@@ -46,20 +46,28 @@ class ProductType(object):
     """
 
     def __init__(self, *names: List[str]):
+        """Create a new product type from one or more base types.
+
+        Example:
+            >>> t1 = ProductType()                    # unknown type
+            >>> t2 = ProductType("Polyketide")        # single type
+            >>> t3 = ProductType("Polyketide", "NRP") # multiple types
+
+        """
         self.names = frozenset(names)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return "ProductType({})".format(", ".join(map(repr, sorted(self.names))))
 
-    def __hash__(self):
+    def __hash__(self):  # noqa: D105
         return hash(self.names)
 
-    def __eq__(self, other: "ProductType"):
+    def __eq__(self, other: object):  # noqa: D105
         if not isinstance(other, ProductType):
             return NotImplemented
         return self.names == other.names
 
-    def __bool__(self):
+    def __bool__(self):  # noqa: D105
         return len(self.names) != 0
 
     def unpack(self) -> List["ProductType"]:
@@ -654,7 +662,7 @@ class ClusterTable(Table):
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D105
+    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D102
         writer = csv.writer(fh, dialect=dialect)
         column_names = list(self.__annotations__)
         type_p_col = column_names.index("type_p")
@@ -691,9 +699,7 @@ class ClusterTable(Table):
             writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
 
     @classmethod
-    def load(cls: typing.Type[_SELF], fh: TextIO, dialect: str = "excel-tab") -> _SELF:
-        """Load a table in CSV format from a file handle in text mode.
-        """
+    def load(cls: typing.Type[_SELF], fh: TextIO, dialect: str = "excel-tab") -> _SELF:  # noqa: D102
         table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)
