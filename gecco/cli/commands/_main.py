@@ -7,7 +7,7 @@ import sys
 import textwrap
 import typing
 import warnings
-from typing import Mapping, Optional, Type
+from typing import Mapping, Optional, Type, List
 
 import docopt
 import operator
@@ -21,29 +21,29 @@ from ._base import Command, CommandExit, InvalidArgument
 try:
     import importlib.metadata as importlib_metadata
 except ImportError:
-    import importlib_metadata
+    import importlib_metadata  # type: ignore
 
 
 class Main(Command):
     """The *main* command launched before processing subcommands.
     """
 
-    _entry_points_cache = None
+    _entry_points_cache: Optional[List["importlib_metadata.EntryPoint"]] = None
 
-    @classproperty
-    def _entry_points(cls):
+    @classmethod
+    def _entry_points(cls) -> List["importlib_metadata.EntryPoint"]:
         if cls._entry_points_cache is None:
-            cls._entry_points_cache = importlib_metadata.entry_points().get(__parent__, [])
+            cls._entry_points_cache = list(importlib_metadata.entry_points().get(__parent__, []))
         return cls._entry_points_cache
 
     @classmethod
-    def _get_subcommand_names(cls) -> Mapping[str, Type[Command]]:
-        return [cmd.name for cmd in cls._entry_points]
+    def _get_subcommand_names(cls) -> List[str]:
+        return [cmd.name for cmd in cls._entry_points()]
 
     @classmethod
     def _get_subcommands(cls) -> Mapping[str, Type[Command]]:
         commands = {}
-        for cmd in cls._entry_points:
+        for cmd in cls._entry_points():
             try:
                 commands[cmd.name] = cmd.load()
             except Exception:
@@ -52,15 +52,15 @@ class Main(Command):
 
     @classmethod
     def _get_subcommand_by_name(cls, name: str) -> Optional[Type[Command]]:
-        for cmd in cls._entry_points:
+        for cmd in cls._entry_points():
             if cmd.name == name:
-                return cmd.load()
+                return cmd.load()  # type: ignore
         return None
 
     # --
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         if fast:
             commands = (f"    {cmd}" for cmd in cls._get_subcommand_names())
         else:
@@ -108,7 +108,7 @@ class Main(Command):
         try:
             # check arguments and enter context
             self._check()
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings)) # type: ignore
 
             # Get the subcommand class
             subcmd_name = self.args["<cmd>"]

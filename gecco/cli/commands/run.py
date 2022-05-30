@@ -28,7 +28,11 @@ from ...model import ProductType
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
+
+if typing.TYPE_CHECKING:
+    from ...types import TypeClassifier
+    from ...model import Cluster, Gene
 
 
 class Run(Annotate):  # noqa: D101
@@ -36,7 +40,7 @@ class Run(Annotate):  # noqa: D101
     summary = "predict BGC from one or several contigs."
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco run - {cls.summary}
 
@@ -116,7 +120,7 @@ class Run(Annotate):  # noqa: D101
                                           HMM file to use (in HMMER format).
         """
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> None:
         Command._check(self)
         try:
             self.cds = self._check_flag("--cds", int, lambda x: x > 0, hint="positive integer")
@@ -143,7 +147,7 @@ class Run(Annotate):  # noqa: D101
             self.edge_distance = self._check_flag("--edge-distance", int, lambda x: x >= 0, hint="positive or null integer")
             self.format = self._check_flag("--format", optional=True)
             self.genome = self._check_flag("--genome")
-            self.model = self._check_flag("--model", optional=True)
+            self.model: Optional[str] = self._check_flag("--model", optional=True)
             self.hmm = self._check_flag("--hmm")
             self.hmm_x = self._check_flag("--hmm-x")
             self.output_dir = self._check_flag("--output-dir")
@@ -171,12 +175,12 @@ class Run(Annotate):  # noqa: D101
         except FileNotFoundError as err:
             if self.model is not None:
                 self.error("Could not find domains list :", repr(self.model))
-            raise CommandExit(e.errno) from err
+            raise CommandExit(err.errno) from err
         else:
             self.success("Found", len(domains), "selected features", level=2)
             return domains
 
-    def _predict_probabilities(self, genes):
+    def _predict_probabilities(self, genes: List["Gene"]) -> List["Gene"]:
         from ...crf import ClusterCRF
 
         if self.model is None:
@@ -193,7 +197,7 @@ class Run(Annotate):  # noqa: D101
             pad=not self.no_pad,
         ))
 
-    def _extract_clusters(self, genes):
+    def _extract_clusters(self, genes: List["Gene"]) -> List["Cluster"]:
         from ...refine import ClusterRefiner
 
         self.info("Extracting", "predicted biosynthetic regions", level=1)
@@ -208,20 +212,20 @@ class Run(Annotate):  # noqa: D101
         unit = "contigs" if total > 1 else "contig"
         task = self.progress.add_task("Extracting clusters", total=total, unit=unit, precision="")
 
-        clusters = []
-        gene_groups = itertools.groupby(genes, lambda g: g.source.id)
+        clusters: List["Cluster"] = []
+        gene_groups = itertools.groupby(genes, lambda g: g.source.id)  # type: ignore
         for _, gene_group in self.progress.track(gene_groups, task_id=task, total=total):
-            clusters.extend(refiner.iter_clusters(gene_group))
+            clusters.extend(refiner.iter_clusters(list(gene_group)))
 
         return clusters
 
-    def _load_type_classifier(self):
+    def _load_type_classifier(self) -> "TypeClassifier":
         from ...types import TypeClassifier
 
         self.info("Loading", "type classifier from internal model", level=2)
         return TypeClassifier.trained(self.model)
 
-    def _predict_types(self, clusters, classifier):
+    def _predict_types(self, clusters: List["Cluster"], classifier: "TypeClassifier") -> List["Cluster"]:
         from ...model import ProductType
 
         self.info("Predicting", "BGC types", level=1)
@@ -237,14 +241,14 @@ class Run(Annotate):  # noqa: D101
                 prob = "/".join(f"[bold purple]{cluster.type_probabilities[name]:.0%}[/]" for name in cluster.type.names)
                 self.success(f"Predicted type of [bold blue]{cluster.id}[/] as {name} ({prob} confidence)")
             else:
-                ty = max(cluster.type_probabilities, key=cluster.type_probabilities.get)
+                ty = max(cluster.type_probabilities, key=cluster.type_probabilities.get)   # type: ignore
                 prob = f"[bold purple]{cluster.type_probabilities[ty]:.0%}[/]"
-                name = f"[bold blue]{ty.name}[/]"
+                name = f"[bold blue]{ty}[/]"
                 self.warn(f"Couldn't assign type to [bold blue]{cluster.id}[/] (maybe {name}, {prob} confidence)")
 
         return clusters_new
 
-    def _write_cluster_table(self, clusters):
+    def _write_cluster_table(self, clusters: List["Cluster"]) -> None:
         from ...model import ClusterTable
 
         base, _ = os.path.splitext(os.path.basename(self.genome))
@@ -253,7 +257,7 @@ class Run(Annotate):  # noqa: D101
         with open(cluster_out, "w") as out:
             ClusterTable.from_clusters(clusters).dump(out)
 
-    def _write_clusters(self, clusters):
+    def _write_clusters(self, clusters: List["Cluster"]) -> None:
         from Bio import SeqIO
 
         for cluster in clusters:
@@ -261,9 +265,9 @@ class Run(Annotate):  # noqa: D101
             self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
             SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
-    def _write_sideload_json(self, clusters):
+    def _write_sideload_json(self, clusters: List["Cluster"]) -> None:
         # record version and important parameters
-        data = {
+        data: Dict[str, Any] = {
             "records": [],
             "tool": {
                 "name": "GECCO",
@@ -285,7 +289,7 @@ class Run(Annotate):  # noqa: D101
         if self.model:
             data["tool"]["configuration"]["model"] = self.model
         # create a record per sequence
-        for seq_id, seq_clusters in itertools.groupby(clusters, key=lambda cluster: cluster.source.id):
+        for seq_id, seq_clusters in itertools.groupby(clusters, key=operator.attrgetter("source.id")):
             data["records"].append({"name": seq_id, "subregions": []})
             for cluster in seq_clusters:
                 probabilities = {
@@ -316,7 +320,7 @@ class Run(Annotate):  # noqa: D101
             # check the CLI arguments were fine and enter context
             self._check()
             ctx.enter_context(self.progress)
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # attempt to create the output directory, checking it doesn't
             # already contain output files (or raise a warning)
             extensions = ["features.tsv", "genes.tsv", "clusters.tsv"]

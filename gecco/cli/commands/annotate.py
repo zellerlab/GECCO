@@ -15,7 +15,7 @@ import pickle
 import tempfile
 import typing
 import signal
-from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
+from typing import Any, BinaryIO, Container, Dict, Iterable, Union, Optional, List, TextIO, Mapping
 
 from ._base import Command, CommandExit, InvalidArgument
 from .._utils import (
@@ -25,13 +25,19 @@ from .._utils import (
     ProgressReader,
 )
 
+if typing.TYPE_CHECKING:
+    from Bio.SeqRecord import SeqRecord
+    from ...hmmer import HMM
+    from ...model import Gene
+    from ...orf import ORFFinder
+
 
 class Annotate(Command):  # noqa: D101
 
     summary = "annotate protein features of one or several contigs."
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco annotate - {cls.summary}
 
@@ -88,7 +94,7 @@ class Annotate(Command):  # noqa: D101
                                           HMM file to use (in HMMER format).
         """
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> None:
         super()._check()
         try:
             self.e_filter = self._check_flag(
@@ -106,27 +112,27 @@ class Annotate(Command):  # noqa: D101
                 optional=True,
             )
             self.jobs = self._check_flag("--jobs", int, lambda x: x >= 0, hint="positive or null integer")
-            self.format = self._check_flag("--format", optional=True)
-            self.genome = self._check_flag("--genome")
-            self.hmm = self._check_flag("--hmm", optional=True)
-            self.hmm_x = self._check_flag("--hmm-x", optional=True)
-            self.output_dir = self._check_flag("--output-dir")
+            self.format: Optional[str] = self._check_flag("--format", optional=True)
+            self.genome: str = self._check_flag("--genome")
+            self.hmm: Optional[List[str]] = self._check_flag("--hmm", optional=True)
+            self.hmm_x: Optional[List[str]] = self._check_flag("--hmm-x", optional=True)
+            self.output_dir: str = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
-            self.cds_feature = self._check_flag("--cds-feature", optional=True)
-            self.locus_tag = self._check_flag("--locus-tag")
+            self.cds_feature: Optional[str] = self._check_flag("--cds-feature", optional=True)
+            self.locus_tag: str = self._check_flag("--locus-tag")
         except InvalidArgument:
             raise CommandExit(1)
 
-    def _custom_hmms(self):
+    def _custom_hmms(self) -> Iterable["HMM"]:
         from ...hmmer import HMM
 
-        for path in self.hmm:
+        for path in typing.cast(List[str], self.hmm):
             base = os.path.basename(path)
-            file = open(path, "rb")
+            file: BinaryIO = open(path, "rb")
             if base.endswith(".gz"):
                 base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file)
+                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
             base, _ = os.path.splitext(base)
             yield HMM(
                 id=base,
@@ -137,12 +143,12 @@ class Annotate(Command):  # noqa: D101
                 exclusive=False,
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
-        for path in self.hmm_x:
+        for path in typing.cast(List[str], self.hmm_x):
             base = os.path.basename(path)
             file = open(path, "rb")
             if base.endswith(".gz"):
                 base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file)
+                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
             base, _ = os.path.splitext(base)
             yield HMM(
                 id=base,
@@ -177,17 +183,19 @@ class Annotate(Command):  # noqa: D101
                 self.warn("Output folder contains files that will be overwritten")
                 break
 
-    def _load_sequences(self):
+    def _load_sequences(self) -> List["SeqRecord"]:
         from Bio import SeqIO
 
         try:
             # guess format or use the one given in CLI
             if self.format is not None:
-                format = self.format.lower()
+                format: Optional[str] = self.format.lower()
                 self.info("Using", "user-provided sequence format", repr(format), level=2)
             else:
                 self.info("Detecting", "sequence format from file contents", level=2)
                 format = guess_sequences_format(self.genome)
+                if format is None:
+                    raise RuntimeError(f"Failed to detect format of {self.genome!r}")
                 self.success("Detected", "format of input as", repr(format), level=2)
             # get filesize and unit
             input_size = os.stat(self.genome).st_size
@@ -196,7 +204,7 @@ class Annotate(Command):  # noqa: D101
             # load sequences
             self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
             with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
-                sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))
+                sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))  # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
             raise CommandExit(err.errno) from err
@@ -207,13 +215,13 @@ class Annotate(Command):  # noqa: D101
             self.success("Found", len(sequences), "sequences", level=1)
             return sequences
 
-    def _extract_genes(self, sequences):
+    def _extract_genes(self, sequences: List["SeqRecord"]) -> List["Gene"]:
         from ...orf import PyrodigalFinder, CDSFinder
 
         self.info("Extracting", "genes from input sequences", level=1)
         if self.cds_feature is None:
             self.info("Using", "Pyrodigal in metagenomic mode", level=2)
-            orf_finder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
+            orf_finder: ORFFinder = PyrodigalFinder(metagenome=True, mask=self.mask, cpus=self.jobs)
         else:
             self.info("Using", f"record features named {self.cds_feature!r}", level=2)
             orf_finder = CDSFinder(feature=self.cds_feature, locus_tag=self.locus_tag)
@@ -221,13 +229,13 @@ class Annotate(Command):  # noqa: D101
         unit = "contigs" if len(sequences) > 1 else "contig"
         task = self.progress.add_task(description="Finding ORFs", total=len(sequences), unit=unit, precision="")
 
-        def callback(record, found):
+        def callback(record: "SeqRecord", found: int) -> None:
             self.success("Found", found, "genes in record", repr(record.id), level=2)
             self.progress.update(task, advance=1)
 
         return list(orf_finder.find_genes(sequences, progress=callback))
 
-    def _annotate_domains(self, genes, whitelist=None):
+    def _annotate_domains(self, genes: List["Gene"], whitelist: Optional[Container[str]] = None) -> List["Gene"]:
         from ...hmmer import PyHMMER, embedded_hmms
 
         self.info("Running", "HMMER domain annotation", level=1)
@@ -258,7 +266,7 @@ class Annotate(Command):  # noqa: D101
 
         return genes
 
-    def _filter_domains(self, genes):
+    def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
         # Filter i-evalue and p-value if required
         if self.e_filter is not None:
             self.info("Excluding", "domains with e-value over", self.e_filter, level=1)
@@ -279,7 +287,7 @@ class Annotate(Command):  # noqa: D101
             self.info("Using", "remaining", count, "domains", level=1)
         return genes
 
-    def _write_feature_table(self, genes):
+    def _write_feature_table(self, genes: List["Gene"]) -> None:
         from ...model import FeatureTable
 
         base, _ = os.path.splitext(os.path.basename(self.genome))
@@ -288,7 +296,7 @@ class Annotate(Command):  # noqa: D101
         with open(pred_out, "w") as f:
             FeatureTable.from_genes(genes).dump(f)
 
-    def _write_genes_table(self, genes):
+    def _write_genes_table(self, genes: List["Gene"]) -> None:
         from ...model import GeneTable
 
         base, _ = os.path.splitext(os.path.basename(self.genome))
@@ -304,7 +312,7 @@ class Annotate(Command):  # noqa: D101
             # check the CLI arguments were fine and enter context
             self._check()
             ctx.enter_context(self.progress)
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # attempt to create the output directory, checking it doesn't
             # already contain output files (or raise a warning)
             self._make_output_directory(extensions=["features.tsv", "genes.tsv"])

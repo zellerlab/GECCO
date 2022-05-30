@@ -18,7 +18,7 @@ class Help(Command):  # noqa: D101
     summary = "display the help message of another subcommand."
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco help - {cls.summary}
 
@@ -37,7 +37,7 @@ class Help(Command):  # noqa: D101
         try:
             # check arguments and enter context
             self._check()
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))   # type: ignore
             # Get the subcommand class
             if self.args["<cmd>"] is not None:
                 subcmd_cls = Main._get_subcommand_by_name(self.args["<cmd>"])

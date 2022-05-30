@@ -503,7 +503,7 @@ class _UnknownSeq(Seq):
 
 
 @dataclass(frozen=True)
-class FeatureTable(Table, Sequence["FeatureTable.Row"]):
+class FeatureTable(Table):
     """A table storing condensed domain annotations from different genes.
     """
 
@@ -537,16 +537,21 @@ class FeatureTable(Table, Sequence["FeatureTable.Row"]):
         domain_end: int
         bgc_probability: Optional[float]
 
-    @typing.overload  # type: ignore
-    def __getitem__(self, item: int) -> "FeatureTable.Row":  # noqa: D105
-        pass
+    if typing.TYPE_CHECKING:
 
-    @typing.overload
-    def __getitem__(self, item: slice) -> "FeatureTable.Row":  # noqa: D105
-        pass
+        @typing.overload  # type: ignore
+        def __getitem__(self, item: int) -> "FeatureTable.Row":  # noqa: D105
+            pass
 
-    def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "FeatureTable.Row"]:   # noqa: D105
-        return super().__getitem__(item)  # type: ignore
+        @typing.overload
+        def __getitem__(self, item: slice) -> "FeatureTable.Row":  # noqa: D105
+            pass
+
+        def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "FeatureTable.Row"]:   # noqa: D105
+            return super().__getitem__(item)  # type: ignore
+
+        def __iter__(self) -> Iterator["FeatureTable.Row"]:  # type: ignore
+            return super().__iter__()  # type: ignore
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
@@ -609,7 +614,7 @@ def _parse_product_type(value: str) -> "ProductType":
 
 
 @dataclass(frozen=True)
-class ClusterTable(Table, Sequence["ClusterTable.Row"]):
+class ClusterTable(Table):
     """A table storing condensed information from several clusters.
     """
 
@@ -670,16 +675,21 @@ class ClusterTable(Table, Sequence["ClusterTable.Row"]):
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
 
-    @typing.overload  # type: ignore
-    def __getitem__(self, item: int) -> "ClusterTable.Row":  # noqa: D105
-        pass
+    if typing.TYPE_CHECKING:
 
-    @typing.overload
-    def __getitem__(self, item: slice) -> "ClusterTable.Row":  # noqa: D105
-        pass
+        @typing.overload  # type: ignore
+        def __getitem__(self, item: int) -> "ClusterTable.Row":  # noqa: D105
+            pass
 
-    def __getitem__(self, item: Union[slice, int]) -> Union["ClusterTable", "ClusterTable.Row"]:   # noqa: D105
-        return super().__getitem__(item)  # type: ignore
+        @typing.overload
+        def __getitem__(self, item: slice) -> "ClusterTable.Row":  # noqa: D105
+            pass
+
+        def __getitem__(self, item: Union[slice, int]) -> Union["ClusterTable", "ClusterTable.Row"]:   # noqa: D105
+            return super().__getitem__(item)  # type: ignore
+
+        def __iter__(self) -> Iterator["ClusterTable.Row"]:  # type: ignore
+            return super().__iter__()  # type: ignore
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D102
         writer = csv.writer(fh, dialect=dialect)
@@ -755,7 +765,7 @@ class ClusterTable(Table, Sequence["ClusterTable.Row"]):
 
 
 @dataclass(frozen=True)
-class GeneTable(Table, Sequence["GeneTable.Row"]):
+class GeneTable(Table):
     """A table storing gene coordinates and optional biosynthetic probabilities.
     """
 
@@ -779,16 +789,21 @@ class GeneTable(Table, Sequence["GeneTable.Row"]):
         average_p: Optional[float]
         max_p: Optional[float]
 
-    @typing.overload  # type: ignore
-    def __getitem__(self, item: int) -> "GeneTable.Row":  # noqa: D105
-        pass
+    if typing.TYPE_CHECKING:
 
-    @typing.overload
-    def __getitem__(self, item: slice) -> "GeneTable.Row":  # noqa: D105
-        pass
+        @typing.overload  # type: ignore
+        def __getitem__(self, item: int) -> "GeneTable.Row":  # noqa: D105
+            pass
 
-    def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "GeneTable.Row"]:   # noqa: D105
-        return super().__getitem__(item)  # type: ignore
+        @typing.overload
+        def __getitem__(self, item: slice) -> "GeneTable.Row":  # noqa: D105
+            pass
+
+        def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "GeneTable.Row"]:   # noqa: D105
+            return super().__getitem__(item)  # type: ignore
+
+        def __iter__(self) -> Iterator["GeneTable.Row"]:  # type: ignore
+            return super().__iter__()  # type: ignore
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "GeneTable":

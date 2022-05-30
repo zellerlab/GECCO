@@ -11,14 +11,23 @@ import multiprocessing
 import random
 import signal
 import typing
-from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
+from typing import Any, Dict, Union, Optional, Iterable, List, TextIO, Mapping, Tuple
 
 import docopt
 
 from .._utils import patch_showwarnings
+from ...model import ProductType
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 from .train import Train
+
+if typing.TYPE_CHECKING:
+    import numpy
+    from numpy.typing import NDArray
+    from Bio.SeqRecord import SeqRecord
+    from ...hmmer import HMM
+    from ...model import Gene
+    from ...orf import ORFFinder
 
 
 class Cv(Train):  # noqa: D101
@@ -26,7 +35,7 @@ class Cv(Train):  # noqa: D101
     summary = "perform cross validation on a training set."
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco cv  - {cls.summary}
 
@@ -89,7 +98,7 @@ class Cv(Train):  # noqa: D101
 
         """
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> None:
         if not isinstance(self.args, docopt.DocoptExit):
             self.args["--output-dir"] = "."
         super()._check()
@@ -107,7 +116,7 @@ class Cv(Train):  # noqa: D101
 
     # --
 
-    def _group_genes(self, genes):
+    def _group_genes(self, genes: List["Gene"]) -> List[List["Gene"]]:
         self.info("Grouping", "genes by source sequence")
         groups = itertools.groupby(genes, key=operator.attrgetter("source.id"))
         seqs = [sorted(group, key=operator.attrgetter("start")) for _, group in groups]
@@ -116,7 +125,7 @@ class Cv(Train):  # noqa: D101
             random.shuffle(seqs)
         return seqs
 
-    def _loto_splits(self, seqs):
+    def _loto_splits(self, seqs: List[List["Gene"]]) -> List[Tuple["NDArray[numpy.bool_]", "NDArray[numpy.bool_]"]]:
         from ...crf.cv import LeaveOneGroupOut
         from ...model import ClusterTable, ProductType
 
@@ -133,23 +142,23 @@ class Cv(Train):  # noqa: D101
             ty = next((index[g.source.id] for g in cluster if g.source.id in index), None)
             if ty is None:
                 seq_id = next(gene.source.id for gene in cluster)
-                self.logger.warning("Could not find type of cluster in {!r}", seq_id)
-                ty = ProductType.Unknown
+                self.warn("Failed", f"to find type of cluster in {seq_id!r}")
+                ty = ProductType()
             groups.append(ty.unpack())
 
-        return list(LeaveOneGroupOut().split(seqs, groups=groups))
+        return list(LeaveOneGroupOut().split(seqs, groups=groups))   # type: ignore
 
-    def _kfold_splits(self, seqs):
+    def _kfold_splits(self, seqs: List[List["Gene"]]) -> List[Tuple["NDArray[numpy.bool_]", "NDArray[numpy.bool_]"]]:
         import sklearn.model_selection
         return list(sklearn.model_selection.KFold(self.splits).split(seqs))
 
     @staticmethod
-    def _get_train_data(train_indices, seqs):
+    def _get_train_data(train_indices: Iterable[int], seqs: List[List["Gene"]]) -> List["Gene"]:
         # extract train data
         return [gene for i in train_indices for gene in seqs[i]]
 
     @staticmethod
-    def _get_test_data(test_indices, seqs):
+    def _get_test_data(test_indices: Iterable[int], seqs: List[List["Gene"]]) -> List["Gene"]:
         # make a clean copy of the test data without gene probabilities
         return [
             gene.with_protein(gene.protein.with_domains(
@@ -159,13 +168,13 @@ class Cv(Train):  # noqa: D101
             for gene in seqs[i]
         ]
 
-    def _fit_predict(self, train_data, test_data):
+    def _fit_predict(self, train_data: List["Gene"], test_data: List["Gene"]) -> List["Gene"]:
         from ...crf import ClusterCRF
 
         crf = self._fit_model(train_data)
         return crf.predict_probabilities(test_data)
 
-    def _write_fold(self, fold, genes, append=False):
+    def _write_fold(self, fold: int, genes: List["Gene"], append: bool = False) -> None:
         from ...model import FeatureTable
 
         frame = FeatureTable.from_genes(genes).to_dataframe()
@@ -179,7 +188,7 @@ class Cv(Train):  # noqa: D101
             # check arguments and enter context
             self._check()
             ctx.enter_context(self.progress)
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))   # type: ignore
             # seed RNG
             self._seed_rng()
             # load features

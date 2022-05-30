@@ -14,7 +14,7 @@ import random
 import re
 import signal
 import typing
-from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
+from typing import Any, Dict, Union, Optional, List, TextIO, Mapping, Set
 
 from ... import __version__
 from ...model import ClusterTable
@@ -27,7 +27,7 @@ class Convert(Command):  # noqa: D101
     summary = "convert output for compatibility with other tools"
 
     @classmethod
-    def doc(cls, fast=False):  # noqa: D102
+    def doc(cls, fast: bool = False) -> str:  # noqa: D102
         return f"""
         gecco convert  - {cls.summary}
 
@@ -66,21 +66,21 @@ class Convert(Command):  # noqa: D101
 
         """
 
-    _CLUSTERS_FORMATS = set()
+    _CLUSTERS_FORMATS: Set[str] = set()
     _GBK_FORMATS = {"bigslice", "faa", "fna"}
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> None:
         try:
             super()._check()
             formats = self._GBK_FORMATS if self.args["gbk"] else self._CLUSTERS_FORMATS
             self.format = self._check_flag("--format", str, lambda x: x in formats, hint=", ".join(formats))
-            self.input_dir = self._check_flag("--input-dir")
+            self.input_dir: str = self._check_flag("--input-dir")
         except InvalidArgument:
             raise CommandExit(1)
 
     # ---
 
-    def _convert_gbk_bigslice(self, ctx: contextlib.ExitStack):
+    def _convert_gbk_bigslice(self, ctx: contextlib.ExitStack) -> None:
         import Bio.SeqIO
         from Bio.SeqFeature import SeqFeature, FeatureLocation
 
@@ -112,7 +112,7 @@ class Convert(Command):  # noqa: D101
             # load record and ensure it comes from GECCO
             record = Bio.SeqIO.read(gbk_file, "genbank")
             if "GECCO-Data" not in record.annotations.get('structured_comment', {}):
-                self.warning(f"GenBank file {gbk_file!r} was not obtained by GECCO")
+                self.warn(f"GenBank file {gbk_file!r} was not obtained by GECCO")
                 continue
             # mark as AntiSMASH v5
             record.annotations['structured_comment']['antiSMASH-Data'] = {
@@ -130,15 +130,15 @@ class Convert(Command):  # noqa: D101
             record.features.append(subregion_feature)
             # rename the {id}_cluster_{N}.gbk file to {id}.region{N}.gbk
             gbk_name = os.path.basename(gbk_file)
-            contig_id, cluster_n = re.search("^(.*)_cluster_(\d+).gbk", gbk_file).groups()
+            contig_id, cluster_n = re.search("^(.*)_cluster_(\d+).gbk", gbk_file).groups()  # type: ignore
             new_name = os.path.join(self.input_dir, "{}.region{:03}.gbk".format(contig_id, int(cluster_n)))
             self.info(f"Rewriting {gbk_file!r} to {new_name!r}")
             Bio.SeqIO.write(record, new_name, "genbank")
             done += 1
 
-        self.success(f"Converted {done} GenBank {unit} to BiG-SLiCE format", level=0)
+        self.success("Converted", f"{done} GenBank {unit} to BiG-SLiCE format", level=0)
 
-    def _convert_gbk_fna(self, ctx: contextlib.ExitStack):
+    def _convert_gbk_fna(self, ctx: contextlib.ExitStack) -> None:
         import Bio.SeqIO
         from Bio.SeqFeature import SeqFeature, FeatureLocation
 
@@ -152,16 +152,16 @@ class Convert(Command):  # noqa: D101
             # load record and ensure it comes from GECCO
             record = Bio.SeqIO.read(gbk_file, "genbank")
             if "GECCO-Data" not in record.annotations.get('structured_comment', {}):
-                self.warning(f"GenBank file {gbk_file!r} was not obtained by GECCO")
+                self.warn(f"GenBank file {gbk_file!r} was not obtained by GECCO")
                 continue
             # convert to nucleotide FASTA
             new_name = gbk_file.replace(".gbk", ".fna")
             self.info(f"Converting {gbk_file!r} to FASTA file {new_name!r}")
             Bio.SeqIO.write(record, new_name, "fasta")
             done += 1
-        self.success(f"Converted {done} GenBank {unit} to nucleotide FASTA format", level=0)
+        self.success("Converted", f"{done} GenBank {unit} to nucleotide FASTA format", level=0)
 
-    def _convert_gbk_faa(self, ctx: contextlib.ExitStack):
+    def _convert_gbk_faa(self, ctx: contextlib.ExitStack) -> None:
         import Bio.SeqIO
         from Bio.Seq import Seq
         from Bio.SeqRecord import SeqRecord
@@ -177,7 +177,7 @@ class Convert(Command):  # noqa: D101
             # load record and ensure it comes from GECCO
             record = Bio.SeqIO.read(gbk_file, "genbank")
             if "GECCO-Data" not in record.annotations.get('structured_comment', {}):
-                self.warning(f"GenBank file {gbk_file!r} was not obtained by GECCO")
+                self.warn(f"GenBank file {gbk_file!r} was not obtained by GECCO")
                 continue
             # extract proteins
             proteins = []
@@ -192,14 +192,14 @@ class Convert(Command):  # noqa: D101
             self.info(f"Converting {gbk_file!r} proteins to FASTA file {new_name!r}")
             Bio.SeqIO.write(proteins, new_name, "fasta")
             done += 1
-        self.success(f"Converted {done} GenBank {unit} to protein FASTA format", level=0)
+        self.success("Converted", f"{done} GenBank {unit} to protein FASTA format", level=0)
 
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             # check the CLI arguments were fine and enter context
             self._check()
             ctx.enter_context(self.progress)
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # run the appropriate method
             if self.args["gbk"]:
                 if self.args["--format"] == "bigslice":

@@ -28,7 +28,7 @@ class CommandExit(Exception):
     """An error to request immediate exit from a function.
     """
 
-    def __init__(self, code):
+    def __init__(self, code: int) -> None:
         self.code = code
 
 class Command(metaclass=abc.ABCMeta):
@@ -48,14 +48,14 @@ class Command(metaclass=abc.ABCMeta):
             other number on error.
 
         """
-        return NotImplemented  # type: ignore
+        return NotImplemented
 
     @classmethod
     @abc.abstractmethod
     def doc(cls, fast: bool = False) -> str:
         """Get the help message for the command.
         """
-        return NotImplemented  # type: ignore
+        return NotImplemented
 
     # -- Concrete methods ----------------------------------------------------
 
@@ -131,7 +131,7 @@ class Command(metaclass=abc.ABCMeta):
         _check = (lambda x: True) if check is None else check
         if self.args[name] is None:
             if optional:
-                return default
+                return default  # type: ignore
             self.error(f"Missing value for argument [purple]{name}[/]")
             raise InvalidArgument(self.args[name])
         try:
@@ -145,7 +145,7 @@ class Command(metaclass=abc.ABCMeta):
                 self.error(f"Invalid value for argument [purple]{name}[/]:", repr(self.args[name]), f"(expected {hint})")
             raise InvalidArgument(self.args[name]) from err
         else:
-            return value
+            return value  # type: ignore
 
     def _on_import_error(
         self,
@@ -161,7 +161,7 @@ class Command(metaclass=abc.ABCMeta):
 
     # -- Logging methods -----------------------------------------------------
 
-    def error(self, message, *args, level=0):
+    def error(self, message: str, *args: Any, level: int = 0) -> None:
         if self.quiet <= 2 and level <= self.verbose:
             if self.verbose <= 1:
                 self.console.print(
@@ -177,7 +177,7 @@ class Command(metaclass=abc.ABCMeta):
                     *args,
                 )
 
-    def info(self, verb, *args, level=1):
+    def info(self, verb: str, *args: Any, level: int = 1) -> None:
         if self.quiet == 0 and level <= self.verbose:
             if self.verbose <= 1:
                 self.console.print(
@@ -193,7 +193,7 @@ class Command(metaclass=abc.ABCMeta):
                     *args,
                 )
 
-    def success(self, verb, *args, level=1):
+    def success(self, verb: str, *args: Any, level: int = 1) -> None:
         if self.quiet == 0 and level <= self.verbose:
             if self.verbose <= 1:
                 self.console.print(
@@ -209,7 +209,7 @@ class Command(metaclass=abc.ABCMeta):
                     *args,
                 )
 
-    def warn(self, verb, *args, level=0):
+    def warn(self, verb: str, *args: Any, level: int = 0) -> None:
         if self.quiet <= 1 and level <= self.verbose:
             if self.verbose <= 1:
                 self.console.print(
@@ -225,7 +225,7 @@ class Command(metaclass=abc.ABCMeta):
                     *args
                 )
 
-    def _logprefix(self):
+    def _logprefix(self) -> List[str]:
         return [
             f"[dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]",
             f"[dim purple]{self._hostname}[/]",

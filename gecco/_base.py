@@ -31,7 +31,6 @@ if typing.TYPE_CHECKING:
 
 _SELF = typing.TypeVar("_SELF")
 _TABLE = typing.TypeVar("_TABLE", bound="Table")
-RowType = typing.TypeVar("RowType", bound="Table.Row")
 
 
 def _parse_str(value: str) -> str:

@@ -13,7 +13,7 @@ import pickle
 import random
 import signal
 import typing
-from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping
+from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping, Iterable
 
 from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
@@ -88,7 +88,7 @@ class Train(Command):  # noqa: D101
 
         """
 
-    def _check(self) -> typing.Optional[int]:
+    def _check(self) -> None:
         from ...crf.select import _CORRECTION_METHODS
 
         super()._check()
@@ -140,9 +140,9 @@ class Train(Command):  # noqa: D101
             self.no_shuffle = self._check_flag("--no-shuffle", bool)
             self.seed = self._check_flag("--seed", int)
             self.output_dir = self._check_flag("--output-dir", str)
-            self.features = self._check_flag("--features", list)
-            self.clusters = self._check_flag("--clusters", str)
-            self.genes = self._check_flag("--genes", str)
+            self.features: List[str] = self._check_flag("--features", list)
+            self.clusters: str = self._check_flag("--clusters", str)
+            self.genes: str = self._check_flag("--genes", str)
             self.window_size = self._check_flag(
                 "--window-size",
                 int,
@@ -160,7 +160,7 @@ class Train(Command):  # noqa: D101
 
     # ---
 
-    def _seed_rng(self):
+    def _seed_rng(self) -> None:
         self.info("Seeding", "the random number generator with seed", self.seed, level=2)
         random.seed(self.seed)
 
@@ -196,7 +196,7 @@ class Train(Command):  # noqa: D101
             # load gene table
             self.info("Loading", "genes table from file", repr(self.genes))
             with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as genes_file:
-                yield from GeneTable.load(io.TextIOWrapper(genes_file)).to_genes()
+                yield from GeneTable.load(io.TextIOWrapper(genes_file)).to_genes()  # type: ignore
         except OSError as err:
             self.error("Fail to parse genes coordinates: {}", err)
             raise CommandExit(err.errno) from err
@@ -213,8 +213,8 @@ class Train(Command):  # noqa: D101
                 task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
-                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:  # type: ignore
-                    features += FeatureTable.load(io.TextIOWrapper(in_))
+                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:
+                    features += FeatureTable.load(io.TextIOWrapper(in_)) # type: ignore
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
@@ -233,7 +233,7 @@ class Train(Command):  # noqa: D101
         # add domains from the feature table
         unit = "row" if len(features) == 1 else "rows"
         task = self.progress.add_task("Annotating genes", total=len(features), unit=unit, precision="")
-        for row in self.progress.track(features, total=len(features), task_id=task):
+        for row in typing.cast(Iterable["FeatureTable.Row"], self.progress.track(features, total=len(features), task_id=task)):
             # get gene by ID and check consistency
             gene = gene_index[row.protein_id]
             if gene.source.id != row.sequence_id:
@@ -331,7 +331,7 @@ class Train(Command):  # noqa: D101
             # load clusters
             self.info("Loading", "clusters table from file", repr(self.clusters))
             with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
-                return ClusterTable.load(io.TextIOWrapper(in_))
+                return ClusterTable.load(io.TextIOWrapper(in_))   # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
@@ -347,7 +347,7 @@ class Train(Command):  # noqa: D101
 
         self.info("Labelling", "genes belonging to clusters")
         labelled_genes = []
-        for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
+        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
                 if any(
                     cluster_row.start <= gene.start and gene.end <= cluster_row.end
@@ -370,7 +370,7 @@ class Train(Command):  # noqa: D101
 
         self.info("Extracting", "genes belonging to clusters")
         genes_by_cluster = collections.defaultdict(list)
-        for seq_id, seq_genes in itertools.groupby(genes, key=lambda g: g.source.id):
+        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
                 for cluster_row in cluster_by_seq[seq_id]:
                     if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
@@ -378,11 +378,11 @@ class Train(Command):  # noqa: D101
 
         return [
             Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
-            for cluster_row in sorted(clusters, key=lambda row: row.bgc_id)
+            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("bgc_id")))
             if genes_by_cluster[cluster_row.bgc_id]
         ]
 
-    def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]):
+    def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]) -> None:
         import numpy
         import scipy.sparse
 
@@ -418,7 +418,7 @@ class Train(Command):  # noqa: D101
             # check arguments and enter context
             self._check()
             ctx.enter_context(self.progress)
-            ctx.enter_context(patch_showwarnings(self._showwarnings))
+            ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # seed RNG
             self._seed_rng()
             # attempt to create the output directory
@@ -433,7 +433,7 @@ class Train(Command):  # noqa: D101
             for gene in genes:
                 gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
             # filter domains by p-value and/or e-value
-            genes = Annotate._filter_domains(self, genes)
+            genes = Annotate._filter_domains(self, genes)   # type: ignore
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)

@@ -10,3 +10,5 @@ def main(argv: Optional[List[str]] = None, stream: Optional[TextIO] = None) -> i
 
     with contextlib.ExitStack() as ctx:
         return Main(argv, stream).execute(ctx)
+
+    return 0

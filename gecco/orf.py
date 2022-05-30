@@ -28,7 +28,11 @@ class ORFFinder(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def find_genes(self, records: Iterable[SeqRecord]) -> Iterable[Gene]:  # type: ignore
+    def find_genes(  # type: ignore
+        self,
+        records: Iterable[SeqRecord],
+        progress: Optional[Callable[[SeqRecord, int], None]] = None,
+    ) -> Iterable[Gene]:
         """Find all genes from a DNA sequence.
         """
         return NotImplemented
