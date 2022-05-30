@@ -15,7 +15,7 @@ import re
 import subprocess
 import tempfile
 import typing
-from typing import Callable, Container, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
+from typing import Any, BinaryIO, Callable, Container, Dict, Optional, Iterable, Iterator, List, Mapping, Type, Sequence
 
 import pyhmmer
 from Bio import SeqIO
@@ -28,7 +28,7 @@ from ..interpro import InterPro
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
 
 __all__ = ["DomainAnnotator", "HMM", "PyHMMER", "embedded_hmms"]
 
@@ -118,15 +118,16 @@ class PyHMMER(DomainAnnotator):
 
         with contextlib.ExitStack() as ctx:
             # decompress the input if needed
-            file = ctx.enter_context(open(self.hmm.path, "rb"))
+            file: BinaryIO = ctx.enter_context(open(self.hmm.path, "rb"))
             if self.hmm.path.endswith(".gz"):
-                file = ctx.enter_context(gzip.GzipFile(fileobj=file))
+                file = ctx.enter_context(gzip.GzipFile(fileobj=file, mode="rb"))  # type: ignore
             # Only retain the HMMs which are in the whitelist
             hmm_file = ctx.enter_context(pyhmmer.plan7.HMMFile(file))
             profiles = (
                 hmm
                 for hmm in hmm_file
-                if self.hmm.relabel(hmm.accession.decode()) in self.whitelist
+                if hmm.accession is None
+                or self.hmm.relabel(hmm.accession.decode()) in self.whitelist
             )
             # Run search pipeline using the filtered HMMs
             cpus = 0 if self.cpus is None else self.cpus
@@ -135,8 +136,8 @@ class PyHMMER(DomainAnnotator):
                 esl_sqs,
                 cpus=cpus,
                 callback=progress,
-                Z=self.hmm.size,
-                domZ=self.hmm.size
+                Z=self.hmm.size,  # type: ignore
+                domZ=self.hmm.size  # type: ignore
             )
 
             # Load InterPro metadata for the annotation
@@ -212,11 +213,11 @@ def embedded_hmms() -> Iterator[HMM]:
 
         cfg = configparser.ConfigParser()
         cfg.read(ini_path)
-        args = dict(cfg.items("hmm"))
-        args["size"] = int(args["size"])
+        args: Dict[str, Any] = dict(cfg.items("hmm"))
+        size = int(args.pop("size", 0))
 
         hmm_ctx = importlib_resources.path(__name__, filename.replace(".ini", ".h3m"))
         hmm_path = hmm_ctx.__enter__()
         atexit.register(hmm_ctx.__exit__, None, None, None)
 
-        yield HMM(path=os.fspath(hmm_path), **args)
+        yield HMM(path=os.fspath(hmm_path), size=size, **args)

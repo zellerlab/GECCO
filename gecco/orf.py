@@ -8,9 +8,9 @@ import os
 import queue
 import tempfile
 import typing
-import multiprocessing.pool
+from multiprocessing.pool import Pool, ThreadPool
 from multiprocessing.sharedctypes import Value
-from typing import Callable, Iterable, Iterator, List, Optional, Tuple
+from typing import Callable, Iterable, Iterator, List, Optional, Tuple, Type, Union
 
 import Bio.SeqIO
 import pyrodigal
@@ -18,9 +18,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from .model import Gene, Protein, Strand
-
-if typing.TYPE_CHECKING:
-    from Bio.SeqRecord import SeqRecord
 
 
 __all__ = ["ORFFinder", "PyrodigalFinder"]
@@ -34,7 +31,7 @@ class ORFFinder(metaclass=abc.ABCMeta):
     def find_genes(self, records: Iterable[SeqRecord]) -> Iterable[Gene]:  # type: ignore
         """Find all genes from a DNA sequence.
         """
-        return NotImplemented  # type: ignore
+        return NotImplemented
 
 
 class PyrodigalFinder(ORFFinder):
@@ -80,7 +77,7 @@ class PyrodigalFinder(ORFFinder):
             sequences.append("TTAATTAATTAA")
         return self.orf_finder.train("".join(sequences))
 
-    def _process_record(self, record: SeqRecord) -> pyrodigal.Genes:
+    def _process_record(self, record: SeqRecord) -> Tuple[SeqRecord, pyrodigal.Genes]:
         return record, self.orf_finder.find_genes(str(record.seq))
 
     def find_genes(
@@ -88,7 +85,7 @@ class PyrodigalFinder(ORFFinder):
         records: Iterable[SeqRecord],
         progress: Optional[Callable[[SeqRecord, int], None]] = None,
         *,
-        pool_factory = multiprocessing.pool.ThreadPool,
+        pool_factory: Union[Type[Pool], Callable[[Optional[int]], Pool]] = ThreadPool,
     ) -> Iterator[Gene]:
         """Find all genes contained in a sequence of DNA records.
 
@@ -137,7 +134,7 @@ class PyrodigalFinder(ORFFinder):
                         protein=protein,
                         qualifiers={
                             "inference": ["ab initio prediction:Prodigal:2.6"],
-                            "transl_table": str(orf.translation_table),
+                            "transl_table": [str(orf.translation_table)],
                         }
                     )
 

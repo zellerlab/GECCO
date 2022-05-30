@@ -45,7 +45,7 @@ class ProductType(object):
     """An immutable storage of type for the product synthesized by a cluster.
     """
 
-    def __init__(self, *names: List[str]):
+    def __init__(self, *names: str) -> None:
         """Create a new product type from one or more base types.
 
         Example:
@@ -56,18 +56,18 @@ class ProductType(object):
         """
         self.names = frozenset(names)
 
-    def __repr__(self):  # noqa: D105
+    def __repr__(self) -> str:  # noqa: D105
         return "ProductType({})".format(", ".join(map(repr, sorted(self.names))))
 
-    def __hash__(self):  # noqa: D105
+    def __hash__(self) -> int:  # noqa: D105
         return hash(self.names)
 
-    def __eq__(self, other: object):  # noqa: D105
+    def __eq__(self, other: object) -> bool:  # noqa: D105
         if not isinstance(other, ProductType):
             return NotImplemented
         return self.names == other.names
 
-    def __bool__(self):  # noqa: D105
+    def __bool__(self) -> bool:  # noqa: D105
         return len(self.names) != 0
 
     def unpack(self) -> List["ProductType"]:
@@ -127,7 +127,7 @@ class Domain:
     i_evalue: float
     pvalue: float
     probability: Optional[float] = None
-    qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
+    qualifiers: Dict[str, List[str]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
         """Copy the current domain and assign it a BGC probability.
@@ -214,7 +214,7 @@ class Gene:
     end: int
     strand: Strand
     protein: Protein
-    qualifiers: Mapping[str, Union[str, List[str]]] = field(default_factory=dict)
+    qualifiers: Dict[str, List[str]] = field(default_factory=dict)
     _probability: Optional[float] = field(default_factory=lambda: None)
 
     @property
@@ -233,7 +233,7 @@ class Gene:
         return sum(p) / len(p) if p else None
 
     @average_probability.setter
-    def average_probability(self, probability: Optional[float]):
+    def average_probability(self, probability: Optional[float]) -> None:
         self._probability = probability
 
     @property
@@ -364,7 +364,7 @@ class Cluster:
         normalize: bool = True,
         minlog_weights: bool = False,
         pvalue: bool = True,
-    ) -> numpy.ndarray:
+    ) -> "numpy.ndarray[float]":
         """Compute weighted domain composition with respect to ``all_possible``.
 
         Arguments:
@@ -402,7 +402,7 @@ class Cluster:
             if dom in unique_names:
                 composition[i] = numpy.sum(weights[names == dom])
         if normalize:
-            return composition / (composition.sum() or 1)  # type: ignore
+            return composition / (composition.sum() or 1)
         return composition
 
     # ---
@@ -699,7 +699,7 @@ class ClusterTable(Table):
             writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
 
     @classmethod
-    def load(cls: typing.Type[_SELF], fh: TextIO, dialect: str = "excel-tab") -> _SELF:  # noqa: D102
+    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":  # noqa: D102
         table = cls()
         reader = csv.reader(fh, dialect=dialect)
         header = next(reader)

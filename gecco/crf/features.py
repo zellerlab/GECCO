@@ -72,8 +72,8 @@ def extract_labels_domain(sequence: Iterable[Gene], empty: bool = True) -> List[
 
 
 def annotate_probabilities_protein(
-    sequence: List[Gene],
-    probabilities: List[float],
+    sequence: Iterable[Gene],
+    probabilities: Iterable[float],
     empty: bool = True,
 ) -> Iterable[Gene]:
     """Annotate genes with marginals obtained from a CRF at the protein level.
@@ -97,8 +97,8 @@ def annotate_probabilities_protein(
 
 
 def annotate_probabilities_domain(
-    sequence: List[Gene],
-    probabilities: List[float],
+    sequence: Iterable[Gene],
+    probabilities: Iterable[float],
     empty: bool = True,
 ) -> Iterable[Gene]:
     """Annotate genes with marginals obtained from a CRF at the domain level."""
