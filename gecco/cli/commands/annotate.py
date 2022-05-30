@@ -36,7 +36,7 @@ class Annotate(Command):  # noqa: D101
         gecco annotate - {cls.summary}
 
         Usage:
-            gecco annotate --genome <file> [--hmm <hmm>]... [options]
+            gecco annotate --genome <file> [--hmm <hmm>]... [--hmm-x <hmm>]... [options]
 
         Arguments:
             -g <file>, --genome <file>    a genomic file containing one or more
@@ -84,6 +84,8 @@ class Annotate(Command):  # noqa: D101
         Parameters - Debug:
             --hmm <hmm>                   the path to one or more alternative
                                           HMM file to use (in HMMER format).
+            --hmm-x <hmm>                 the path to one or more exclusive
+                                          HMM file to use (in HMMER format).
         """
 
     def _check(self) -> typing.Optional[int]:
@@ -107,6 +109,7 @@ class Annotate(Command):  # noqa: D101
             self.format = self._check_flag("--format", optional=True)
             self.genome = self._check_flag("--genome")
             self.hmm = self._check_flag("--hmm", optional=True)
+            self.hmm_x = self._check_flag("--hmm-x", optional=True)
             self.output_dir = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
@@ -130,7 +133,24 @@ class Annotate(Command):  # noqa: D101
                 version="?",
                 url="?",
                 path=path,
-                size=1,
+                size=None,
+                exclusive=False,
+                relabel_with=r"s/([^\.]*)(\..*)?/\1/"
+            )
+        for path in self.hmm_x:
+            base = os.path.basename(path)
+            file = open(path, "rb")
+            if base.endswith(".gz"):
+                base, _ = os.path.splitext(base)
+                file = gzip.GzipFile(fileobj=file)
+            base, _ = os.path.splitext(base)
+            yield HMM(
+                id=base,
+                version="?",
+                url="?",
+                path=path,
+                size=None,
+                exclusive=True,
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
 

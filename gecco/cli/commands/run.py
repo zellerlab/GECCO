@@ -41,7 +41,7 @@ class Run(Annotate):  # noqa: D101
         gecco run - {cls.summary}
 
         Usage:
-            gecco run --genome <file> [--hmm <hmm>]... [options]
+            gecco run --genome <file> [--hmm <hmm>]... [--hmm-x <hmm>]... [options]
 
         Arguments:
             -g <file>, --genome <file>    a genomic file containing one or more
@@ -110,8 +110,10 @@ class Run(Annotate):  # noqa: D101
         Parameters - Debug:
             --model <directory>           the path to an alternative CRF model
                                           to use (obtained with `gecco train`).
-            --hmm <hmm>                   the path to one or more alternative HMM
-                                          file to use (in HMMER format).
+            --hmm <hmm>                   the path to one or more alternative
+                                          HMM file to use (in HMMER format).
+            --hmm-x <hmm>                 the path to one or more exclusive
+                                          HMM file to use (in HMMER format).
         """
 
     def _check(self) -> typing.Optional[int]:
@@ -143,11 +145,12 @@ class Run(Annotate):  # noqa: D101
             self.genome = self._check_flag("--genome")
             self.model = self._check_flag("--model", optional=True)
             self.hmm = self._check_flag("--hmm")
+            self.hmm_x = self._check_flag("--hmm-x")
             self.output_dir = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.mask = self._check_flag("--mask", bool)
-            self.orf_feature = self._check_flag("--cds-feature", optional=True)
+            self.cds_feature = self._check_flag("--cds-feature", optional=True)
             self.locus_tag = self._check_flag("--locus-tag")
             self.no_pad = self._check_flag("--no-pad", bool)
         except InvalidArgument:
