@@ -7,19 +7,32 @@ import operator
 import os
 import typing
 import warnings
-from typing import Callable, Dict, List, Iterable, Optional, Sequence, Tuple, Union
+from typing import (
+    BinaryIO,
+    Callable,
+    ContextManager,
+    Dict,
+    List,
+    Iterable,
+    Optional,
+    Sequence,
+    TextIO,
+    Tuple,
+    Union
+)
 
 import numpy
 import scipy.sparse
 import sklearn.ensemble
 import sklearn.preprocessing
+from numpy.typing import NDArray
 
 from ..model import ProductType, Cluster
 
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
 
 __all__ = ["TypeBinarizer", "TypeClassifier"]
 
@@ -28,18 +41,18 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
     """A `MultiLabelBinarizer` working with `ProductType` instances.
     """
 
-    def __init__(self, classes, **kwargs: object):
+    def __init__(self, classes: List[str], **kwargs: object):
         self.classes_ = classes
         super().__init__(classes=classes, **kwargs)
 
-    def transform(self, y: Iterable[ProductType]) -> Iterable[Iterable[int]]:
+    def transform(self, y: List[ProductType]) -> Iterable[Iterable[int]]:
         matrix = numpy.zeros((len(y), len(self.classes_)))
         for i, label in enumerate(y):
             for j, cls in enumerate(self.classes_):
                 matrix[i, j] = cls in label.names
         return matrix
 
-    def inverse_transform(self, yt: Iterable[Iterable[int]]) -> Iterable[ProductType]:
+    def inverse_transform(self, yt: NDArray[numpy.bool_]) -> Iterable[ProductType]:
         classes = []
         for y in yt:
             filtered = (cls for i, cls in enumerate(self.classes_) if y[i])
@@ -67,9 +80,9 @@ class TypeClassifier(object):
         """
 
         if model_path is not None:
-            doms_file = open(os.path.join(model_path, "domains.tsv"))
-            typs_file = open(os.path.join(model_path, "types.tsv"))
-            comp_file = open(os.path.join(model_path, "compositions.npz"), "rb")
+            doms_file: ContextManager[TextIO] = open(os.path.join(model_path, "domains.tsv"))
+            typs_file: ContextManager[TextIO] = open(os.path.join(model_path, "types.tsv"))
+            comp_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "compositions.npz"), "rb")
         else:
             doms_file = importlib_resources.open_text(__name__, "domains.tsv")
             typs_file = importlib_resources.open_text(__name__, "types.tsv")
@@ -95,7 +108,7 @@ class TypeClassifier(object):
         classifier.model.attributes_ = domains
         return classifier
 
-    def __init__(self, classes=(), **kwargs: object) -> None:
+    def __init__(self, classes: Iterable[str] = (), **kwargs: object) -> None:
         """Instantiate a new type classifier.
 
         Keyword Arguments:
@@ -104,10 +117,10 @@ class TypeClassifier(object):
 
         """
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
-        self.binarizer = TypeBinarizer(classes)
+        self.binarizer = TypeBinarizer(list(classes))
 
     @property
-    def classes_(self):
+    def classes_(self) -> List[str]:
         return self.binarizer.classes_
 
     _S = typing.TypeVar("_S", bound=Sequence["Cluster"])

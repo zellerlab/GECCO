@@ -9,16 +9,17 @@ import locale
 import operator
 import typing
 from multiprocessing.pool import Pool
-from typing import Any, Callable, Iterable, Iterator, List, Tuple, Optional, Type
+from typing import Any, Callable, Iterable, Iterator, List, Tuple, Union, Optional, Type
 
 if typing.TYPE_CHECKING:
-    from types import TracebackType
+    from types import TracebackType, ModuleType
 
     _S = typing.TypeVar("_S")
     _T = typing.TypeVar("_T")
     _A = typing.TypeVar("_A")
     _R = typing.TypeVar("_R")
-    # _F = typing.TypeVar("_F", bound=Callable[[_A], _R])
+    _F = typing.TypeVar("_F", bound=Callable[..., Any])
+
 
 class classproperty(property):
     """A class property decorator.
@@ -51,7 +52,9 @@ class requires:
     """A decorator for functions that require optional dependencies.
     """
 
-    def __init__(self, module_name):
+    module: Union["ModuleType", BaseException]
+
+    def __init__(self, module_name: str) -> None:
         self.module_name = module_name
 
         try:
@@ -59,12 +62,12 @@ class requires:
         except ImportError as err:
             self.module = err
 
-    def __call__(self, func):
+    def __call__(self, func: "_F") -> "_F":
 
         if isinstance(self.module, ImportError):
 
             @functools.wraps(func)
-            def newfunc(*args, **kwargs):
+            def newfunc(*args, **kwargs):  # type: ignore
                 msg = f"calling {func.__qualname__} requires module {self.module.name}"
                 raise RuntimeError(msg) from self.module
         else:
@@ -73,14 +76,14 @@ class requires:
             basename = self.module_name.split(".")[-1]
             newfunc.__globals__[basename] = self.module
 
-        return newfunc
+        return newfunc # type: ignore
 
 
 class UniversalContainer(object):
     """A container that contains everything.
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
     def __contains__(self, item: object) -> bool:
@@ -99,7 +102,7 @@ def sliding_window(length: int, window: int, step: int) -> Iterator[slice]:
 
 
 @contextlib.contextmanager
-def patch_locale(name: str):
+def patch_locale(name: str) -> Iterator[None]:
     """Create a context manager to locally change the locale in use.
     """
     lc = locale.setlocale(locale.LC_TIME)

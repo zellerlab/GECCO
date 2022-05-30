@@ -7,13 +7,31 @@ import operator
 import subprocess
 import typing
 from collections.abc import Sized
-from typing import Iterable, Iterator, List, NamedTuple, Optional, Type, TextIO, Union
 from subprocess import DEVNULL
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Type,
+    TextIO,
+    Union,
+    Sequence,
+)
 
 from ._meta import classproperty, requires
 
+if typing.TYPE_CHECKING:
+    import pandas
+
 
 _SELF = typing.TypeVar("_SELF")
+_TABLE = typing.TypeVar("_TABLE", bound="Table")
+RowType = typing.TypeVar("RowType", bound="Table.Row")
 
 
 def _parse_str(value: str) -> str:
@@ -78,19 +96,20 @@ class Loadable(metaclass=abc.ABCMeta):
 
     @classmethod
     def loads(cls: typing.Type[_SELF], s: str) -> _SELF:
-        return self.load(io.StringIO(s))
+        return cls.load(io.StringIO(s))  # type: ignore
 
 
-class Table(Dumpable, Loadable, Sized):
+class Table(Dumpable, Loadable, Sequence["Table.Row"]):
     """A metaclass for objects that
     """
 
-    Row: typing.Type[typing.NamedTuple]
+    class Row(typing.NamedTuple):
+        pass
 
     def __bool__(self) -> bool:  # noqa: D105
         return len(self) != 0
 
-    def __iadd__(self: _SELF, rhs: _SELF) -> _SELF:  # noqa: D105
+    def __iadd__(self: _TABLE, rhs: object) -> _TABLE:  # noqa: D105
         if not isinstance(rhs, type(self)):
             return NotImplemented
         for col in self.__annotations__:
@@ -98,21 +117,21 @@ class Table(Dumpable, Loadable, Sized):
         return self
 
     @typing.overload
-    def __getitem__(self: _SELF, item: slice) -> _SELF:  # noqa: D105
+    def __getitem__(self, item: int) -> "Table.Row":  # noqa: D105
         pass
 
     @typing.overload
-    def __getitem__(self, item: int) -> "Row":  # noqa: D105
+    def __getitem__(self: _TABLE, item: slice) -> _TABLE:  # noqa: D105
         pass
 
-    def __getitem__(self: _SELF, item: Union[slice, int]) -> Union[_SELF, "Row"]:   # noqa: D105
+    def __getitem__(self: _TABLE, item: Union[slice, int]) -> Union[_TABLE, "Table.Row"]:   # noqa: D105
         columns = [getattr(self, col)[item] for col in self.__annotations__]
         if isinstance(item, slice):
             return type(self)(*columns)
         else:
             return self.Row(*columns)
 
-    def __iter__(self) -> Iterator["Row"]:  # noqa: D105
+    def __iter__(self) -> Iterator["Table.Row"]:  # noqa: D105
         columns = { c: operator.attrgetter(c) for c in self.__annotations__ }
         for i in range(len(self)):
             row = { c: getter(self)[i] for c, getter in columns.items() }
@@ -126,7 +145,7 @@ class Table(Dumpable, Loadable, Sized):
                 optional_columns.add(name)
         return optional_columns
 
-    _FORMAT_FIELD: dict = {
+    _FORMAT_FIELD: Dict[Any, Callable[[Any], str]] = {
         str: _format_str,
         int: _format_int,
         float: _format_float,
@@ -167,7 +186,7 @@ class Table(Dumpable, Loadable, Sized):
         for i in range(len(self)):
             writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
 
-    _PARSE_FIELD: dict = {
+    _PARSE_FIELD: Dict[Any, Callable[[str], Any]] = {
         str: _parse_str,
         int: _parse_int,
         float: _parse_float,
@@ -177,7 +196,7 @@ class Table(Dumpable, Loadable, Sized):
     }
 
     @classmethod
-    def load(cls: typing.Type[_SELF], fh: TextIO, dialect: str = "excel-tab") -> _SELF:
+    def load(cls: typing.Type[_TABLE], fh: TextIO, dialect: str = "excel-tab") -> _TABLE:
         """Load a table in CSV format from a file handle in text mode.
         """
         table = cls()
@@ -204,14 +223,14 @@ class Table(Dumpable, Loadable, Sized):
         return table
 
     @requires("pandas")
-    def to_dataframe(self) -> "pandas.DataFrame":
+    def to_dataframe(self) -> "pandas.DataFrame":  # type: ignore
         """Convert the table to a `~pandas.DataFrame`.
 
         Raises:
             ImportError: if the `pandas` module could not be imported.
 
         """
-        frame = pandas.DataFrame()  # type: ignore
+        frame = pandas.DataFrame()
         for column in self.__annotations__:
             frame[column] = getattr(self, column)
         return frame

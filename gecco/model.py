@@ -22,6 +22,7 @@ import numpy
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
 from Bio.SeqRecord import SeqRecord
+from numpy.typing import NDArray
 
 from . import __version__
 from ._base import Dumpable, Table, _SELF
@@ -360,7 +361,7 @@ class Cluster:
         normalize: bool = True,
         minlog_weights: bool = False,
         pvalue: bool = True,
-    ) -> "numpy.ndarray[float]":
+    ) -> NDArray[numpy.double]:
         """Compute weighted domain composition with respect to ``all_possible``.
 
         Arguments:
@@ -502,7 +503,7 @@ class _UnknownSeq(Seq):
 
 
 @dataclass(frozen=True)
-class FeatureTable(Table):
+class FeatureTable(Table, Sequence["FeatureTable.Row"]):
     """A table storing condensed domain annotations from different genes.
     """
 
@@ -535,6 +536,17 @@ class FeatureTable(Table):
         domain_start: int
         domain_end: int
         bgc_probability: Optional[float]
+
+    @typing.overload  # type: ignore
+    def __getitem__(self, item: int) -> "FeatureTable.Row":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "FeatureTable.Row":  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "FeatureTable.Row"]:   # noqa: D105
+        return super().__getitem__(item)  # type: ignore
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
@@ -597,7 +609,7 @@ def _parse_product_type(value: str) -> "ProductType":
 
 
 @dataclass(frozen=True)
-class ClusterTable(Table):
+class ClusterTable(Table, Sequence["ClusterTable.Row"]):
     """A table storing condensed information from several clusters.
     """
 
@@ -657,6 +669,17 @@ class ClusterTable(Table):
 
     def __len__(self) -> int:  # noqa: D105
         return len(self.sequence_id)
+
+    @typing.overload  # type: ignore
+    def __getitem__(self, item: int) -> "ClusterTable.Row":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "ClusterTable.Row":  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[slice, int]) -> Union["ClusterTable", "ClusterTable.Row"]:   # noqa: D105
+        return super().__getitem__(item)  # type: ignore
 
     def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D102
         writer = csv.writer(fh, dialect=dialect)
@@ -732,7 +755,7 @@ class ClusterTable(Table):
 
 
 @dataclass(frozen=True)
-class GeneTable(Table):
+class GeneTable(Table, Sequence["GeneTable.Row"]):
     """A table storing gene coordinates and optional biosynthetic probabilities.
     """
 
@@ -755,6 +778,17 @@ class GeneTable(Table):
         strand: str
         average_p: Optional[float]
         max_p: Optional[float]
+
+    @typing.overload  # type: ignore
+    def __getitem__(self, item: int) -> "GeneTable.Row":  # noqa: D105
+        pass
+
+    @typing.overload
+    def __getitem__(self, item: slice) -> "GeneTable.Row":  # noqa: D105
+        pass
+
+    def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "GeneTable.Row"]:   # noqa: D105
+        return super().__getitem__(item)  # type: ignore
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "GeneTable":
@@ -779,7 +813,7 @@ class GeneTable(Table):
         be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
 
         """
-        for row in self:
+        for row in typing.cast(Iterable["GeneTable.Row"], self):
             source = SeqRecord(id=row.sequence_id, seq=_UnknownSeq())
             strand = Strand.Coding if row.strand == "+" else Strand.Reverse
             seq = Seq("X" * (row.end - row.start // 3))

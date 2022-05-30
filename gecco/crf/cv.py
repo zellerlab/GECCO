@@ -3,17 +3,18 @@
 
 import math
 import multiprocessing
-from typing import Iterable, Iterator, List, Set, Tuple
+from typing import Any, Iterable, Iterator, List, Set, Tuple
 
 import numpy
 import sklearn.model_selection
+from numpy.typing import NDArray
 
 
 class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
     """A `~sklearn.model_selection.LeaveOneGroupOut` supporting multiple labels.
 
-    If a sample has multiple class labels, it will be excluded from both 
-    training and testing data when one of its labels corresponds to the 
+    If a sample has multiple class labels, it will be excluded from both
+    training and testing data when one of its labels corresponds to the
     fold::
 
         >>> loto = LeaveOneGroupOut()
@@ -76,16 +77,15 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         labels = {label for labels in groups for label in labels}
         return len(labels)
 
-    def split(self, X, y=None, groups=None):  # noqa: D102
+    def split(self, X: Any, y: Any = None, groups: Any = None) -> Iterator[Tuple[NDArray[numpy.int_], NDArray[numpy.int_]]]:  # noqa: D102
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None")
         # collect groups
         group_sets: List[Set[object]] = list(map(set, groups))
         unique_groups = {label for labels in group_sets for label in labels}
-        # 
+        #
         indices = numpy.arange(len(X))
-        for ty in sorted(unique_groups):
+        for ty in sorted(unique_groups):  # type: ignore
             test_mask = numpy.array([list(group) == [ty] for group in groups])
             train_mask = numpy.array([ty not in group for group in groups])
             yield indices[train_mask], indices[test_mask]
-            

@@ -11,6 +11,8 @@ from ..model import Domain, Protein
 from .._meta import requires
 
 if typing.TYPE_CHECKING:
+    import fisher
+    from statsmodels.stats import multitest
     from ..bgc import BGC
 
 _CORRECTION_METHODS = {

@@ -144,13 +144,13 @@ class ClusterRefiner:
             else:
                 edge_genes = set()
             # NOTE (@althonos): it is needed for compatibility with the post-processed results
-            #                   that we filter on any number of cluster genes, but it would be 
+            #                   that we filter on any number of cluster genes, but it would be
             #                   better to filter on the number of annotated cluster genes instead.
             edge_crit = len(set(g.id for g in cluster.genes).difference(edge_genes)) >= self.n_cds
             return cds_crit and edge_crit
         elif self.criterion == "antismash":
             domains = {d.name for gene in cluster.genes for d in gene.protein.domains}
-            p_crit = numpy.mean([g.average_probability for g in cluster.genes]) >= self.average_threshold
+            p_crit = numpy.mean([typing.cast(float, g.average_probability) for g in cluster.genes]) >= self.average_threshold
             bio_crit = len(domains & BIO_PFAMS) >= self.n_biopfams
             cds_crit = len(cluster.genes) >= self.n_cds
             return p_crit and bio_crit and cds_crit

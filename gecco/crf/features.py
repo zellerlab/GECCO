@@ -39,7 +39,7 @@ def extract_features_domain(
     sequence: Iterable[Gene], empty: bool = True
 ) -> List[Dict[str, bool]]:
     """Extract features at the domain level."""
-    features = []
+    features: List[Dict[str, bool]] = []
     for gene in sequence:
         if gene.protein.domains:
             features.extend({domain.name: True} for domain in gene.protein.domains)
@@ -51,7 +51,7 @@ def extract_features_domain(
 def extract_labels_protein(sequence: Iterable[Gene], empty: bool = True) -> List["str"]:
     """Extract labels at the gene level for training."""
     return [
-        "1" if gene.average_probability > 0.5 else "0"
+        "1" if typing.cast(float, gene.average_probability) > 0.5 else "0"
         for gene in sequence
         if gene.protein.domains or empty
     ]
@@ -59,21 +59,21 @@ def extract_labels_protein(sequence: Iterable[Gene], empty: bool = True) -> List
 
 def extract_labels_domain(sequence: Iterable[Gene], empty: bool = True) -> List["str"]:
     """Extract labels at the domain level for training."""
-    labels = []
+    labels: List[str] = []
     for gene in sequence:
         if gene.protein.domains:
             labels.extend(
-                "1" if domain.probability > 0.5 else "0"
+                "1" if typing.cast(float, domain.probability) > 0.5 else "0"
                 for domain in gene.protein.domains
             )
         elif empty:
-            labels.append("1" if gene.average_probability > 0.5 else "0")
+            labels.append("1" if typing.cast(float, gene.average_probability) > 0.5 else "0")
     return labels
 
 
 def annotate_probabilities_protein(
-    sequence: Iterable[Gene],
-    probabilities: Iterable[float],
+    sequence: Sequence[Gene],
+    probabilities: Sequence[float],
     empty: bool = True,
 ) -> Iterable[Gene]:
     """Annotate genes with marginals obtained from a CRF at the protein level.

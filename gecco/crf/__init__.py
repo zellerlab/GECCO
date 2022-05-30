@@ -18,7 +18,9 @@ import typing
 import warnings
 from typing import (
     Any,
+    BinaryIO,
     Callable,
+    ContextManager,
     Dict,
     FrozenSet,
     Iterable,
@@ -27,6 +29,7 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
+    TextIO,
     Tuple,
     Type,
     Union,
@@ -75,8 +78,8 @@ class ClusterCRF(object):
         """
         # get the path to the pickled model and read its signature file
         if model_path is not None:
-            pkl_file = open(os.path.join(model_path, "model.pkl"), "rb")
-            md5_file = open(os.path.join(model_path, "model.pkl.md5"))
+            pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "model.pkl"), "rb")
+            md5_file: ContextManager[TextIO] = open(os.path.join(model_path, "model.pkl.md5"))
         else:
             pkl_file = importlib_resources.open_binary(__name__, "model.pkl")
             md5_file = importlib_resources.open_text(__name__, "model.pkl.md5")
@@ -91,7 +94,7 @@ class ClusterCRF(object):
                 hasher.update(typing.cast(bytes, chunk))
             if hasher.hexdigest().upper() != signature.upper():
                 raise ValueError("MD5 hash of model data does not match signature")
-            pkl_file.seek(0)
+            pkl_file.seek(0)  # type: ignore
             return pickle.load(bin)  # type: ignore
 
     def __init__(
@@ -195,7 +198,7 @@ class ClusterCRF(object):
                 marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
                 numpy.maximum(probabilities[win], marginals, out=probabilities[win])
             # label genes with maximal probabilities
-            predicted.extend(annotate_probabilities(sequence, probabilities[delta//2:][:len(sequence)]))
+            predicted.extend(annotate_probabilities(sequence, probabilities[delta//2:][:len(sequence)]))  # type: ignore
 
         # return the genes that were passed as input but now having BGC
         return predicted
@@ -234,7 +237,7 @@ class ClusterCRF(object):
                 (gene.protein for gene in genes),
                 correction_method=correction_method,
             )
-            sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]
+            sorted_sig = sorted(sig, key=sig.get)[:int(select*len(sig))]  # type: ignore
             self.significant_features = frozenset(sorted_sig)
             # check that we don't select "random" domains
             if sig[sorted_sig[-1]] == 1.0:
