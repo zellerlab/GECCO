@@ -70,15 +70,15 @@ class PyrodigalFinder(ORFFinder):
         self.cpus = cpus
         self.orf_finder =  pyrodigal.OrfFinder(meta=metagenome, mask=mask)
 
-    def _train(self, records):
+    def _train(self, records: Iterable[SeqRecord]) -> pyrodigal.TrainingInfo:
         sequences = []
-        for i, seq in enumerate(parse(args.i)):
+        for i, record in enumerate(records):
             if i > 0:
                 sequences.append("TTAATTAATTAA")
-            sequences.append(seq.seq)
+            sequences.append(str(record.seq))
         if len(sequences) > 1:
             sequences.append("TTAATTAATTAA")
-        self.orf_finder.train("".join(sequences))
+        return self.orf_finder.train("".join(sequences))
 
     def _process_record(self, record: SeqRecord) -> pyrodigal.Genes:
         return record, self.orf_finder.find_genes(str(record.seq))
@@ -113,6 +113,7 @@ class PyrodigalFinder(ORFFinder):
         """
         # detect the number of CPUs
         _cpus = self.cpus if self.cpus > 0 else os.cpu_count()
+        _progress = (lambda x,y: None) if progress is None else progress
 
         # train first if needed
         if not self.metagenome:
@@ -122,6 +123,7 @@ class PyrodigalFinder(ORFFinder):
         # run in parallel using a pool
         with pool_factory(_cpus) as pool:
             for record, orfs in pool.imap(self._process_record, records):
+                _progress(record, len(orfs))
                 for j, orf in enumerate(orfs):
                     # wrap the protein into a Protein object
                     prot_seq = Seq(orf.translate())

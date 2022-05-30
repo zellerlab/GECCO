@@ -187,7 +187,7 @@ class Annotate(Command):  # noqa: D101
         unit = "contigs" if len(sequences) > 1 else "contig"
         task = self.progress.add_task(description="Finding ORFs", total=len(sequences), unit=unit, precision="")
 
-        def callback(record, found, total):
+        def callback(record, found):
             self.success("Found", found, "genes in record", repr(record.id), level=2)
             self.progress.update(task, advance=1)
 
