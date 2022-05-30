@@ -22,11 +22,13 @@ import numpy
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
 from Bio.SeqRecord import SeqRecord
-from numpy.typing import NDArray
 
 from . import __version__
 from ._base import Dumpable, Table, _SELF
 from ._meta import patch_locale
+
+if typing.TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 __all__ = [
@@ -361,7 +363,7 @@ class Cluster:
         normalize: bool = True,
         minlog_weights: bool = False,
         pvalue: bool = True,
-    ) -> NDArray[numpy.double]:
+    ) -> "NDArray[numpy.double]":
         """Compute weighted domain composition with respect to ``all_possible``.
 
         Arguments:

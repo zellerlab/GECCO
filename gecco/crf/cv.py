@@ -3,11 +3,14 @@
 
 import math
 import multiprocessing
+import typing
 from typing import Any, Iterable, Iterator, List, Set, Tuple
 
 import numpy
 import sklearn.model_selection
-from numpy.typing import NDArray
+
+if typing.TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
@@ -77,7 +80,7 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
         labels = {label for labels in groups for label in labels}
         return len(labels)
 
-    def split(self, X: Any, y: Any = None, groups: Any = None) -> Iterator[Tuple[NDArray[numpy.int_], NDArray[numpy.int_]]]:  # noqa: D102
+    def split(self, X: Any, y: Any = None, groups: Any = None) -> Iterator[Tuple["NDArray[numpy.int_]", "NDArray[numpy.int_]"]]:  # noqa: D102
         if groups is None:
             raise ValueError("The 'groups' parameter should not be None")
         # collect groups

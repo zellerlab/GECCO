@@ -25,7 +25,6 @@ import numpy
 import scipy.sparse
 import sklearn.ensemble
 import sklearn.preprocessing
-from numpy.typing import NDArray
 
 from ..model import ProductType, Cluster
 
@@ -33,6 +32,10 @@ try:
     import importlib.resources as importlib_resources
 except ImportError:
     import importlib_resources  # type: ignore
+
+if typing.TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 __all__ = ["TypeBinarizer", "TypeClassifier"]
 
@@ -52,7 +55,7 @@ class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
                 matrix[i, j] = cls in label.names
         return matrix
 
-    def inverse_transform(self, yt: NDArray[numpy.bool_]) -> Iterable[ProductType]:
+    def inverse_transform(self, yt: "NDArray[numpy.bool_]") -> Iterable[ProductType]:
         classes = []
         for y in yt:
             filtered = (cls for i, cls in enumerate(self.classes_) if y[i])
