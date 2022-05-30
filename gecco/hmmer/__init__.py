@@ -41,7 +41,7 @@ class HMM(typing.NamedTuple):
     version: str
     url: str
     path: str
-    size: int
+    size: Optional[int] = None
     exclusive: bool = False
     relabel_with: Optional[str] = None
     md5: Optional[str] = None

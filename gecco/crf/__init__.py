@@ -17,6 +17,7 @@ import textwrap
 import typing
 import warnings
 from typing import (
+    Any,
     Callable,
     Dict,
     FrozenSet,
@@ -46,7 +47,7 @@ from .select import fisher_significance
 try:
     import importlib.resources as importlib_resources
 except ImportError:
-    import importlib_resources
+    import importlib_resources  # type: ignore
 
 __all__ = ["ClusterCRF"]
 
@@ -99,7 +100,7 @@ class ClusterCRF(object):
         algorithm: str = "lbfgs",
         window_size: int = 5,
         window_step: int = 1,
-        **kwargs: Dict[str, object],
+        **kwargs: Any,
     ) -> None:
         """Create a new `ClusterCRF` instance.
 

@@ -12,6 +12,7 @@ import operator
 import multiprocessing
 import random
 import re
+import signal
 import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping
 

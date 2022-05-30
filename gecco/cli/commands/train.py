@@ -213,7 +213,7 @@ class Train(Command):  # noqa: D101
                 task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
-                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:
+                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:  # type: ignore
                     features += FeatureTable.load(io.TextIOWrapper(in_))
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))

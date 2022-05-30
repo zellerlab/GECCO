@@ -149,7 +149,7 @@ class Domain:
         stride = 1 if protein_coordinates else 3
         loc = FeatureLocation((self.start-1)*stride, self.end*stride)
         qualifiers = dict(self.qualifiers)
-        qualifiers.setdefault("standard_name", self.name)
+        qualifiers.setdefault("standard_name", [self.name])
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 
@@ -232,10 +232,6 @@ class Gene:
         p = [d.probability for d in self.protein.domains if d.probability is not None]
         return sum(p) / len(p) if p else None
 
-    @average_probability.setter
-    def average_probability(self, probability: Optional[float]) -> None:
-        self._probability = probability
-
     @property
     def maximum_probability(self) -> Optional[float]:
         """`float`: The highest of domain probabilities of being biosynthetic.
@@ -254,8 +250,8 @@ class Gene:
         # but Biopython expects 0-based ranges with exclusive ends
         loc = FeatureLocation(start=self.start, end=self.end+1, strand=int(self.strand))
         qualifiers = dict(self.qualifiers)
-        qualifiers.setdefault("locus_tag", self.protein.id)
-        qualifiers.setdefault("translation", str(self.protein.seq))
+        qualifiers.setdefault("locus_tag", [self.protein.id])
+        qualifiers.setdefault("translation", [str(self.protein.seq)])
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
     def with_protein(self, protein: "Protein") -> "Gene":
@@ -310,14 +306,14 @@ class Cluster:
     id: str
     genes: List[Gene]
     type: ProductType
-    type_probabilities: Mapping[str, float]
+    type_probabilities: Dict[str, float]
 
     def __init__(
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
         type: ProductType = ProductType(),
-        type_probabilities: Optional[Dict[ProductType, float]] = None,
+        type_probabilities: Optional[Dict[str, float]] = None,
     ):  # noqa: D107
         self.id = id
         self.genes = genes or list()
@@ -607,10 +603,10 @@ class ClusterTable(Table):
 
     sequence_id: List[str] = field(default_factory = list)
     bgc_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
-    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
-    average_p: List[Optional[float]] = field(default_factory = list)    # type: ignore
-    max_p: List[Optional[float]] = field(default_factory = list)        # type: ignore
+    start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
+    end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
+    average_p: List[Optional[float]] = field(default_factory = list)
+    max_p: List[Optional[float]] = field(default_factory = list)
 
     type: List[ProductType] = field(default_factory = list)
     type_p: List[Dict[str, float]] = field(default_factory = list)
@@ -688,7 +684,7 @@ class ClusterTable(Table):
             for name in classes:
                 column_names.insert(type_p_col, f"{name.lower()}_probability")
                 columns.insert(type_p_col, [self.type_p[i][name] for i in range(len(self))])
-                formatters.insert(type_p_col, str)
+                formatters.insert(type_p_col, str)  # type: ignore
                 type_p_col += 1
 
          # write header if desired
@@ -724,7 +720,7 @@ class ClusterTable(Table):
         for row in reader:
             probabilities = {}
             for name, col, value, parser in zip(header, columns, row, parsers):
-                if parser is not None:
+                if parser is not None and col is not None:
                     col.append(parser(value))
                 elif name.endswith("_probability"):
                     probabilities[name[:-12]] = float(value)
@@ -745,8 +741,8 @@ class GeneTable(Table):
     start: List[int] = field(default_factory = lambda: array("l"))    # type: ignore
     end: List[int] = field(default_factory = lambda: array("l"))      # type: ignore
     strand: List[str] = field(default_factory = list)
-    average_p: List[Optional[float]] = field(default_factory = list)  # type: ignore
-    max_p: List[Optional[float]] = field(default_factory = list)      # type: ignore
+    average_p: List[Optional[float]] = field(default_factory = list)
+    max_p: List[Optional[float]] = field(default_factory = list)
 
     class Row(NamedTuple):
         """A single row in a gene table.
