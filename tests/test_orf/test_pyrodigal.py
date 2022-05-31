@@ -48,6 +48,8 @@ class TestPyrodigalFinder(unittest.TestCase):
             self.assertEqual(subseq.translate(), gene.protein.seq)
 
     def test_progress_callback(self):
+        """Test that the progress callback is called for each genome.
+        """
         progress = mock.MagicMock()
         finder = PyrodigalFinder(cpus=1)
         genes = list(finder.find_genes([self.genome], progress=progress))

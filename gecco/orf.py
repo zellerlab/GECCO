@@ -186,11 +186,18 @@ class CDSFinder(ORFFinder):
                 if protein.id in ids:
                     raise ValueError(f"Duplicate gene identifier found in {record.id!r}: {protein.id!r}")
                 ids.add(protein.id)
+                # fix coordinates (using 1-based, leftmost start in `Gene`, no STOP codon)
+                if feature.location.strand == -1:
+                    start = feature.location.start + 4
+                    end = feature.location.end
+                else:
+                    start = feature.location.start + 1
+                    end = feature.location.end - 3
                 # wrap the gene into a Gene
                 yield Gene(
                     source=record,
-                    start=min(feature.location.start, feature.location.end),
-                    end=max(feature.location.start, feature.location.end),
+                    start=start,
+                    end=end,
                     strand=Strand(feature.location.strand),
                     protein=protein,
                 )
