@@ -75,15 +75,22 @@ Additional parameters of interest are:
 - `--threshold`, controlling the minimum probability for a gene to be
   considered part of a BGC region. Using a lower number will increase the
   number (and possibly length) of predictions, but reduce accuracy. The
-  default of *0.3* was selected to optimize precision/recall on a test set
+  default of *0.8* was selected to optimize precision/recall on a test set
   of 364 BGCs from [MIBiG 2.0](https://mibig.secondarymetabolites.org/).
+- `--cds-feature`, which can be supplied a feature name to extract genes
+  if the input file already contains gene annotations instead of predicting
+  genes with [Pyrodigal](https://pyrodigal.readthedocs.io). A common value
+  for records downloaded from GenBank is `--cds-feature CDS`.
 
 ## 🔎 Results
 
 GECCO will create the following files:
 
+- `{genome}.genes.tsv`: The *genes* file, containing the genes extracted
+  or predicted from the input file, and per-gene BGC probabilities
+  predicted by the CRF.
 - `{genome}.features.tsv`: The *features* file, containing the identified
-  proteins and domains in the input sequences, in tabular format.
+  domains in the input sequences, in tabular format.
 - `{genome}.clusters.tsv`: If any were found, a *clusters* file, containing
   the coordinates of the predicted clusters along their putative biosynthetic
   type, in tabular format.
@@ -91,9 +98,9 @@ GECCO will create the following files:
   containing the cluster sequence annotated with its member proteins and domains.
 
 To get a more visual way of exploring of the predictions, you
-can open the GenBank files in a genome editing software like [UGENE](http://ugene.net/),
-or you can load the results into an AntiSMASH report.
-Check the [Integrations](https://gecco.embl.de/integrations.html#antismash) page of the
+can open the GenBank files in a genome editing software like [UGENE](http://ugene.net/).
+You can otherwise load the results into an AntiSMASH report: check the
+[Integrations](https://gecco.embl.de/integrations.html#antismash) page of the
 documentation for a step-by-step guide.
 
 
