@@ -111,8 +111,8 @@ class update_interpro(setuptools.Command):
         path = os.path.join("gecco", "interpro", "interpro.json")
         self.info("getting Pfam entries from InterPro")
         entries.extend(self.download_interpro_entries("pfam"))
-        self.info("getting Tigrfam entries from InterPro")
-        entries.extend(self.download_interpro_entries("tigrfams"))
+        # self.info("getting Tigrfam entries from InterPro")
+        # entries.extend(self.download_interpro_entries("tigrfams"))
         # sort by id
         entries.sort(key=lambda entry: entry["accession"])
         with open(path, "wt") as dest:
