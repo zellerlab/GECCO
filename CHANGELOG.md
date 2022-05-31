@@ -5,7 +5,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.3...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.4...master
+
+
+## [v0.9.4] - 2022-05-31
+[v0.9.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.3...v0.9.4
+
+### Added
+- `classes_` property to `TypeClassifier` to access the `classes_` attribute of the `TypeBinarizer`.
+- Alternative ORF finder `CDSFinder` which simply extracts CDS features from input sequences ([#8](https://github.com/zellerlab/GECCO/issues/8)).
+- Support for annotating domains with "exclusive" HMMs to annotate genes with *at most* one HMM from the library.
+
+### Changed
+- `ProductType` is not restricted to MIBiG types anymore and can support any string as a base type identifier.
+- `PyrodigalFinder` now uses `multiprocessing.pool.ThreadPool` instead of custom thread code thanks to `OrfFinder.find_genes` reentrancy introduced in Pyrodigal `v1.0`. 
+- `PyrodigalFinder` can now be used in single / non-meta mode from the API.
+- BUmped minimum `rich` version to `12.3` to use `None` total in progress bars when the size of an HMM library is unknown.
+
+### Fixed
+- Broken MyPy type annotations in the `gecco.model` and `gecco.cli` modules.
 
 
 ## [v0.9.3] - 2022-05-13
