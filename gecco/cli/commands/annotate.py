@@ -159,7 +159,9 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
             ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # attempt to create the output directory, checking it doesn't
             # already contain output files (or raise a warning)
-            self._make_output_directory(extensions=["features.tsv", "genes.tsv"])
+            base, _ = os.path.splitext(os.path.basename(self.genome))
+            outputs = [f"{base}.features.tsv", f"{base}.genes.tsv"]
+            self._make_output_directory(outputs)
             # load sequences and extract genes
             sequences = self._load_sequences()
             genes = self._extract_genes(sequences)

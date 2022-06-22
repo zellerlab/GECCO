@@ -141,7 +141,7 @@ class OutputWriterMixin(Command):
     genome: str
     output_dir: str
 
-    def _make_output_directory(self, extensions: List[str]) -> None:
+    def _make_output_directory(self, outputs: List[str]) -> None:
         # Make output directory
         self.info("Using", "output folder", repr(self.output_dir), level=1)
         try:
@@ -151,12 +151,8 @@ class OutputWriterMixin(Command):
             raise CommandExit(err.errno) from err
 
         # Check if output files already exist
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        # output_exts = ["features.tsv", "genes.tsv", "clusters.tsv"]
-        # if self.antismash_sideload:
-        #     output_exts.append("sideload.json")
-        for ext in extensions:
-            if os.path.isfile(os.path.join(self.output_dir, f"{base}.{ext}")):
+        for output in outputs:
+            if os.path.isfile(os.path.join(self.output_dir, output)):
                 self.warn("Output folder contains files that will be overwritten")
                 break
 

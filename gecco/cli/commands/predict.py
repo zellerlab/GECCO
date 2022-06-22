@@ -170,10 +170,11 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # attempt to create the output directory, checking it doesn't
             # already contain output files (or raise a warning)
-            extensions = ["clusters.tsv", "features.tsv", "genes.tsv"]
+            base, _ = os.path.splitext(os.path.basename(self.genome))
+            outputs = [f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.genes.tsv"]
             if self.antismash_sideload:
-                extensions.append("sideload.json")
-            self._make_output_directory(extensions)
+                extensions.append(f"{base}.sideload.json")
+            self._make_output_directory(outputs)
             # load sequences
             sequences = self._load_sequences()
             # load features

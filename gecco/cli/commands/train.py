@@ -17,14 +17,14 @@ from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping, 
 
 from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
-from ._mixins import TableLoaderMixin, DomainFilterMixin
+from ._mixins import TableLoaderMixin, DomainFilterMixin, OutputWriterMixin
 
 if typing.TYPE_CHECKING:
     from ...crf import ClusterCRF
     from ...model import Cluster, Gene, FeatureTable, ClusterTable
 
 
-class Train(TableLoaderMixin, DomainFilterMixin):  # noqa: D101
+class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
 
@@ -163,27 +163,6 @@ class Train(TableLoaderMixin, DomainFilterMixin):  # noqa: D101
     def _seed_rng(self) -> None:
         self.info("Seeding", "the random number generator with seed", self.seed, level=2)
         random.seed(self.seed)
-
-    def _make_output_directory(self) -> None:
-        # Make output directory
-        self.info("Using", "output folder", repr(self.output_dir), level=1)
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
-        except OSError as err:
-            self.error("Could not create output directory: {}", err)
-            raise CommandExit(err.errno) from err
-        # Check if output files already exist
-        files = [
-            "model.pkl",
-            "model.pkl.md5",
-            "domains.tsv",
-            "types.tsv",
-            "compositions.npz"
-        ]
-        for f in files:
-            if os.path.isfile(os.path.join(self.output_dir, f)):
-                self.warn("Output folder contains files that will be overwritten")
-                break
 
     def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
@@ -345,7 +324,14 @@ class Train(TableLoaderMixin, DomainFilterMixin):  # noqa: D101
             # seed RNG
             self._seed_rng()
             # attempt to create the output directory
-            self._make_output_directory()
+            outputs = [
+                "model.pkl",
+                "model.pkl.md5",
+                "domains.tsv",
+                "types.tsv",
+                "compositions.npz"
+            ]
+            self._make_output_directory(outputs)
             # load features
             genes = list(self._load_genes())
             features = self._load_features()

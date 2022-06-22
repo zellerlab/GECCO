@@ -239,10 +239,11 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
             # attempt to create the output directory, checking it doesn't
             # already contain output files (or raise a warning)
-            extensions = ["features.tsv", "genes.tsv", "clusters.tsv"]
+            base, _ = os.path.splitext(os.path.basename(self.genome))
+            outputs = [f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.genes.tsv"]
             if self.antismash_sideload:
-                extensions.append("sideload.json")
-            self._make_output_directory(extensions)
+                outputs.append(f"{base}.sideload.json")
+            self._make_output_directory(outputs)
             # load sequences and extract genes
             sequences = self._load_sequences()
             genes = self._extract_genes(sequences)
