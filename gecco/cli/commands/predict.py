@@ -4,6 +4,7 @@
 import contextlib
 import errno
 import glob
+import io
 import itertools
 import json
 import logging
@@ -21,8 +22,7 @@ import rich.progress
 
 from ... import __version__
 from ._base import Command, CommandExit, InvalidArgument
-from .run import Run
-from .train import Train
+from ._mixins import TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFilterMixin, PredictorMixin
 from .._utils import patch_showwarnings
 from ...model import ProductType
 
@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
     from Bio.SeqIO import SeqRecord
 
 
-class Predict(Run):  # noqa: D101
+class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFilterMixin, PredictorMixin):  # noqa: D101
 
     summary = "predict BGCs on contigs that have already been annotated."
 
@@ -142,7 +142,7 @@ class Predict(Run):  # noqa: D101
             self.features: List[str] = self._check_flag("--features")
             self.genes: str = self._check_flag("--genes")
             self.model: Optional[str] = self._check_flag("--model", optional=True)
-            self.output_dir = self._check_flag("--output-dir")
+            self.output_dir: str = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.no_pad = self._check_flag("--no-pad", bool)
@@ -177,10 +177,10 @@ class Predict(Run):  # noqa: D101
             # load sequences
             sequences = self._load_sequences()
             # load features
-            genes = list(Train._load_genes(self))  # type: ignore
-            features = Train._load_features(self)  # type: ignore
+            genes = list(self._load_genes())
+            features = self._load_features()
             # label genes
-            genes = Train._annotate_genes(self, genes, features)  # type: ignore
+            genes = self._annotate_genes(genes, features)
             genes = list(self._assign_sources(sequences, genes))
             # Sort genes
             self.info("Sorting", "genes by coordinates", level=2)

@@ -17,7 +17,6 @@ import typing
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping, Set
 
 from ... import __version__
-from ...model import ClusterTable
 from ._base import Command, CommandExit, InvalidArgument
 from .._utils import patch_showwarnings
 
@@ -83,6 +82,7 @@ class Convert(Command):  # noqa: D101
     def _convert_gbk_bigslice(self, ctx: contextlib.ExitStack) -> None:
         import Bio.SeqIO
         from Bio.SeqFeature import SeqFeature, FeatureLocation
+        from ...model import ClusterTable
 
         # locate original folder
         if not os.path.exists(self.input_dir):

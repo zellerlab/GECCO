@@ -22,6 +22,7 @@ import rich.progress
 from ... import __version__
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
+from ._mixins import SequenceLoaderMixin, OutputWriterMixin, PredictorMixin
 from .._utils import patch_showwarnings
 from ...model import ProductType
 
@@ -35,7 +36,7 @@ if typing.TYPE_CHECKING:
     from ...model import Cluster, Gene
 
 
-class Run(Annotate):  # noqa: D101
+class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # noqa: D101
 
     summary = "predict BGC from one or several contigs."
 
@@ -179,91 +180,6 @@ class Run(Annotate):  # noqa: D101
         else:
             self.success("Found", len(domains), "selected features", level=2)
             return domains
-
-    def _predict_probabilities(self, genes: List["Gene"]) -> List["Gene"]:
-        from ...crf import ClusterCRF
-
-        if self.model is None:
-            self.info("Loading", "embedded CRF pre-trained model", level=1)
-        else:
-            self.info("Loading", "CRF pre-trained model from", repr(self.model), level=1)
-        crf = ClusterCRF.trained(self.model)
-
-        self.info("Predicting", "cluster probabilitites with the CRF model", level=1)
-        unit = "genes" if len(genes) > 1 else "gene"
-        task = self.progress.add_task("Predicting marginals", total=len(genes), unit=unit, precision="")
-        return list(crf.predict_probabilities(
-            self.progress.track(genes, task_id=task, total=len(genes)),
-            pad=not self.no_pad,
-        ))
-
-    def _extract_clusters(self, genes: List["Gene"]) -> List["Cluster"]:
-        from ...refine import ClusterRefiner
-
-        self.info("Extracting", "predicted biosynthetic regions", level=1)
-        refiner = ClusterRefiner(
-            threshold=self.threshold,
-            criterion=self.postproc,
-            n_cds=self.cds,
-            edge_distance=self.edge_distance
-        )
-
-        total = len({gene.source.id for gene in genes})
-        unit = "contigs" if total > 1 else "contig"
-        task = self.progress.add_task("Extracting clusters", total=total, unit=unit, precision="")
-
-        clusters: List["Cluster"] = []
-        gene_groups = itertools.groupby(genes, lambda g: g.source.id)  # type: ignore
-        for _, gene_group in self.progress.track(gene_groups, task_id=task, total=total):
-            clusters.extend(refiner.iter_clusters(list(gene_group)))
-
-        return clusters
-
-    def _load_type_classifier(self) -> "TypeClassifier":
-        from ...types import TypeClassifier
-
-        self.info("Loading", "type classifier from internal model", level=2)
-        return TypeClassifier.trained(self.model)
-
-    def _predict_types(self, clusters: List["Cluster"], classifier: "TypeClassifier") -> List["Cluster"]:
-        from ...model import ProductType
-
-        self.info("Predicting", "BGC types", level=1)
-
-        unit = "cluster" if len(clusters) == 1 else "clusters"
-        task = self.progress.add_task("Predicting types", total=len(clusters), unit=unit, precision="")
-
-        clusters_new = []
-        for cluster in self.progress.track(clusters, task_id=task):
-            clusters_new.extend(classifier.predict_types([cluster]))
-            if cluster.type:
-                name = "/".join(f"[bold blue]{name}[/]" for name in cluster.type.names)
-                prob = "/".join(f"[bold purple]{cluster.type_probabilities[name]:.0%}[/]" for name in cluster.type.names)
-                self.success(f"Predicted type of [bold blue]{cluster.id}[/] as {name} ({prob} confidence)")
-            else:
-                ty = max(cluster.type_probabilities, key=cluster.type_probabilities.get)   # type: ignore
-                prob = f"[bold purple]{cluster.type_probabilities[ty]:.0%}[/]"
-                name = f"[bold blue]{ty}[/]"
-                self.warn(f"Couldn't assign type to [bold blue]{cluster.id}[/] (maybe {name}, {prob} confidence)")
-
-        return clusters_new
-
-    def _write_cluster_table(self, clusters: List["Cluster"]) -> None:
-        from ...model import ClusterTable
-
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        cluster_out = os.path.join(self.output_dir, f"{base}.clusters.tsv")
-        self.info("Writing", "cluster table to", repr(cluster_out), level=1)
-        with open(cluster_out, "w") as out:
-            ClusterTable.from_clusters(clusters).dump(out)
-
-    def _write_clusters(self, clusters: List["Cluster"]) -> None:
-        from Bio import SeqIO
-
-        for cluster in clusters:
-            gbk_out = os.path.join(self.output_dir, f"{cluster.id}.gbk")
-            self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
-            SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
     def _write_sideload_json(self, clusters: List["Cluster"]) -> None:
         # record version and important parameters

@@ -18,6 +18,7 @@ import signal
 from typing import Any, BinaryIO, Container, Dict, Iterable, Union, Optional, List, TextIO, Mapping
 
 from ._base import Command, CommandExit, InvalidArgument
+from ._mixins import SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin
 from .._utils import (
     guess_sequences_format,
     in_context,
@@ -32,7 +33,7 @@ if typing.TYPE_CHECKING:
     from ...orf import ORFFinder
 
 
-class Annotate(Command):  # noqa: D101
+class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa: D101
 
     summary = "annotate protein features of one or several contigs."
 
@@ -124,96 +125,9 @@ class Annotate(Command):  # noqa: D101
         except InvalidArgument:
             raise CommandExit(1)
 
-    def _custom_hmms(self) -> Iterable["HMM"]:
-        from ...hmmer import HMM
-
-        for path in typing.cast(List[str], self.hmm):
-            base = os.path.basename(path)
-            file: BinaryIO = open(path, "rb")
-            if base.endswith(".gz"):
-                base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
-            base, _ = os.path.splitext(base)
-            yield HMM(
-                id=base,
-                version="?",
-                url="?",
-                path=path,
-                size=None,
-                exclusive=False,
-                relabel_with=r"s/([^\.]*)(\..*)?/\1/"
-            )
-        for path in typing.cast(List[str], self.hmm_x):
-            base = os.path.basename(path)
-            file = open(path, "rb")
-            if base.endswith(".gz"):
-                base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
-            base, _ = os.path.splitext(base)
-            yield HMM(
-                id=base,
-                version="?",
-                url="?",
-                path=path,
-                size=None,
-                exclusive=True,
-                relabel_with=r"s/([^\.]*)(\..*)?/\1/"
-            )
-
     # ---
 
     _OUTPUT_FILES = ["features.tsv", "genes.tsv"]
-
-    def _make_output_directory(self, extensions: List[str]) -> None:
-        # Make output directory
-        self.info("Using", "output folder", repr(self.output_dir), level=1)
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
-        except OSError as err:
-            self.error("Could not create output directory: {}", err)
-            raise CommandExit(err.errno) from err
-
-        # Check if output files already exist
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        # output_exts = ["features.tsv", "genes.tsv", "clusters.tsv"]
-        # if self.antismash_sideload:
-        #     output_exts.append("sideload.json")
-        for ext in extensions:
-            if os.path.isfile(os.path.join(self.output_dir, f"{base}.{ext}")):
-                self.warn("Output folder contains files that will be overwritten")
-                break
-
-    def _load_sequences(self) -> List["SeqRecord"]:
-        from Bio import SeqIO
-
-        try:
-            # guess format or use the one given in CLI
-            if self.format is not None:
-                format: Optional[str] = self.format.lower()
-                self.info("Using", "user-provided sequence format", repr(format), level=2)
-            else:
-                self.info("Detecting", "sequence format from file contents", level=2)
-                format = guess_sequences_format(self.genome)
-                if format is None:
-                    raise RuntimeError(f"Failed to detect format of {self.genome!r}")
-                self.success("Detected", "format of input as", repr(format), level=2)
-            # get filesize and unit
-            input_size = os.stat(self.genome).st_size
-            total, scale, unit = ProgressReader.scale_size(input_size)
-            task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
-            # load sequences
-            self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
-            with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
-                sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))  # type: ignore
-        except FileNotFoundError as err:
-            self.error("Could not find input file:", repr(self.genome))
-            raise CommandExit(err.errno) from err
-        except ValueError as err:
-            self.error("Failed to load sequences:", err)
-            raise CommandExit(getattr(err, "errno", 1)) from err
-        else:
-            self.success("Found", len(sequences), "sequences", level=1)
-            return sequences
 
     def _extract_genes(self, sequences: List["SeqRecord"]) -> List["Gene"]:
         from ...orf import PyrodigalFinder, CDSFinder
@@ -234,76 +148,6 @@ class Annotate(Command):  # noqa: D101
             self.progress.update(task, advance=1)
 
         return list(orf_finder.find_genes(sequences, progress=callback))
-
-    def _annotate_domains(self, genes: List["Gene"], whitelist: Optional[Container[str]] = None) -> List["Gene"]:
-        from ...hmmer import PyHMMER, embedded_hmms
-
-        self.info("Running", "HMMER domain annotation", level=1)
-
-        # Run all HMMs over ORFs to annotate with protein domains
-        hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
-        task = self.progress.add_task(description=f"Annotating domains", unit="HMMs", total=len(hmms), precision="")
-        for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
-            task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
-            callback = lambda h, t: self.progress.update(task, advance=1)
-            self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
-            genes = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback)
-            self.success("Finished", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
-            self.progress.update(task_id=task, visible=False)
-
-        # Count number of annotated domains
-        count = sum(1 for gene in genes for domain in gene.protein.domains)
-        self.success("Found", count, "domains across all proteins", level=1)
-
-        # Filter i-evalue and p-value if required
-        genes = self._filter_domains(genes)
-
-        # Sort genes
-        self.info("Sorting", "genes by coordinates", level=2)
-        genes.sort(key=lambda g: (g.source.id, g.start, g.end))
-        for gene in genes:
-            gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
-
-        return genes
-
-    def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
-        # Filter i-evalue and p-value if required
-        if self.e_filter is not None:
-            self.info("Excluding", "domains with e-value over", self.e_filter, level=1)
-            key = lambda d: d.i_evalue < self.e_filter
-            genes = [
-                gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
-                for gene in genes
-            ]
-        if self.p_filter is not None:
-            self.info("Excluding", "domains with p-value over", self.p_filter, level=1)
-            key = lambda d: d.pvalue < self.p_filter
-            genes = [
-                gene.with_protein(gene.protein.with_domains(filter(key, gene.protein.domains)))
-                for gene in genes
-            ]
-        if self.p_filter is not None or self.e_filter is not None:
-            count = sum(1 for gene in genes for domain in gene.protein.domains)
-            self.info("Using", "remaining", count, "domains", level=1)
-        return genes
-
-    def _write_feature_table(self, genes: List["Gene"]) -> None:
-        from ...model import FeatureTable
-
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
-        self.info("Writing", "feature table to", repr(pred_out), level=1)
-        with open(pred_out, "w") as f:
-            FeatureTable.from_genes(genes).dump(f)
-
-    def _write_genes_table(self, genes: List["Gene"]) -> None:
-        from ...model import GeneTable
-
-        base, _ = os.path.splitext(os.path.basename(self.genome))
-        pred_out = os.path.join(self.output_dir, f"{base}.genes.tsv")
-        self.info("Writing", "gene table to", repr(pred_out), level=1)
-        with open(pred_out, "w") as f:
-            GeneTable.from_genes(genes).dump(f)
 
     # ---
 

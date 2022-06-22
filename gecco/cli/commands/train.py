@@ -17,14 +17,14 @@ from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping, 
 
 from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
-from .annotate import Annotate
+from ._mixins import TableLoaderMixin, DomainFilterMixin
 
 if typing.TYPE_CHECKING:
     from ...crf import ClusterCRF
     from ...model import Cluster, Gene, FeatureTable, ClusterTable
 
 
-class Train(Command):  # noqa: D101
+class Train(TableLoaderMixin, DomainFilterMixin):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
 
@@ -184,83 +184,6 @@ class Train(Command):  # noqa: D101
             if os.path.isfile(os.path.join(self.output_dir, f)):
                 self.warn("Output folder contains files that will be overwritten")
                 break
-
-    def _load_genes(self) -> Iterator["Gene"]:
-        from ...model import GeneTable
-
-        try:
-            # get filesize and unit
-            input_size = os.stat(self.genes).st_size
-            total, scale, unit = ProgressReader.scale_size(input_size)
-            task = self.progress.add_task("Loading genes", total=total, unit=unit, precision=".1f")
-            # load gene table
-            self.info("Loading", "genes table from file", repr(self.genes))
-            with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as genes_file:
-                yield from GeneTable.load(io.TextIOWrapper(genes_file)).to_genes()  # type: ignore
-        except OSError as err:
-            self.error("Fail to parse genes coordinates: {}", err)
-            raise CommandExit(err.errno) from err
-
-    def _load_features(self) -> "FeatureTable":
-        from ...model import FeatureTable
-
-        features = FeatureTable()
-        for filename in self.features:
-            try:
-                # get filesize and unit
-                input_size = os.stat(filename).st_size
-                total, scale, unit = ProgressReader.scale_size(input_size)
-                task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
-                # load features
-                self.info("Loading", "features table from file", repr(filename))
-                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:
-                    features += FeatureTable.load(io.TextIOWrapper(in_)) # type: ignore
-            except FileNotFoundError as err:
-                self.error("Could not find feature file:", repr(filename))
-                raise CommandExit(err.errno) from err
-
-        self.success("Loaded", "a total of", len(features), "features", level=1)
-        return features
-
-    def _annotate_genes(self, genes: List["Gene"], features: "FeatureTable") -> List["Gene"]:
-        from ...model import Domain
-
-        # index genes by protein_id
-        gene_index = { gene.protein.id:gene for gene in genes }
-        if len(gene_index) < len(genes):
-            raise ValueError("Duplicate gene names in input genes")
-
-        # add domains from the feature table
-        unit = "row" if len(features) == 1 else "rows"
-        task = self.progress.add_task("Annotating genes", total=len(features), unit=unit, precision="")
-        for row in typing.cast(Iterable["FeatureTable.Row"], self.progress.track(features, total=len(features), task_id=task)):
-            # get gene by ID and check consistency
-            gene = gene_index[row.protein_id]
-            if gene.source.id != row.sequence_id:
-                raise ValueError(f"Mismatched source sequence for {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
-            elif gene.end - gene.start != row.end - row.start:
-                raise ValueError(f"Mismatched gene length for {row.protein_id!r}: {gene.end - gene.start!r} != {row.end - row.start!r}")
-            elif gene.start != row.start:
-                raise ValueError(f"Mismatched gene start for {row.protein_id!r}: {gene.start!r} != {row.start!r}")
-            elif gene.end != row.end:
-                raise ValueError(f"Mismatched gene end for {row.protein_id!r}: {gene.end!r} != {row.end!r}")
-            elif gene.strand.sign != row.strand:
-                raise ValueError(f"Mismatched gene strand for {row.protein_id!r}: {gene.strand.sign!r} != {row.strand!r}")
-            elif gene.source.id != row.sequence_id:
-                raise ValueError(f"Mismatched sequence ID {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
-            # add the row domain to the gene
-            domain = Domain(
-                name=row.domain,
-                start=row.domain_start,
-                end=row.domain_end,
-                hmm=row.hmm,
-                i_evalue=row.i_evalue,
-                pvalue=row.pvalue,
-            )
-            gene.protein.domains.append(domain)
-
-        # return
-        return list(gene_index.values())
 
     def _fit_model(self, genes: List["Gene"]) -> "ClusterCRF":
         from ...crf import ClusterCRF
@@ -433,7 +356,7 @@ class Train(Command):  # noqa: D101
             for gene in genes:
                 gene.protein.domains.sort(key=operator.attrgetter("start", "end"))
             # filter domains by p-value and/or e-value
-            genes = Annotate._filter_domains(self, genes)   # type: ignore
+            genes = self._filter_domains(genes)
             # load clusters and label genes inside clusters
             clusters = self._load_clusters()
             genes = self._label_genes(genes, clusters)
