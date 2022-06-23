@@ -129,6 +129,7 @@ class TableLoaderMixin(Command):
                 hmm=row.hmm,
                 i_evalue=row.i_evalue,
                 pvalue=row.pvalue,
+                probability=row.bgc_probability,
             )
             gene.protein.domains.append(domain)
 
