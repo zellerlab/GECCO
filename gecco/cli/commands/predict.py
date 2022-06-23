@@ -24,7 +24,6 @@ from ... import __version__
 from ._base import Command, CommandExit, InvalidArgument
 from ._mixins import TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFilterMixin, PredictorMixin
 from .._utils import patch_showwarnings
-from ...model import ProductType
 
 try:
     import importlib.resources as importlib_resources
@@ -77,6 +76,9 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             --force-tsv                   always write TSV output files even
                                           when they are empty (e.g. because
                                           no genes or no clusters were found).
+            --merge-gbk                   output a single file containing
+                                          every detected cluster instead of
+                                          writing one file per cluster.
 
         Parameters - Domain Annotation:
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
@@ -146,16 +148,24 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.no_pad = self._check_flag("--no-pad", bool)
+            self.merge_gbk = self._check_flag("--merge-gbk", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
     # ---
 
     def _assign_sources(self, sequences: List["SeqRecord"], genes: Iterable["Gene"]) -> Iterable["Gene"]:
+        from ...model import Protein, Strand
+
         sequence_index = { record.id:record for record in sequences }
         try:
             for gene in genes:
-                yield gene.with_source(sequence_index[gene.source.id])
+                gene = gene.with_source(sequence_index[gene.source.id])
+                gene_seq = gene.source.seq[gene.start-1:gene.end]
+                if gene.strand == Strand.Reverse:
+                    gene_seq = gene_seq.reverse_complement()
+                gene = gene.with_protein(gene.protein.with_seq(gene_seq.translate()))
+                yield gene
         except KeyError as err:
             self.error("Sequence {!r} not found in {!r}", gene.source.id, self.genome)
             raise CommandExit(1) from err
@@ -211,7 +221,7 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             # write results
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
             self._write_cluster_table(clusters)
-            self._write_clusters(clusters)
+            self._write_clusters(clusters, merge=self.merge_gbk)
             if self.antismash_sideload:
                 self._write_sideload_json(clusters)
             unit = "cluster" if len(clusters) == 1 else "clusters"

@@ -183,13 +183,19 @@ class OutputWriterMixin(Command):
         with open(cluster_out, "w") as out:
             ClusterTable.from_clusters(clusters).dump(out)
 
-    def _write_clusters(self, clusters: List["Cluster"]) -> None:
+    def _write_clusters(self, clusters: List["Cluster"], merge: bool = False) -> None:
         from Bio import SeqIO
 
-        for cluster in clusters:
-            gbk_out = os.path.join(self.output_dir, f"{cluster.id}.gbk")
-            self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
-            SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
+        if merge:
+            base, _ = os.path.splitext(os.path.basename(self.genome))
+            gbk_out = os.path.join(self.output_dir, f"{base}.clusters.gbk")
+            records = (cluster.to_seq_record() for cluster in clusters)
+            SeqIO.write(records, gbk_out, "genbank")
+        else:
+            for cluster in clusters:
+                gbk_out = os.path.join(self.output_dir, f"{cluster.id}.gbk")
+                self.info("Writing", f"cluster [bold blue]{cluster.id}[/] to", repr(gbk_out), level=1)
+                SeqIO.write(cluster.to_seq_record(), gbk_out, "genbank")
 
 
 class DomainFilterMixin(Command):

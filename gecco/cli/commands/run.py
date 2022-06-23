@@ -71,6 +71,9 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             --force-tsv                   always write TSV output files even
                                           when they are empty (e.g. because
                                           no genes or no clusters were found).
+            --merge-gbk                   output a single file containing
+                                          every detected cluster instead of
+                                          writing one file per cluster.
 
         Parameters - Gene Calling:
             -M, --mask                    Enable unknown region masking to
@@ -158,6 +161,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             self.cds_feature = self._check_flag("--cds-feature", optional=True)
             self.locus_tag = self._check_flag("--locus-tag")
             self.no_pad = self._check_flag("--no-pad", bool)
+            self.merge_gbk = self._check_flag("--merge-gbk", bool)
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -280,7 +284,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             # write results
             self.info("Writing", "result files to folder", repr(self.output_dir), level=1)
             self._write_cluster_table(clusters)
-            self._write_clusters(clusters)
+            self._write_clusters(clusters, merge=self.merge_gbk)
             if self.antismash_sideload:
                 self._write_sideload_json(clusters)
             unit = "cluster" if len(clusters) == 1 else "clusters"
