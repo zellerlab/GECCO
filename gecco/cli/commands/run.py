@@ -196,16 +196,20 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                 "configuration": {
                     "cds": repr(self.cds),
                     "e-filter": repr(self.e_filter),
+                    "p-filter": repr(self.p_filter),
                     "postproc": repr(self.postproc),
                     "threshold": repr(self.threshold),
                     "mask": repr(self.mask),
                     "edge-distance": repr(self.edge_distance),
+                    "no-pad": repr(self.no_pad),
                 }
             }
         }
         # record if non-standard HMM or model was used
         if self.hmm:
             data["tool"]["configuration"]["hmm"] = list(self.hmm)
+        if self.hmm_x:
+            data["tool"]["configuration"]["hmm_x"] = list(self.hmm_x)
         if self.model:
             data["tool"]["configuration"]["model"] = self.model
         # create a record per sequence

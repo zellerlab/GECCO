@@ -157,8 +157,11 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
     def _assign_sources(self, sequences: List["SeqRecord"], genes: Iterable["Gene"]) -> Iterable["Gene"]:
         from ...model import Protein, Strand
 
+        self.info("Building", "index of source sequences", level=2)
         sequence_index = { record.id:record for record in sequences }
+
         try:
+            self.info("Assigning", "source sequences to gene objects", level=2)
             for gene in genes:
                 gene = gene.with_source(sequence_index[gene.source.id])
                 gene_seq = gene.source.seq[gene.start-1:gene.end]
@@ -169,6 +172,53 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
         except KeyError as err:
             self.error("Sequence {!r} not found in {!r}", gene.source.id, self.genome)
             raise CommandExit(1) from err
+
+    def _write_sideload_json(self, clusters: List["Cluster"]) -> None:
+        # record version and important parameters
+        data: Dict[str, Any] = {
+            "records": [],
+            "tool": {
+                "name": "GECCO",
+                "version": __version__,
+                "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
+                "configuration": {
+                    "cds": repr(self.cds),
+                    "e-filter": None if self.e_filter is None else repr(self.e_filter),
+                    "p-filter": None if self.p_filter is None else repr(self.p_filter),
+                    "postproc": repr(self.postproc),
+                    "threshold": repr(self.threshold),
+                    "edge-distance": repr(self.edge_distance),
+                    "no-pad": repr(self.no_pad),
+                }
+            }
+        }
+        # record if non-standard HMM or model was used
+        if self.model:
+            data["tool"]["configuration"]["model"] = self.model
+        # create a record per sequence
+        for seq_id, seq_clusters in itertools.groupby(clusters, key=operator.attrgetter("source.id")):
+            data["records"].append({"name": seq_id, "subregions": []})
+            for cluster in seq_clusters:
+                probabilities = {
+                    f"{key.lower()}_probability":f"{value:.3f}"
+                    for key, value in cluster.type_probabilities.items()
+                }
+                data["records"][-1]["subregions"].append({
+                    "start": cluster.start,
+                    "end": cluster.end,
+                    "label": ";".join(sorted(cluster.type.names)) or "Unknown",
+                    "details": {
+                        "average_p": f"{cluster.average_probability:.3f}",
+                        "max_p": f"{cluster.maximum_probability:.3f}",
+                        **probabilities,
+                    }
+                })
+        # write the JSON file to the output folder
+        base, _ = os.path.splitext(os.path.basename(self.genome))
+        sideload_out = os.path.join(self.output_dir, f"{base}.sideload.json")
+        self.info("Writing", "sideload JSON to", repr(sideload_out), level=1)
+        with open(sideload_out, "w") as out:
+            json.dump(data, out, sort_keys=True, indent=4)
 
     # ---
 
@@ -183,7 +233,7 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             base, _ = os.path.splitext(os.path.basename(self.genome))
             outputs = [f"{base}.clusters.tsv", f"{base}.features.tsv", f"{base}.genes.tsv"]
             if self.antismash_sideload:
-                extensions.append(f"{base}.sideload.json")
+                outputs.append(f"{base}.sideload.json")
             self._make_output_directory(outputs)
             # load sequences
             sequences = self._load_sequences()
