@@ -2,6 +2,7 @@
 """
 
 import collections
+import copy
 import csv
 import datetime
 import enum
@@ -185,6 +186,11 @@ class Protein:
             record.seq.alphabet = Alphabet.generic_protein
 
         return record
+
+    def with_seq(self, seq: Seq) -> "Protein":
+        """Copy the current protein and assign it a new sequence.
+        """
+        return Protein(self.id, seq, copy.deepcopy(self.domains))
 
     def with_domains(self, domains: Iterable[Domain]) -> "Protein":
         """Copy the current protein and assign it new domains.
