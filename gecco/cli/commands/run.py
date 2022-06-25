@@ -253,7 +253,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                 outputs.append(f"{base}.sideload.json")
             self._make_output_directory(outputs)
             # load sequences and extract genes
-            sequences = self._load_sequences()
+            sequences = list(self._load_sequences())
             genes = self._extract_genes(sequences)
             if genes:
                 self.success("Found", "a total of", len(genes), "genes", level=1)

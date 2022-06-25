@@ -20,7 +20,7 @@ class SequenceLoaderMixin(Command):
     format: Optional[str]
     genome: str
 
-    def _load_sequences(self) -> List["SeqRecord"]:
+    def _load_sequences(self) -> Iterator["SeqRecord"]:
         from Bio import SeqIO
 
         try:
@@ -39,9 +39,12 @@ class SequenceLoaderMixin(Command):
             total, scale, unit = ProgressReader.scale_size(input_size)
             task = self.progress.add_task("Loading sequences", total=total, unit=unit, precision=".1f")
             # load sequences
+            n = 0
             self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
             with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
-                sequences = list(SeqIO.parse(io.TextIOWrapper(f), format))  # type: ignore
+                for record in SeqIO.parse(io.TextIOWrapper(f), format):  # type: ignore
+                    yield record
+                    n += 1
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
             raise CommandExit(err.errno) from err
@@ -49,8 +52,7 @@ class SequenceLoaderMixin(Command):
             self.error("Failed to load sequences:", err)
             raise CommandExit(getattr(err, "errno", 1)) from err
         else:
-            self.success("Found", len(sequences), "sequences", level=1)
-            return sequences
+            self.success("Found", n, "sequences", level=1)
 
 
 class TableLoaderMixin(Command):

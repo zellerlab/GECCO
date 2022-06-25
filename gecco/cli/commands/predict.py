@@ -235,11 +235,11 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             if self.antismash_sideload:
                 outputs.append(f"{base}.sideload.json")
             self._make_output_directory(outputs)
-            # load sequences
-            sequences = self._load_sequences()
             # load features
             genes = list(self._load_genes())
             features = self._load_features()
+            # load sequences
+            sequences = self._load_sequences()
             # label genes
             genes = self._annotate_genes(genes, features)
             genes = list(self._assign_sources(sequences, genes))

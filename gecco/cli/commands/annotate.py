@@ -163,7 +163,7 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
             outputs = [f"{base}.features.tsv", f"{base}.genes.tsv"]
             self._make_output_directory(outputs)
             # load sequences and extract genes
-            sequences = self._load_sequences()
+            sequences = list(self._load_sequences())
             genes = self._extract_genes(sequences)
             self._write_genes_table(genes)
             if genes:
