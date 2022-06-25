@@ -154,11 +154,18 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
 
     # ---
 
-    def _assign_sources(self, sequences: List["SeqRecord"], genes: Iterable["Gene"]) -> Iterable["Gene"]:
+    def _assign_sources(self, sequences: Iterable["SeqRecord"], genes: List["Gene"]) -> Iterable["Gene"]:
         from ...model import Protein, Strand
 
+        self.info("Extracting", "known sequences from gene list", level=2)
+        known_sequences = { gene.source.id for gene in genes }
+
         self.info("Building", "index of source sequences", level=2)
-        sequence_index = { record.id:record for record in sequences }
+        sequence_index = {
+            record.id:record
+            for record in sequences
+            if record.id in known_sequences
+        }
 
         try:
             self.info("Assigning", "source sequences to gene objects", level=2)
