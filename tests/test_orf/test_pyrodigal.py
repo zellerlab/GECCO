@@ -22,10 +22,17 @@ class TestPyrodigalFinder(unittest.TestCase):
         cls.genome = Bio.SeqIO.read(os.path.join(folder, "data", "BGC0001737.fna"), "fasta")
         cls.proteins = list(Bio.SeqIO.parse(os.path.join(folder, "data", "BGC0001737.faa"), "fasta"))
 
+    def test_stop_codon(self):
+        """Test emitted genes always end with a '*' symbol representing the STOP codon.
+        """
+        finder = PyrodigalFinder(cpus=1)
+        for gene in finder.find_genes([self.genome]):
+            self.assertEqual(gene.protein.seq[-1], "*")
+
     def test_order(self):
         """Test proteins are emitted in the right order from the source file.
         """
-        finder = PyrodigalFinder(cpus=1)
+        finder = PyrodigalFinder(cpus=4)
         for expected, actual in zip(self.proteins, finder.find_genes([self.genome])):
             self.assertEqual(expected.id, actual.protein.id)
 
@@ -45,6 +52,7 @@ class TestPyrodigalFinder(unittest.TestCase):
             subseq = self.genome.seq[gene.start-1:gene.end]
             if gene.strand is Strand.Reverse:
                 subseq = subseq.reverse_complement()
+            self.assertLess(gene.start, gene.end)
             self.assertEqual(subseq.translate(), gene.protein.seq)
 
     def test_progress_callback(self):
