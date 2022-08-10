@@ -5,7 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.4...master
+[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.5...master
+
+
+## [v0.9.5] - 2022-08-10
+[v0.9.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.4...v0.9.5
+
+### Added
+- `gecco predict` command to predict BGCs from an annotated genome.
+- `Protein.with_seq` function to assign a new sequence to a protein object.
+
+### Fixed
+- Issue with antiSMASH sideload JSON file generation in `gecco run` and `gecco predict`.
+- Make `gecco.orf` handle STOP codons consistently ([#9](https://github.com/zellerlab/GECCO/issues/9)).
 
 
 ## [v0.9.4] - 2022-05-31
