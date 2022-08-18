@@ -1,0 +1,71 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Accurate de novo identification of biosynthetic
+  gene clusters with GECCO
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: Carroll
+    email: laura.carroll@embl.de
+    given-names: Laura M.
+    affiliation: >-
+      Structural and Computational Biology Unit,
+      EMBL, Heidelberg, Germany
+    orcid: 'https://orcid.org/0000-0002-3677-0192'
+  - given-names: Martin
+    family-names: Larralde
+    email: martin.larralde@embl.de
+    affiliation: >-
+      Structural and Computational Biology Unit,
+      EMBL, Heidelberg, Germany
+    orcid: 'https://orcid.org/0000-0002-3947-4444'
+  - given-names: Jonas Simon
+    family-names: Fleck
+    email: jonas.simon.fleck@gmail.com
+    affiliation: >-
+      Department of Biosystems Science and
+      Engineering, ETH Zürich, Basel, Switzerland
+    orcid: 'https://orcid.org/0000-0002-4686-7254'
+  - given-names: Ruby
+    family-names: Ponnudurai
+    email: ruby.ponnudurai@embl.de
+    affiliation: >-
+      Structural and Computational Biology Unit,
+      EMBL, Heidelberg, Germany
+    orcid: 'https://orcid.org/0000-0003-0105-6287'
+  - given-names: Alessio
+    family-names: Milanese
+    orcid: 'https://orcid.org/0000-0002-7050-2239'
+    affiliation: >-
+      Department of Biology, ETH Zürich, Zürich,
+      Switzerland
+    email: alessio.milanese@embl.de
+  - given-names: Elisa
+    family-names: Cappio Barazzone
+    orcid: 'https://orcid.org/0000-0003-1295-4672'
+    email: elisa.cappio@gmail.com
+    affiliation: >-
+      Structural and Computational Biology Unit,
+      EMBL, Heidelberg, Germany
+  - given-names: Georg
+    family-names: Zeller
+    email: georg.zeller@embl.de
+    affiliation: >-
+      Structural and Computational Unit, EMBL,
+      Heidelberg, Germany
+    orcid: 'https://orcid.org/0000-0003-1429-7485'
+identifiers:
+  - type: doi
+    value: 10.1101/2021.05.03.442509 
+    description: bioRXiv preprint
+repository-code: 'https://github.com/zellerlab/GECCO'
+url: 'https://gecco.embl.de'
+keywords:
+  - biosynthetic gene cluster
+  - conditional random fields
+license: GPLv3

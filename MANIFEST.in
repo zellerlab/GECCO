@@ -1,5 +1,6 @@
 include README.md
 include LICENSE
+include CITATION.cff
 include static/gecco.png
 include gecco/py.typed
 
