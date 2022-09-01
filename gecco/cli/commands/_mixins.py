@@ -1,3 +1,4 @@
+import gzip
 import io
 import itertools
 import os
