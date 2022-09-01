@@ -31,8 +31,9 @@ variables:
   artifacts:
     expire_in: 1 week
     reports:
-      cobertura: coverage.xml
-
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 # --- Stages -------------------------------------------------------------------
 
@@ -57,7 +58,9 @@ test:python3.9:
       - dist/*.whl
       - coverage.xml
     reports:
-      cobertura: coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 docs:
   image: python:3.9
