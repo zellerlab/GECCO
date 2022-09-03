@@ -161,12 +161,11 @@ class update_interpro(setuptools.Command):
             name = elem.find("name").text
 
             # extract Pfam accession, or skip entry if no Pfam member
+            members = set()
+            databases = set()
             for member in elem.find("member_list").iterfind("db_xref"):
-                if member.attrib["db"] == "PFAM":
-                    pfam_acc = member.attrib["dbkey"]
-                    break
-            else:
-                continue
+                members.add(member.attrib["dbkey"])
+                databases.add(member.attrib["db"])
 
             # extract GO terms
             go_terms = pronto.TermSet()
@@ -187,10 +186,10 @@ class update_interpro(setuptools.Command):
 
             # save the entry
             entries.append({
-                "accession": pfam_acc,
-                "integrated": accession,
+                "accession": accession,
+                "members": sorted(members),
                 "name": name,
-                "source_database": "pfam",
+                "databases": sorted(databases),
                 "type": elem.attrib["type"].lower(),
                 "go_families": go_families,
                 "go_terms": [

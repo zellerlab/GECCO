@@ -32,9 +32,9 @@ class InterProEntry:
     """
 
     accession: str
-    integrated: Optional[str]
+    members: List[str]
     name: str
-    source_database: str
+    databases: List[str]
     type: str
     go_terms: List[GeneOntologyTerm]
     go_families: Dict[str, GeneOntologyTerm]
@@ -49,7 +49,7 @@ class InterPro:
 
     def __init__(self, entries: List[InterProEntry]):
         self.entries = entries
-        self.by_accession = { entry.accession:entry for entry in entries }
+        self.by_accession = { member:entry for entry in entries for member in entry.members }
 
     @classmethod
     def load(cls) -> "InterPro":
