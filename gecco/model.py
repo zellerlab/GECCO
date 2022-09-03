@@ -294,49 +294,55 @@ class Gene:
         qualifiers.setdefault("locus_tag", [self.protein.id])
         qualifiers.setdefault("translation", [str(self.protein.seq)])
 
-        # NB(@althonos): Attempt to assign a color for the gene based on the
+        # NB(@althonos): Attempt to assign a function for the gene based on the
         #                domain content, this color scheme through qualifiers
-        #                is supported by at least SnapGene, maybe more.
-        #                Color scheme taken from MIBiG.
+        #                is supported by at least SnapGene, maybe more. Color
+        #                scheme taken from MIBiG.
+        function = "unknown function"
+        hexcolor = (0x80, 0x80, 0x80)
+        functions = {
+            term.name
+            for domain in self.protein.domains
+            for term in domain.go_families.get("molecular_function", [])
+        }
+        weights = [
+            domain.biosynthetic_weight or 0
+            for domain in self.protein.domains
+        ]
+        if functions.intersection({
+            "transporter activity",
+            "cargo receptor activity",
+            "molecular carrier activity",
+        }):
+            function = "transporter"
+            hexcolor = (0x64, 0x95, 0xed)
+        elif functions.intersection({
+            "translation regulator activity",
+            "molecular function regulator activity",
+            "transcription regulator activity",
+            "regulation of molecular function",
+            "general transcription initiation factor activity"
+        }):
+            function = "regulatory"
+            hexcolor = (0x2e, 0x8b, 0x56)
+        elif functions.intersection({
+            "toxin activity"
+        }):
+            function = "core biosynthetic"
+            hexcolor= (0x81, 0x0e, 0x15)
+        elif self.protein.domains and statistics.mean(weights) > 0:
+            function = "core biosynthetic"
+            hexcolor= (0x81, 0x0e, 0x15)
+        elif self.protein.domains:
+            function = "non-biosynthetic"
+            hexcolor = (0xbd, 0xb7, 0x6b)
+        qualifiers.setdefault("function", [function])
         if color:
-            # by default, no known function, grey color
-            function = "unknown function"
-            hexcolor = "#808080"
-            # extract GO terms from all domains of the protein
-            functions = {
-                term.name
-                for domain in self.protein.domains
-                for term in domain.go_families.get("molecular_function", [])
-            }
-            weights = [
-                domain.biosynthetic_weight or 0
-                for domain in self.protein.domains
-            ]
-            if functions.intersection({
-                "transporter activity",
-                "cargo receptor activity",
-                "molecular carrier activity",
-            }):
-                function = "transporter"
-                hexcolor = "#6495ed"
-            elif functions.intersection({
-                "translation regulator activity",
-                "molecular function regulator activity",
-                "transcription regulator activity",
-                "general transcription initiation factor activity"
-            }):
-                function = "regulatory"
-                hexcolor = "#2e8b57"
-            elif self.protein.domains and statistics.mean(weights) > 0:
-                function = "core biosynthetic"
-                hexcolor="#810e15"
-            else:
-                function = "non-biosynthetic"
-                hexcolor = "#bdb76b"
-            # use SnapGene format for color
-            qualifiers.setdefault("function", [function])
-            qualifiers.setdefault("ApEinfo_fwdcolor", [hexcolor])
-            qualifiers.setdefault("ApEinfo_revcolor", [hexcolor])
+            # EasyFig qualifier
+            qualifiers.setdefault("colour", [str(x) for x in hexcolor])
+            # SnapGene qualifiers
+            qualifiers.setdefault("ApEinfo_fwdcolor", ["#{:02x}{:02x}{:02x}".format(*hexcolor)])
+            qualifiers.setdefault("ApEinfo_revcolor", ["#{:02x}{:02x}{:02x}".format(*hexcolor)])
 
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
