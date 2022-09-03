@@ -266,7 +266,7 @@ class Gene:
 
     # ---
 
-    def to_seq_feature(self) -> SeqFeature:
+    def to_seq_feature(self, color: bool = True) -> SeqFeature:
         """Convert the gene to a single feature.
         """
         # NB(@althonos): we use inclusive 1-based ranges in the data model
@@ -275,6 +275,49 @@ class Gene:
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("locus_tag", [self.protein.id])
         qualifiers.setdefault("translation", [str(self.protein.seq)])
+
+        # NB(@althonos): Attempt to assign a color for the gene based on the
+        #                domain content, this color scheme through qualifiers
+        #                is supported by at least SnapGene, maybe more.
+        #                Color scheme taken from MIBiG.
+        if color:
+            functions = {
+                term.name
+                for domain in self.protein.domains
+                for term in domain.go_families.get("molecular_function", [])
+            }
+            if functions.intersection({
+                "transporter activity",
+                "cargo receptor activity",
+                "molecular carrier activity",
+            }):
+                function = "transporter"
+                color = "#6495ed"
+            elif functions.intersection({
+                "translation regulator activity",
+                "molecular function regulator activity",
+                "transcription regulator activity",
+                "general transcription initiation factor activity"
+            }):
+                function = "regulatory"
+                color = "#2E8B57"
+            elif functions.intersection({
+                "toxin activity"
+                "catalytic activity",
+            }):
+                function = "core biosynthetic gene"
+                color = "#810e15"
+            elif self.protein.domains: # unknown function but domains
+                function = "additional biosynthetic gene"
+                color="#f16d75"
+            else: # no domains, color as unknown
+                function = "unknown"
+                color = "#808080"
+            qualifiers.setdefault("function", [function])
+            qualifiers.setdefault("ApEinfo_fwdcolor", [color])
+            qualifiers.setdefault("ApEinfo_revcolor", [color])
+
+
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
     def with_protein(self, protein: "Protein") -> "Gene":
