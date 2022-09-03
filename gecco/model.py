@@ -310,7 +310,7 @@ class Gene:
         if color:
             hexcolor = self._FUNCTION_PALETTE[function]
             # EasyFig qualifier
-            qualifiers.setdefault("colour", [str(x) for x in hexcolor])
+            qualifiers.setdefault("colour", [" ".join(str(x) for x in hexcolor)])
             # SnapGene qualifiers
             qualifiers.setdefault("ApEinfo_fwdcolor", ["#{:02x}{:02x}{:02x}".format(*hexcolor)])
             qualifiers.setdefault("ApEinfo_revcolor", ["#{:02x}{:02x}{:02x}".format(*hexcolor)])

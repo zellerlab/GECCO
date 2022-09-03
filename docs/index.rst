@@ -96,16 +96,17 @@ Output
 GECCO will create the following files once done (using the same prefix as
 the input file):
 
-- ``{sequence}.genes.tsv``: The *genes* file, containing the genes found by 
+- ``{sequence}.genes.tsv``: The *genes* file, containing the genes found by
   `Pyrodigal <https://pyrodigal.readthedocs.io>`_ and per-gene BGC probabilities
   predicted by the CRF.
-- ``{sequence}.features.tsv``: The *features* file, containing the domains 
+- ``{sequence}.features.tsv``: The *features* file, containing the domains
   identified in the predicted genes.
-- ``{sequence}.clusters.tsv``: If any BGCs were found, a *clusters* file, 
-  containing the coordinates of the predicted clusters, along their putative 
+- ``{sequence}.clusters.tsv``: If any BGCs were found, a *clusters* file,
+  containing the coordinates of the predicted clusters, along their putative
   biosynthetic type.
 - ``{sequence}_cluster_{N}.gbk``: If any were found, a GenBank file per cluster,
   containing the cluster sequence annotated with its member proteins and domains.
+  They can be opened by a standard GenBank viewer, such as `Ugene <http://ugene.net/>`_.
 
 
 Reference

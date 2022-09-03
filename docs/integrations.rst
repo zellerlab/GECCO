@@ -6,6 +6,25 @@ be easy to use in downstream analyses. However, some common use-cases are
 already covered to reduce the need for custom scripts.
 
 
+Feature Coloring
+^^^^^^^^^^^^^^^^
+
+Starting from `v0.9.6`, GECCO will attempt to color the gene features in the
+output GenBank files based on their molecular function. GenBank has no
+standard way of doing so, but many software offer their own way of coloring
+features. At the moment, GECCO outputs color qualifiers that should be
+supported by `APE <https://jorgensen.biology.utah.edu/wayned/ape/>`_,
+`EasyFig <https://mjsull.github.io/Easyfig/>`_,
+`Benchling <https://benchling.com>`_ or
+`SnapGene <https://www.snapgene.com/>`_ as show below:
+
+.. image:: /_static/img/integrations/snapgene_1.png
+
+The color code is the same as MIBiG, *green* for regulatory proteins, *blue*
+for transporters, *red* for biosynthetic proteins, and *grey* for unknown
+function protein. In addition, protein that are believed to be non-biosynthetic
+(according to the internal GECCO CRF) are labeled in *olive green*.
+
 AntiSMASH
 ^^^^^^^^^
 
