@@ -11,6 +11,7 @@ import itertools
 import math
 import operator
 import re
+import statistics
 import typing
 from array import array
 from collections import OrderedDict
@@ -119,6 +120,9 @@ class Domain:
             how likely the domain score is.
         probability (`float`, optional): The probability that this domain
             is part of a BGC, or `None` if no prediction has been made yet.
+        biosynthetic_weight (`float`, optional): The biosynthetic weight
+            for this domain, as computed by the CRF model from the training
+            data.
         go_terms (`list` of `GeneOntologyTerm`): The Gene Ontology terms
             for this particular domain.
         go_families (`dict` of `GeneOntologyTerm`): The Gene Ontology
@@ -138,6 +142,7 @@ class Domain:
     i_evalue: float
     pvalue: float
     probability: Optional[float] = None
+    biosynthetic_weight: Optional[float] = None
     go_terms: List[GeneOntologyTerm] = field(default_factory=list)
     go_families: Dict[str, GeneOntologyTerm] = field(default_factory=dict)
     qualifiers: Dict[str, List[str]] = field(default_factory=dict)
@@ -148,6 +153,19 @@ class Domain:
         return Domain(
             self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
             probability,
+            self.biosynthetic_weight,
+            self.go_terms,
+            self.go_families,
+            self.qualifiers.copy()
+        )
+
+    def with_biosynthetic_weight(self, biosynthetic_weight: Optional[float]) -> "Domain":
+        """Copy the current domain and assign it a biosynthetic weight.
+        """
+        return Domain(
+            self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
+            self.probability,
+            biosynthetic_weight,
             self.go_terms,
             self.go_families,
             self.qualifiers.copy()
@@ -253,7 +271,7 @@ class Gene:
         if self._probability is not None:
             return self._probability
         p = [d.probability for d in self.protein.domains if d.probability is not None]
-        return sum(p) / len(p) if p else None
+        return statistics.mean(p) if p else None
 
     @property
     def maximum_probability(self) -> Optional[float]:
@@ -281,11 +299,19 @@ class Gene:
         #                is supported by at least SnapGene, maybe more.
         #                Color scheme taken from MIBiG.
         if color:
+            # by default, no known function, grey color
+            function = "unknown function"
+            color = "#808080"
+            # extract GO terms from all domains of the protein
             functions = {
                 term.name
                 for domain in self.protein.domains
                 for term in domain.go_families.get("molecular_function", [])
             }
+            weights = [
+                domain.biosynthetic_weight or 0
+                for domain in self.protein.domains
+            ]
             if functions.intersection({
                 "transporter activity",
                 "cargo receptor activity",
@@ -300,23 +326,17 @@ class Gene:
                 "general transcription initiation factor activity"
             }):
                 function = "regulatory"
-                color = "#2E8B57"
-            elif functions.intersection({
-                "toxin activity"
-                "catalytic activity",
-            }):
-                function = "core biosynthetic gene"
-                color = "#810e15"
-            elif self.protein.domains: # unknown function but domains
-                function = "additional biosynthetic gene"
-                color="#f16d75"
-            else: # no domains, color as unknown
-                function = "unknown"
-                color = "#808080"
+                color = "#2e8b57"
+            elif self.protein.domains and statistics.mean(weights) > 0:
+                function = "core biosynthetic"
+                color="#810e15"
+            else:
+                function = "non-biosynthetic"
+                color = "#bdb76b"
+            # use SnapGene format for color
             qualifiers.setdefault("function", [function])
             qualifiers.setdefault("ApEinfo_fwdcolor", [color])
             qualifiers.setdefault("ApEinfo_revcolor", [color])
-
 
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
@@ -409,7 +429,7 @@ class Cluster:
         """`float`: The average of proteins probability of being biosynthetic.
         """
         p = [g.average_probability for g in self.genes if g.average_probability is not None]
-        return sum(p) / len(p) if p else None
+        return  statistics.mean(p) if p else None
 
     @property
     def maximum_probability(self) -> Optional[float]:

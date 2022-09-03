@@ -177,7 +177,7 @@ class PyHMMER(DomainAnnotator):
                     assert domain.env_from < domain.env_to
                     assert domain.i_evalue >= 0
                     assert domain.pvalue >= 0
-                    d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, terms, terms_family, qualifiers)
+                    d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, None, terms, terms_family, qualifiers)
                     gene_index[target_index].protein.domains.append(d)
 
         # deduplicate hits per gene for exclusive HMMs

@@ -200,8 +200,16 @@ class ClusterCRF(object):
             # label genes with maximal probabilities
             predicted.extend(annotate_probabilities(sequence, probabilities[delta//2:][:len(sequence)]))  # type: ignore
 
-        # return the genes that were passed as input but now having BGC
-        return predicted
+        # label genes with biosynthetic weights from the CRF and return them
+        return [
+            gene.with_protein(gene.protein.with_domains(
+                domain.with_biosynthetic_weight(
+                    self.model.state_features_.get((domain.name, '1'))
+                )
+                for domain in gene.protein.domains
+            ))
+            for gene in predicted
+        ]
 
     def fit(
         self,
