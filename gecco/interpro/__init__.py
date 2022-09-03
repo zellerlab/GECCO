@@ -37,7 +37,7 @@ class InterProEntry:
     databases: List[str]
     type: str
     go_terms: List[GeneOntologyTerm]
-    go_families: Dict[str, GeneOntologyTerm]
+    go_families: Dict[str, List[GeneOntologyTerm]]
 
 
 @dataclass

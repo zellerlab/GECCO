@@ -144,7 +144,7 @@ class Domain:
     probability: Optional[float] = None
     biosynthetic_weight: Optional[float] = None
     go_terms: List[GeneOntologyTerm] = field(default_factory=list)
-    go_families: Dict[str, GeneOntologyTerm] = field(default_factory=dict)
+    go_families: Dict[str, List[GeneOntologyTerm]] = field(default_factory=dict)
     qualifiers: Dict[str, List[str]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
@@ -301,7 +301,7 @@ class Gene:
         if color:
             # by default, no known function, grey color
             function = "unknown function"
-            color = "#808080"
+            hexcolor = "#808080"
             # extract GO terms from all domains of the protein
             functions = {
                 term.name
@@ -318,7 +318,7 @@ class Gene:
                 "molecular carrier activity",
             }):
                 function = "transporter"
-                color = "#6495ed"
+                hexcolor = "#6495ed"
             elif functions.intersection({
                 "translation regulator activity",
                 "molecular function regulator activity",
@@ -326,17 +326,17 @@ class Gene:
                 "general transcription initiation factor activity"
             }):
                 function = "regulatory"
-                color = "#2e8b57"
+                hexcolor = "#2e8b57"
             elif self.protein.domains and statistics.mean(weights) > 0:
                 function = "core biosynthetic"
-                color="#810e15"
+                hexcolor="#810e15"
             else:
                 function = "non-biosynthetic"
-                color = "#bdb76b"
+                hexcolor = "#bdb76b"
             # use SnapGene format for color
             qualifiers.setdefault("function", [function])
-            qualifiers.setdefault("ApEinfo_fwdcolor", [color])
-            qualifiers.setdefault("ApEinfo_revcolor", [color])
+            qualifiers.setdefault("ApEinfo_fwdcolor", [hexcolor])
+            qualifiers.setdefault("ApEinfo_revcolor", [hexcolor])
 
         return SeqFeature(location=loc, type="CDS", qualifiers=qualifiers)
 
