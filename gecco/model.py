@@ -25,6 +25,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Refere
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
+from .interpro import GeneOntologyTerm
 from ._base import Dumpable, Table, _SELF
 from ._meta import patch_locale
 
@@ -118,7 +119,13 @@ class Domain:
             how likely the domain score is.
         probability (`float`, optional): The probability that this domain
             is part of a BGC, or `None` if no prediction has been made yet.
-        qualifiers (`dict`, optional): A dictionary of feature qualifiers that
+        go_terms (`list` of `GeneOntologyTerm`): The Gene Ontology terms
+            for this particular domain.
+        go_families (`dict` of `GeneOntologyTerm`): The Gene Ontology
+            term families for this particular domain. Term families are
+            extracted by taking the highest superclasses (excluding the root)
+            of each Gene Ontology term of this domain.
+        qualifiers (`dict`): A dictionary of feature qualifiers that
             is added to the `~Bio.SeqFeature.SeqFeature` built from this
             `Domain`.
 
@@ -131,6 +138,8 @@ class Domain:
     i_evalue: float
     pvalue: float
     probability: Optional[float] = None
+    go_terms: List[GeneOntologyTerm] = field(default_factory=list)
+    go_families: Dict[str, GeneOntologyTerm] = field(default_factory=dict)
     qualifiers: Dict[str, List[str]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
@@ -138,7 +147,10 @@ class Domain:
         """
         return Domain(
             self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
-            probability, self.qualifiers.copy()
+            probability,
+            self.go_terms,
+            self.go_families,
+            self.qualifiers.copy()
         )
 
     def to_seq_feature(self, protein_coordinates: bool = False) -> SeqFeature:
@@ -154,6 +166,8 @@ class Domain:
         loc = FeatureLocation((self.start-1)*stride, self.end*stride)
         qualifiers = dict(self.qualifiers)
         qualifiers.setdefault("standard_name", [self.name])
+        for go_term in self.go_terms:
+            qualifiers.setdefault("db_xref", []).append(go_term.accession)
         return SeqFeature(location=loc, type="misc_feature", qualifiers=qualifiers)
 
 

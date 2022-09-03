@@ -156,7 +156,9 @@ class PyHMMER(DomainAnnotator):
                     start = domain.alignment.target_from
                     end = domain.alignment.target_to
 
-                    # extract qualifiers
+                    # extract qualifiers and GO terms
+                    terms = []
+                    terms_family = {}
                     qualifiers: Dict[str, List[str]] = {
                         "inference": ["protein motif"],
                         "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
@@ -167,6 +169,8 @@ class PyHMMER(DomainAnnotator):
                     }
                     if entry is not None:
                         qualifiers["function"] = [entry.name]
+                        terms = entry.go_terms
+                        terms_family = entry.go_families
                     if entry is not None and entry.integrated is not None:
                         qualifiers["db_xref"].append("InterPro:{}".format(entry.integrated))
 
@@ -174,7 +178,7 @@ class PyHMMER(DomainAnnotator):
                     assert domain.env_from < domain.env_to
                     assert domain.i_evalue >= 0
                     assert domain.pvalue >= 0
-                    d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, qualifiers)
+                    d = Domain(accession, start, end, self.hmm.id, domain.i_evalue, domain.pvalue, None, terms, terms_family, qualifiers)
                     gene_index[target_index].protein.domains.append(d)
 
         # deduplicate hits per gene for exclusive HMMs
