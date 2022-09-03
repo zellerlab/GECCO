@@ -284,6 +284,15 @@ class Gene:
 
     # ---
 
+    # NB(@althonos): Color scheme taken from MIBiG.
+    _FUNCTION_PALETTE = {
+        "transporter": (0x64, 0x95, 0xed),
+        "regulatory": (0x2e, 0x8b, 0x56),
+        "core biosynthetic": (0x81, 0x0e, 0x15),
+        "non-biosynthetic": (0xbd, 0xb7, 0x6b),
+        "unknown": (0x80, 0x80, 0x80),
+    }
+
     def to_seq_feature(self, color: bool = True) -> SeqFeature:
         """Convert the gene to a single feature.
         """
@@ -295,49 +304,11 @@ class Gene:
         qualifiers.setdefault("translation", [str(self.protein.seq)])
 
         # NB(@althonos): Attempt to assign a function for the gene based on the
-        #                domain content, this color scheme through qualifiers
-        #                is supported by at least SnapGene, maybe more. Color
-        #                scheme taken from MIBiG.
-        function = "unknown function"
-        hexcolor = (0x80, 0x80, 0x80)
-        functions = {
-            term.name
-            for domain in self.protein.domains
-            for term in domain.go_families.get("molecular_function", [])
-        }
-        weights = [
-            domain.biosynthetic_weight or 0
-            for domain in self.protein.domains
-        ]
-        if functions.intersection({
-            "transporter activity",
-            "cargo receptor activity",
-            "molecular carrier activity",
-        }):
-            function = "transporter"
-            hexcolor = (0x64, 0x95, 0xed)
-        elif functions.intersection({
-            "translation regulator activity",
-            "molecular function regulator activity",
-            "transcription regulator activity",
-            "regulation of molecular function",
-            "general transcription initiation factor activity"
-        }):
-            function = "regulatory"
-            hexcolor = (0x2e, 0x8b, 0x56)
-        elif functions.intersection({
-            "toxin activity"
-        }):
-            function = "core biosynthetic"
-            hexcolor= (0x81, 0x0e, 0x15)
-        elif self.protein.domains and statistics.mean(weights) > 0:
-            function = "core biosynthetic"
-            hexcolor= (0x81, 0x0e, 0x15)
-        elif self.protein.domains:
-            function = "non-biosynthetic"
-            hexcolor = (0xbd, 0xb7, 0x6b)
+        #                domain content.
+        function = self.function()
         qualifiers.setdefault("function", [function])
         if color:
+            hexcolor = self._FUNCTION_PALETTE[function]
             # EasyFig qualifier
             qualifiers.setdefault("colour", [str(x) for x in hexcolor])
             # SnapGene qualifiers
@@ -377,6 +348,42 @@ class Gene:
             _probability=probability
         )
 
+    def function(self) -> str:
+        """Predict the function of the gene from its domain annotations.
+        """
+        functions = {
+            term.name
+            for domain in self.protein.domains
+            for term in domain.go_families.get("molecular_function", [])
+        }
+        weights = [
+            domain.biosynthetic_weight or 0
+            for domain in self.protein.domains
+        ]
+        if functions.intersection({
+            "transporter activity",
+            "cargo receptor activity",
+            "molecular carrier activity",
+        }):
+            return "transporter"
+        elif functions.intersection({
+            "translation regulator activity",
+            "molecular function regulator activity",
+            "transcription regulator activity",
+            "regulation of molecular function",
+            "general transcription initiation factor activity"
+        }):
+            return "regulatory"
+        elif functions.intersection({
+            "toxin activity"
+        }):
+            return "core biosynthetic"
+        elif self.protein.domains and statistics.mean(weights) > 0:
+            return "core biosynthetic"
+        elif self.protein.domains:
+            return "non-biosynthetic"
+        else:
+            return "unknown"
 
 @dataclass
 class Cluster:
