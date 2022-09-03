@@ -12,21 +12,32 @@ except ImportError:
     import importlib_resources  # type: ignore
 
 
-__all__ = ["InterProEntry", "InterPro"]
+__all__ = ["InterProEntry", "InterPro", "GeneOntologyTerm"]
+
+
+
+
+@dataclass
+class GeneOntologyTerm:
+    """A single term from the Gene Ontology.
+    """
+    accession: str
+    name: str
+    namespace: str
 
 
 @dataclass
 class InterProEntry:
-    """A single domain entry in the InterPro database.
+    """A single entry in the InterPro database.
     """
 
     accession: str
-    go_terms: Dict[str, Dict[str, str]]
     integrated: Optional[str]
-    member_databases: Dict[str, Dict[str, str]]
     name: str
     source_database: str
     type: str
+    go_terms: List[GeneOntologyTerm]
+    go_families: Dict[str, GeneOntologyTerm]
 
 
 @dataclass
@@ -43,5 +54,21 @@ class InterPro:
     @classmethod
     def load(cls) -> "InterPro":
         with importlib_resources.open_binary(__name__, "interpro.json") as f:
-            entries = [ InterProEntry(**entry) for entry in json.load(f) ]
+            data = json.load(f)
+            entries = []
+            for raw_entry in data:
+                go_terms = [
+                    GeneOntologyTerm(**go_term)
+                    for go_term in raw_entry.pop("go_terms")
+                ]
+                go_families = {
+                    k:[
+                        GeneOntologyTerm(namespace=k, **go_term)
+                        for go_term in go_terms
+                    ]
+                    for k, go_terms in raw_entry.pop("go_families").items()
+                }
+                entries.append(
+                    InterProEntry(**raw_entry, go_terms=go_terms, go_families=go_families)
+                )
         return cls(entries)

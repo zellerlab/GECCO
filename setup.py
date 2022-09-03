@@ -37,6 +37,11 @@ try:
 except ImportError as err:
     HMMFile = err
 
+try:
+    import pronto
+except ImportError as err:
+    pronto = err
+
 
 class sdist(_sdist):
     """An extension to the `sdist` command that generates a `pyproject.toml`.
@@ -100,38 +105,105 @@ class update_interpro(setuptools.Command):
         pass
 
     def finalize_options(self):
-        pass
+        _build_ext = self.get_finalized_command("build_ext")
+        self.build_temp = _build_ext.build_temp
 
     def info(self, msg):
         self.announce(msg, level=2)
 
+    def download(self, url, path):
+        self.mkpath(os.path.dirname(path))
+        self.info("downloading {!r}".format(url))
+        with open(path, "wb") as dst:
+            with urllib.request.urlopen(url) as res:
+                with tqdm.wrapattr(res, method="read", total=int(res.headers['Content-Length'])) as res:
+                    shutil.copyfileobj(res, dst)
+
     def run(self):
-        # Update the interpro entries
+        # Check `tqdm` is installed
+        if isinstance(tqdm, ImportError):
+            raise RuntimeError("tqdm is required to run the `update_model` command") from tqdm
+        # Check `pronto` is installed
+        if isinstance(pronto, ImportError):
+            raise RuntimeError("pronto is required to run the `update_interpro` command") from pronto
+
+        # download Gene Ontology
+        go_path = os.path.join(self.build_temp, "go.obo")
+        url = "http://purl.obolibrary.org/obo/go.obo"
+        self.make_file([], go_path, self.download, (url, go_path))
+
+        # load Gene ontology
+        self.info("loading {!r}".format(go_path))
+        go = pronto.Ontology(go_path)
+        top_classes = {
+            "molecular_function": go['GO:0003674'].subclasses(with_self=False, distance=1).to_set(),
+            "biological_process": go['GO:0008150'].subclasses(with_self=False, distance=1).to_set(),
+            "cellular_component": go['GO:0005575'].subclasses(with_self=False, distance=1).to_set(),
+        }
+
+        # download InterPro
+        xml_path = os.path.join(self.build_temp, "interpro.xml.gz")
+        url = "https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/interpro.xml.gz"
+        self.make_file([], xml_path, self.download, (url, xml_path))
+
+        # load XML database
+        self.info("loading {!r}".format(xml_path))
+        with open(xml_path, "rb") as src:
+            with tqdm.wrapattr(src, method="read", total=os.stat(xml_path).st_size) as src:
+                with gzip.GzipFile(fileobj=src, mode="rb") as src:
+                    tree = etree.parse(src)
+
+        # build entries
         entries = []
-        path = os.path.join("gecco", "interpro", "interpro.json")
-        self.info("getting Pfam entries from InterPro")
-        entries.extend(self.download_interpro_entries("pfam"))
-        # self.info("getting Tigrfam entries from InterPro")
-        # entries.extend(self.download_interpro_entries("tigrfams"))
-        # sort by id
+        for elem in tree.findall("interpro"):
+            # extract InterPro name and accession
+            accession = elem.attrib["id"]
+            name = elem.find("name").text
+
+            # extract Pfam accession, or skip entry if no Pfam member
+            for member in elem.find("member_list").iterfind("db_xref"):
+                if member.attrib["db"] == "PFAM":
+                    pfam_acc = member.attrib["dbkey"]
+                    break
+            else:
+                continue
+
+            # extract GO terms
+            go_terms = pronto.TermSet()
+            class_list = elem.find("class_list")
+            if class_list is not None:
+                for classif in class_list.iterfind("classification"):
+                    if classif.attrib["class_type"] == "GO":
+                        go_terms.add(go[classif.attrib["id"]])
+
+            # attempt to extract top-level function/process/component
+            go_families = {
+                namespace: [
+                    {"accession": term.id, "name": term.name}
+                    for term in sorted(go_terms.superclasses().to_set() & top_set)
+                ]
+                for namespace, top_set in top_classes.items()
+            }
+
+            # save the entry
+            entries.append({
+                "accession": pfam_acc,
+                "integrated": accession,
+                "name": name,
+                "source_database": "pfam",
+                "type": elem.attrib["type"].lower(),
+                "go_families": go_families,
+                "go_terms": [
+                    {"accession": term.id, "name": term.name, "namespace": term.namespace}
+                    for term in sorted(go_terms)
+                ],
+            })
+
+        # sort by id and save
         entries.sort(key=lambda entry: entry["accession"])
+        path = os.path.join("gecco", "interpro", "interpro.json")
         with open(path, "wt") as dest:
             json.dump(entries, dest, sort_keys=True, indent=4)
-
-    def download_interpro_entries(self, db):
-        next = f"https://www.ebi.ac.uk:443/interpro/api/entry/all/{db}/?page_size=200"
-        entries = []
-        context = ssl._create_unverified_context()
-        with tqdm(desc=db, leave=False) as pbar:
-            while next:
-                time.sleep(1) # wait between query to avoid being throttled by the server
-                with urllib.request.urlopen(next, context=context) as res:
-                    payload = json.load(res)
-                    pbar.total = payload["count"]
-                    next = payload["next"]
-                    entries.extend(entry["metadata"] for entry in payload["results"])
-                    pbar.update(len(payload["results"]))
-        return entries
 
 
 class update_model(setuptools.Command):
