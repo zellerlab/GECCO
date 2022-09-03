@@ -289,6 +289,7 @@ class Gene:
         "transporter": (0x64, 0x95, 0xed),
         "regulatory": (0x2e, 0x8b, 0x56),
         "core biosynthetic": (0x81, 0x0e, 0x15),
+        "additional biosynthetic": (0xf1, 0x6d, 0x75),
         "non-biosynthetic": (0xbd, 0xb7, 0x6b),
         "unknown": (0x80, 0x80, 0x80),
     }
@@ -375,11 +376,12 @@ class Gene:
         }):
             return "regulatory"
         elif functions.intersection({
-            "toxin activity"
+            "toxin activity",
+            "catalytic activity",
         }):
             return "core biosynthetic"
         elif self.protein.domains and statistics.mean(weights) > 0:
-            return "core biosynthetic"
+            return "additional biosynthetic"
         elif self.protein.domains:
             return "non-biosynthetic"
         else:
