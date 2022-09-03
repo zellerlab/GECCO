@@ -385,6 +385,7 @@ class Gene:
         else:
             return "unknown"
 
+
 @dataclass
 class Cluster:
     """A sequence of contiguous genes with biosynthetic activity.
@@ -570,7 +571,16 @@ class Cluster:
             # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
                 misc = domain.to_seq_feature(protein_coordinates=False)
-                misc.location += cds.location.start
+                if gene.strand == Strand.Coding:
+                    misc.location = FeatureLocation(
+                        cds.location.start + misc.location.start,
+                        cds.location.start + misc.location.end
+                    )
+                else:
+                    misc.location = FeatureLocation(
+                        cds.location.end - misc.location.end,
+                        cds.location.end - misc.location.start
+                    )
                 bgc.features.append(misc)
 
         # return the complete BGC
