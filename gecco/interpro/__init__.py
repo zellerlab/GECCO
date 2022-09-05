@@ -25,6 +25,18 @@ class GeneOntologyTerm:
     name: str
     namespace: str
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return (
+                self.accession == other.accession
+            and self.name == other.name
+            and self.namespace == other.namespace
+        )
+
+    def __hash__(self) -> int:
+        return hash((type(self), self.accession, self.name, self.namespace))
+
 
 @dataclass
 class InterProEntry:
