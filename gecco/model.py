@@ -17,7 +17,7 @@ from array import array
 from collections import OrderedDict
 from collections.abc import Sized
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator, Set
 
 import Bio
 import numpy
@@ -285,12 +285,26 @@ class Gene:
     # ---
 
     # NB(@althonos): Color scheme taken from MIBiG.
+    #                This is sorted by priority!
     _FUNCTION_PALETTE = {
-        "transporter": (0x64, 0x95, 0xed),
-        "regulatory": (0x2e, 0x8b, 0x56),
-        "core biosynthetic": (0x81, 0x0e, 0x15),
-        "additional biosynthetic": (0xf1, 0x6d, 0x75),
-        "non-biosynthetic": (0xbd, 0xb7, 0x6b),
+        # transporter: blue
+        "transporter activityr": (0x64, 0x95, 0xed),
+        "cargo receptor activity": (0x64, 0x95, 0xed),
+        "molecular carrier activity": (0x64, 0x95, 0xed),
+        # regulatory: green
+        "translation regulator activity": (0x2e, 0x8b, 0x56),
+        "molecular function regulator activity": (0x2e, 0x8b, 0x56),
+        "transcription regulator activity": (0x2e, 0x8b, 0x56),
+        "regulation of molecular function": (0x2e, 0x8b, 0x56),
+        "general transcription initiation factor activity": (0x2e, 0x8b, 0x56),
+        # core biosynthetic: red
+        "toxin activity": (0x81, 0x0e, 0x15),
+        "catalytic activity": (0x81, 0x0e, 0x15),
+        # additional biosynthetic: pink
+        "biosynthetic activity": (0xf1, 0x6d, 0x75),
+        # non-biosynthetic: olive green
+        "non-biosynthetic activity": (0xbd, 0xb7, 0x6b),
+        # unknown: grey
         "unknown": (0x80, 0x80, 0x80),
     }
 
@@ -306,10 +320,14 @@ class Gene:
 
         # NB(@althonos): Attempt to assign a function for the gene based on the
         #                domain content.
-        function = self.function()
-        qualifiers.setdefault("function", [function])
+        functions = self.functions()
+        qualifiers.setdefault("function", sorted(functions))
         if color:
-            hexcolor = self._FUNCTION_PALETTE[function]
+            for k, hexcolor in self._FUNCTION_PALETTE.items():
+                if k in functions:
+                    break
+            else:
+                hexcolor = self._FUNCTION_PALETTE["unknown"]
             # EasyFig qualifier
             qualifiers.setdefault("colour", [" ".join(str(x) for x in hexcolor)])
             # SnapGene qualifiers
@@ -349,8 +367,8 @@ class Gene:
             _probability=probability
         )
 
-    def function(self) -> str:
-        """Predict the function of the gene from its domain annotations.
+    def functions(self) -> Set[str]:
+        """Predict the function(s) of the gene from its domain annotations.
         """
         functions = {
             term.name
@@ -361,31 +379,14 @@ class Gene:
             domain.biosynthetic_weight or 0
             for domain in self.protein.domains
         ]
-        if functions.intersection({
-            "transporter activity",
-            "cargo receptor activity",
-            "molecular carrier activity",
-        }):
-            return "transporter"
-        elif functions.intersection({
-            "translation regulator activity",
-            "molecular function regulator activity",
-            "transcription regulator activity",
-            "regulation of molecular function",
-            "general transcription initiation factor activity"
-        }):
-            return "regulatory"
-        elif functions.intersection({
-            "toxin activity",
-            "catalytic activity",
-        }):
-            return "core biosynthetic"
-        elif self.protein.domains and statistics.mean(weights) > 0:
-            return "additional biosynthetic"
+
+        if self.protein.domains and statistics.mean(weights) > 0:
+            functions.add("biosynthetic activity")
         elif self.protein.domains:
-            return "non-biosynthetic"
+            functions.add("non-biosynthetic activity")
         else:
-            return "unknown"
+            functions.add("unknown")
+        return functions
 
 
 @dataclass
