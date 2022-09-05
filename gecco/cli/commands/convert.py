@@ -155,7 +155,7 @@ class Convert(Command):  # noqa: D101
                 self.warn(f"GenBank file {gbk_file!r} was not obtained by GECCO")
                 continue
             # convert to nucleotide FASTA
-            new_name = gbk_file.replace(".gbk", ".fna")
+            new_name = re.sub(r"\.gbk$", ".fna", gbk_file)
             self.info(f"Converting {gbk_file!r} to FASTA file {new_name!r}")
             Bio.SeqIO.write(record, new_name, "fasta")
             done += 1
@@ -188,7 +188,7 @@ class Convert(Command):  # noqa: D101
                 prot = SeqRecord(id=feat.qualifiers["locus_tag"][0], seq=seq)
                 proteins.append(prot)
             # write proteins to FASTA
-            new_name = gbk_file.replace(".gbk", ".faa")
+            new_name = re.sub(r"\.gbk$", ".faa", gbk_file)
             self.info(f"Converting {gbk_file!r} proteins to FASTA file {new_name!r}")
             Bio.SeqIO.write(proteins, new_name, "fasta")
             done += 1
