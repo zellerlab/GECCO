@@ -135,11 +135,7 @@ class update_interpro(setuptools.Command):
         # load Gene ontology
         self.info("loading {!r}".format(go_path))
         go = pronto.Ontology(go_path)
-        top_classes = {
-            "molecular_function": go['GO:0003674'].subclasses(with_self=False, distance=1).to_set(),
-            "biological_process": go['GO:0008150'].subclasses(with_self=False, distance=1).to_set(),
-            "cellular_component": go['GO:0005575'].subclasses(with_self=False, distance=1).to_set(),
-        }
+        top_functions = go['GO:0003674'].subclasses(with_self=False, distance=1).to_set()
 
         # download InterPro
         xml_path = os.path.join(self.build_temp, "interpro.xml.gz")
@@ -175,15 +171,6 @@ class update_interpro(setuptools.Command):
                     if classif.attrib["class_type"] == "GO":
                         go_terms.add(go[classif.attrib["id"]])
 
-            # attempt to extract top-level function/process/component
-            go_families = {
-                namespace: [
-                    {"accession": term.id, "name": term.name}
-                    for term in sorted(go_terms.superclasses().to_set() & top_set)
-                ]
-                for namespace, top_set in top_classes.items()
-            }
-
             # save the entry
             entries.append({
                 "accession": accession,
@@ -191,7 +178,10 @@ class update_interpro(setuptools.Command):
                 "name": name,
                 "databases": sorted(databases),
                 "type": elem.attrib["type"].lower(),
-                "go_families": go_families,
+                "go_functions": [
+                    {"accession": term.id, "name": term.name}
+                    for term in sorted(go_terms.superclasses().to_set() & top_functions)
+                ],
                 "go_terms": [
                     {"accession": term.id, "name": term.name, "namespace": term.namespace}
                     for term in sorted(go_terms)

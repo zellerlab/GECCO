@@ -26,7 +26,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Refere
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
-from .interpro import GeneOntologyTerm
+from .interpro import GOTerm
 from ._base import Dumpable, Table, _SELF
 from ._meta import patch_locale
 
@@ -123,12 +123,13 @@ class Domain:
         biosynthetic_weight (`float`, optional): The biosynthetic weight
             for this domain, as computed by the CRF model from the training
             data.
-        go_terms (`list` of `GeneOntologyTerm`): The Gene Ontology terms
+        go_terms (`list` of `GOTerm`): The Gene Ontology terms
             for this particular domain.
-        go_families (`dict` of `GeneOntologyTerm`): The Gene Ontology
-            term families for this particular domain. Term families are
-            extracted by taking the highest superclasses (excluding the root)
-            of each Gene Ontology term of this domain.
+        go_functions (`list` of `GOTerm`): The Gene Ontology term families for 
+            this particular domain. Term families are extracted by taking the 
+            highest superclasses (excluding the root) of each Gene Ontology 
+            term in the ``molecular_function`` namespace associated with this 
+            domain.
         qualifiers (`dict`): A dictionary of feature qualifiers that
             is added to the `~Bio.SeqFeature.SeqFeature` built from this
             `Domain`.
@@ -143,8 +144,8 @@ class Domain:
     pvalue: float
     probability: Optional[float] = None
     biosynthetic_weight: Optional[float] = None
-    go_terms: List[GeneOntologyTerm] = field(default_factory=list)
-    go_families: Dict[str, List[GeneOntologyTerm]] = field(default_factory=dict)
+    go_terms: List[GOTerm] = field(default_factory=list)
+    go_functions: List[GOTerm] = field(default_factory=list)
     qualifiers: Dict[str, List[str]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
@@ -155,7 +156,7 @@ class Domain:
             probability,
             self.biosynthetic_weight,
             self.go_terms,
-            self.go_families,
+            self.go_functions,
             self.qualifiers.copy()
         )
 
@@ -167,7 +168,7 @@ class Domain:
             self.probability,
             biosynthetic_weight,
             self.go_terms,
-            self.go_families,
+            self.go_functions,
             self.qualifiers.copy()
         )
 
@@ -373,7 +374,7 @@ class Gene:
         functions = {
             term.name
             for domain in self.protein.domains
-            for term in domain.go_families.get("molecular_function", [])
+            for term in domain.go_functions
         }
         weights = [
             domain.biosynthetic_weight or 0

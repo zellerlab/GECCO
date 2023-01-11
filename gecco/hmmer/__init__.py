@@ -167,12 +167,12 @@ class PyHMMER(DomainAnnotator):
                     }
                     if entry is not None:
                         qualifiers["function"] = [entry.name]
-                        terms = entry.go_terms
-                        terms_family = entry.go_families
                         qualifiers["db_xref"].append("InterPro:{}".format(entry.accession))
+                        go_terms = entry.go_terms
+                        go_functions = entry.go_functions
                     else:
-                        terms = []
-                        terms_family = {}
+                        go_terms = []
+                        go_functions = []
 
                     # add the domain to the protein domains of the right gene
                     assert domain.env_from < domain.env_to
@@ -186,8 +186,8 @@ class PyHMMER(DomainAnnotator):
                             self.hmm.id,
                             domain.i_evalue,
                             domain.pvalue,
-                            go_terms=terms,
-                            go_families=terms_family,
+                            go_terms=go_terms,
+                            go_functions=go_functions,
                             qualifiers=qualifiers,
                         )
                     )

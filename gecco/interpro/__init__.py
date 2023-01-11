@@ -3,7 +3,7 @@
 
 import gzip
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from typing import Dict, List, Optional
 
 try:
@@ -18,7 +18,7 @@ __all__ = ["InterProEntry", "InterPro", "GeneOntologyTerm"]
 
 
 @dataclass
-class GeneOntologyTerm:
+class GOTerm:
     """A single term from the Gene Ontology.
     """
     accession: str
@@ -48,8 +48,8 @@ class InterProEntry:
     name: str
     databases: List[str]
     type: str
-    go_terms: List[GeneOntologyTerm]
-    go_families: Dict[str, List[GeneOntologyTerm]]
+    go_terms: List[GOTerm]
+    go_functions: List[GOTerm]
 
 
 @dataclass
@@ -69,18 +69,15 @@ class InterPro:
             data = json.load(f)
             entries = []
             for raw_entry in data:
+                # get terms corresponding to domain
                 go_terms = [
-                    GeneOntologyTerm(**go_term)
-                    for go_term in raw_entry.pop("go_terms")
+                    GOTerm(**t) for t in raw_entry.pop("go_terms")
                 ]
-                go_families = {
-                    k:[
-                        GeneOntologyTerm(namespace=k, **go_term)
-                        for go_term in go_terms
-                    ]
-                    for k, go_terms in raw_entry.pop("go_families").items()
-                }
+                go_functions = [
+                    GOTerm(**t, namespace="molecular_function") 
+                    for t in raw_entry.pop("go_functions")
+                ]
                 entries.append(
-                    InterProEntry(**raw_entry, go_terms=go_terms, go_families=go_families)
+                    InterProEntry(**raw_entry, go_terms=go_terms, go_functions=go_functions)
                 )
         return cls(entries)
