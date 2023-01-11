@@ -33,7 +33,11 @@ class Main(Command):
     @classmethod
     def _entry_points(cls) -> List["importlib_metadata.EntryPoint"]:
         if cls._entry_points_cache is None:
-            cls._entry_points_cache = list(importlib_metadata.entry_points().get(__parent__, []))
+            try:
+                entry_points = importlib_metadata.entry_points(group=__parent__)
+                cls._entry_points_cache = list(entry_points)
+            except KeyError:
+                cls._entry_points_cache = []
         return cls._entry_points_cache
 
     @classmethod
