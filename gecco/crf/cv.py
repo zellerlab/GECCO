@@ -21,12 +21,12 @@ class LeaveOneGroupOut(sklearn.model_selection.LeaveOneGroupOut):
     fold::
 
         >>> loto = LeaveOneGroupOut()
-        >>> groups = numpy.array([ ["a"], ["b"], ["c"], ["a", "b"] ])
+        >>> groups = [["a"], ["b"], ["c"], ["a", "b"]]
         >>> for i, (trn, tst) in enumerate(loto.split(range(4), groups=groups)):
         ...     print("-"*20)
         ...     print(" FOLD", i+1)
-        ...     print("TRAIN", f"{str(trn):<7}", list(groups[trn]))
-        ...     print(" TEST", f"{str(tst):<7}", list(groups[tst]))
+        ...     print("TRAIN", f"{str(trn):<7}", [groups[i] for i in trn])
+        ...     print(" TEST", f"{str(tst):<7}", [groups[i] for i in tst])
         ...
         --------------------
          FOLD 1
