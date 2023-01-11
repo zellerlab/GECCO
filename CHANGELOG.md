@@ -5,11 +5,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.5...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.6...master
+
+
+## [v0.9.6] - 2023-01-11
+[v0.9.6]: https://github.com/zellerlab/GECCO/compare/v0.9.5...v0.9.6
+
+### Added
+- Gene Ontology annotations to `gecco.interpro` local metadata.
+- Reference to Gene Ontology terms and derived functions to `gecco.model.Domain` objects.
+- Gene color based on predicted function in `gecco.model.Gene.to_seq_feature`.
+
+### Fixed
+- Missing `gzip` import in the CLI preventing usage of gzip-compressed inputs.
+- Invalid coordinates of domains found in reverse-strand genes.
+- Detection of entry points with `importlib.metadata` on older Python versions.
+
+### Changed
+- `bgc_id` columns of cluster tables are renamed `cluster_id`.
+- `gecco.model.ProductType` is renamed to `gecco.model.ClusterType`.
+- Bumped `pyrodigal` dependency to `v2.0`.
+- Bumped `pyhmmer` dependency to `v0.7`.
 
 
 ## [v0.9.5] - 2022-08-10
-[v0.9.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.4...v0.9.5
+[v0.9.5]: https://github.com/zellerlab/GECCO/compare/v0.9.4...v0.9.5
 
 ### Added
 - `gecco predict` command to predict BGCs from an annotated genome.
@@ -21,7 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [v0.9.4] - 2022-05-31
-[v0.9.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.3...v0.9.4
+[v0.9.4]: https://github.com/zellerlab/GECCO/compare/v0.9.3...v0.9.4
 
 ### Added
 - `classes_` property to `TypeClassifier` to access the `classes_` attribute of the `TypeBinarizer`.
@@ -39,7 +59,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [v0.9.3] - 2022-05-13
-[v0.9.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.2...v0.9.3
+[v0.9.3]: https://github.com/zellerlab/GECCO/compare/v0.9.2...v0.9.3
 
 ### Changed
 - `--format` flag of `gecco annotate` and `gecco run` CLI commands is now made lowercase before giving value to `Bio.SeqIO`.
@@ -49,20 +69,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [v0.9.2] - 2022-04-11
-[v0.9.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1...v0.9.2
+[v0.9.2]: https://github.com/zellerlab/GECCO/compare/v0.9.1...v0.9.2
 
 ### Added
 - Padding of short sequences with empty genes when predicting probabilities in `ClusterCRF`.
 
 ## [v0.9.1] - 2022-04-05
-[v0.9.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha4...v0.9.1
+[v0.9.1]: https://github.com/zellerlab/GECCO/compare/v0.9.1-alpha4...v0.9.1
 
 ### Changed
 - Make the `genes.tsv` and `features.tsv` table contain all genes even when they come from a contig too short to be processed by the CRF sliding window.
 - Replaced the `--force-clusters-tsv` flag with a `--force-tsv` flag to force writing TSV tables even when no genes or clusters were found in `gecco run` or `gecco annotate`.
 
 ## [v0.9.1-alpha4] - 2022-03-31
-[v0.9.1-alpha4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha3...v0.9.1-alpha4
+[v0.9.1-alpha4]: https://github.com/zellerlab/GECCO/compare/v0.9.1-alpha3...v0.9.1-alpha4
 
 Retrain internal model with:
 ```
@@ -74,7 +94,7 @@ $ python -m gecco -vv train --c1 0.4 --c2 0 --select 0.25 --window-size 20 \
 ```
 
 ## [v0.9.1-alpha3] - 2022-03-23
-[v0.9.1-alpha3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha2...v0.9.1-alpha3
+[v0.9.1-alpha3]: https://github.com/zellerlab/GECCO/compare/v0.9.1-alpha2...v0.9.1-alpha3
 
 ### Added
 - `gecco.model.GeneTable` class to store gene coordinates independently of protein domains.
@@ -85,33 +105,33 @@ $ python -m gecco -vv train --c1 0.4 --c2 0 --select 0.25 --window-size 20 \
 - `gecco train` expects a gene table instead of a GFF file for the gene coordinates.
 
 ## [v0.9.1-alpha2] - 2022-03-23
-[v0.9.1-alpha2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.9.1-alpha1...v0.9.1-alpha2
+[v0.9.1-alpha2]: https://github.com/zellerlab/GECCO/compare/v0.9.1-alpha1...v0.9.1-alpha2
 
 ### Fixed
 - `TypeClassifier.trained` not being able to read unknown types from type tables.
 
 ## [v0.9.1-alpha1] - 2022-03-20
-[v0.9.1-alpha1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.10...v0.9.1-alpha1
+[v0.9.1-alpha1]: https://github.com/zellerlab/GECCO/compare/v0.8.10...v0.9.1-alpha1
 Candidate release with support for a sliding window in the CRF prediction algorithm.
 
 ## [v0.8.10] - 2022-02-23
-[v0.8.10]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.9...v0.8.10
+[v0.8.10]: https://github.com/zellerlab/GECCO/compare/v0.8.9...v0.8.10
 ### Fixed
 - `--antismash-sideload` flag of `gecco run` causing command to crash.
 
 ## [v0.8.9] - 2022-02-22
-[v0.8.9]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.8...v0.8.9
+[v0.8.9]: https://github.com/zellerlab/GECCO/compare/v0.8.8...v0.8.9
 ### Removed
 - Prediction and support for the *Other* biosynthetic type of MIBiG clusters.
 
 ## [v0.8.8] - 2022-02-21
-[v0.8.8]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.7...v0.8.8
+[v0.8.8]: https://github.com/zellerlab/GECCO/compare/v0.8.7...v0.8.8
 ### Fixed
 - `ClusterRefiner` filtering method for edge genes not working as intended.
 - `gecco run` and `gecco annotate` commands crashing on missing input files instead of nicely rendering the error.
 
 ## [v0.8.7] - 2022-02-18
-[v0.8.7]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.6...v0.8.7
+[v0.8.7]: https://github.com/zellerlab/GECCO/compare/v0.8.6...v0.8.7
 ### Fixed
 - `interpro.json` metadata file not being included in distribution files.
 - Missing docstring for `Protein.with_domains` method.
@@ -119,7 +139,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Bump minimum `scikit-learn` version to `v1.0` for Python3.7+.
 
 ## [v0.8.6] - 2022-02-17 - YANKED
-[v0.8.6]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.5...v0.8.6
+[v0.8.6]: https://github.com/zellerlab/GECCO/compare/v0.8.5...v0.8.6
 ### Added
 - CLI flag for enabling region masking for contigs processed by Prodigal.
 - CLI flag for controlling region distance used for edge distance filtering.
@@ -133,12 +153,12 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Progress bar messages are now in consistent format.
 
 ## [v0.8.5] - 2021-11-21
-[v0.8.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.4...v0.8.5
+[v0.8.5]: https://github.com/zellerlab/GECCO/compare/v0.8.4...v0.8.5
 ### Added
 - Minimal compatibility support for running GECCO inside of Galaxy workflows.
 
 ## [v0.8.4] - 2021-09-26
-[v0.8.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3-post1...v0.8.4
+[v0.8.4]: https://github.com/zellerlab/GECCO/compare/v0.8.3-post1...v0.8.4
 ### Fixed
 - `gecco convert gbk --format bigslice` failing to run because of outdated code ([#5](https://github.com/zellerlab/GECCO/issues/5)).
 - `gecco convert gbk --format bigslice` not creating files with names conforming to BiG-SLiCE expected input.
@@ -146,17 +166,17 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Bump minimum `pyrodigal` version to `v0.6.2` to use platform-accelerated code if supported.
 
 ## [v0.8.3-post1] - 2021-08-23
-[v0.8.3-post1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.3...v0.8.3-post1
+[v0.8.3-post1]: https://github.com/zellerlab/GECCO/compare/v0.8.3...v0.8.3-post1
 ### Fixed
 - Wrong default value for `--threshold` being shown in `gecco run` help message.
 
 ## [v0.8.3] - 2021-08-23
-[v0.8.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.2...v0.8.3
+[v0.8.3]: https://github.com/zellerlab/GECCO/compare/v0.8.2...v0.8.3
 ### Changed
 - Default probability threshold for segmentation to 0.3 (from 0.4).
 
 ## [v0.8.2] - 2021-07-31
-[v0.8.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.1...v0.8.2
+[v0.8.2]: https://github.com/zellerlab/GECCO/compare/v0.8.1...v0.8.2
 ### Fixed
 - `gecco run` crashing on Python 3.6 because of missing `contextlib.nullcontext` class.
 ### Changed
@@ -164,7 +184,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `PyHMMER.run` now reports the *p-value* of each domain in addition to the *e-value* as a `/note` qualifier.
 
 ## [v0.8.1] - 2021-07-29
-[v0.8.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.8.0...v0.8.1
+[v0.8.1]: https://github.com/zellerlab/GECCO/compare/v0.8.0...v0.8.1
 ### Changed
 - `gecco run` now filters out unneeded features before annotating, making it easier to analyze the results of a run with a custom `--model`.
 ### Fixed
@@ -173,7 +193,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Missing documentation for the `strand` attribute of `gecco.model.Gene`.
 
 ## [v0.8.0] - 2021-07-03
-[v0.8.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.7.0...v0.8.0
+[v0.8.0]: https://github.com/zellerlab/GECCO/compare/v0.7.0...v0.8.0
 ### Changed
 - Retrain internal model using new sequence embeddings and remove broken/duplicate BGCs from MIBiG 2.0.
 - Bump minimum `pyhmmer` version to `v0.4.0` to improve exception handling.
@@ -195,7 +215,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Tigrfam domains, which is not improving performance on the new training data.
 
 ## [v0.7.0] - 2021-05-31
-[v0.7.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.3...v0.7.0
+[v0.7.0]: https://github.com/zellerlab/GECCO/compare/v0.6.3...v0.7.0
 ### Added
 - Support for writing an AntiSMASH sideload JSON file after a `gecco run` workflow.
 - Code for converting GenBank files in BiG-SLiCE compatible format with the `gecco convert` subcommand.
@@ -207,7 +227,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Outdated notice about `-vvv` verbosity level in the help message of the main `gecco` command.
 
 ## [v0.6.3] - 2021-05-10
-[v0.6.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.2...v0.6.3
+[v0.6.3]: https://github.com/zellerlab/GECCO/compare/v0.6.2...v0.6.3
 ### Fixed
 - HMMER annotation not properly handling inputs with multiple contigs.
 - Some progress bar totals displaying as floats in the CLI.
@@ -218,7 +238,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `multiprocessing.cpu_count` has been replaced with `os.cpu_count` where applicable.
 
 ## [v0.6.2] - 2021-05-04
-[v0.6.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.1...v0.6.2
+[v0.6.2]: https://github.com/zellerlab/GECCO/compare/v0.6.1...v0.6.2
 ### Fixed
 - `gecco cv loto` crashing because of outdated code.
 ### Changed
@@ -227,7 +247,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - GECCO bioRxiv paper reference to `Cluster.to_seq_record` output record.
 
 ## [v0.6.1] - 2021-03-15
-[v0.6.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.6.0...v0.6.1
+[v0.6.1]: https://github.com/zellerlab/GECCO/compare/v0.6.0...v0.6.1
 ### Fixed
 - Progress bar not being disabled by `-q` flag in CLI.
 - Fallback to using HMM name if accession is not available in `PyHMMER`.
@@ -239,7 +259,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Unused and outdated `HMMER` and `DomainRow` classes from `gecco.hmmer`.
 
 ## [v0.6.0] - 2021-02-28
-[v0.6.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.5...v0.6.0
+[v0.6.0]: https://github.com/zellerlab/GECCO/compare/v0.5.5...v0.6.0
 ### Changed
 - Updated internal model with a cleaned-up version of the MIBiG-2.0
   Pfam-33.1/Tigrfam-15.0 embedding.
@@ -250,12 +270,12 @@ Candidate release with support for a sliding window in the CRF prediction algori
   protein IDs.
 
 ## [v0.5.5] - 2021-02-28
-[v0.5.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.4...v0.5.5
+[v0.5.5]: https://github.com/zellerlab/GECCO/compare/v0.5.4...v0.5.5
 ### Fixed
 - `gecco cv` bug causing only the last fold to be written.
 
 ## [v0.5.4] - 2021-02-28
-[v0.5.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.3...v0.5.4
+[v0.5.4]: https://github.com/zellerlab/GECCO/compare/v0.5.3...v0.5.4
 ### Changed
 - Replaced `verboselogs`, `coloredlogs` and `better-exceptions` with `rich`.
 ### Removed
@@ -265,7 +285,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `gecco embed` to embed BGCs into non-BGC regions using feature tables.
 
 ## [v0.5.3] - 2021-02-21
-[v0.5.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.2...v0.5.3
+[v0.5.3]: https://github.com/zellerlab/GECCO/compare/v0.5.2...v0.5.3
 ### Fixed
 - Coordinates of genes in output GenBank files.
 - Potential issue with the number of CPUs in `PyHMMER.run`.
@@ -273,7 +293,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Bump required `pyrodigal` version to `v0.4.2` to fix buffer overflow.
 
 ## [v0.5.2] - 2021-01-29
-[v0.5.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.1...v0.5.2
+[v0.5.2]: https://github.com/zellerlab/GECCO/compare/v0.5.1...v0.5.2
 ### Added
 - Support for downloading HMM files directly from GitHub releases assets.
 - Validation of filtered HMMs with MD5 checksum.
@@ -284,13 +304,13 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Bump required `pyhmmer` version to `v0.2.1`.
 
 ## [v0.5.1] - 2021-01-15
-[v0.5.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.5.0...v0.5.1
+[v0.5.1]: https://github.com/zellerlab/GECCO/compare/v0.5.0...v0.5.1
 ### Fixed
 - `--hmm` flag being ignored in in `gecco run` command.
 - `PyHMMER` using HMM names instead of accessions, causing issues with Pfam HMMs.
 
 ## [v0.5.0] - 2021-01-11
-[v0.5.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.5...v0.5.0
+[v0.5.0]: https://github.com/zellerlab/GECCO/compare/v0.4.5...v0.5.0
 ### Added
 - Explicit support for Python 3.9.
 ### Changed
@@ -300,7 +320,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `gecco cv` now requires *training* dependencies.
 
 ## [v0.4.5] - 2020-11-23
-[v0.4.5]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.4...v0.4.5
+[v0.4.5]: https://github.com/zellerlab/GECCO/compare/v0.4.4...v0.4.5
 ### Added
 - Additional `fold` column to cross-validation table output.
 ### Changed
@@ -309,7 +329,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `gecco.orf` was rewritten to extract genes from input sequences in parallel.
 
 ## [v0.4.4] - 2020-09-30
-[v0.4.4]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.3...v0.4.4
+[v0.4.4]: https://github.com/zellerlab/GECCO/compare/v0.4.3...v0.4.4
 ### Added
 - `gecco cv loto` command to run LOTO cross-validation using BGC types
   for stratification.
@@ -325,7 +345,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Bumped `pandas` training dependency to `v1.0`.
 
 ## [v0.4.3] - 2020-09-07
-[v0.4.3]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.2...v0.4.3
+[v0.4.3]: https://github.com/zellerlab/GECCO/compare/v0.4.2...v0.4.3
 ### Fixed
 - GenBank files being written with invalid `/cds` feature type.
 ### Changed
@@ -333,18 +353,18 @@ Candidate release with support for a sliding window in the CRF prediction algori
   and breaks the current code.
 
 ## [v0.4.2] - 2020-08-07
-[v0.4.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.1...v0.4.2
+[v0.4.2]: https://github.com/zellerlab/GECCO/compare/v0.4.1...v0.4.2
 ### Fixed
 - `TypeClassifier.predict_types` using inverse type probabilities when
   given several clusters to process.
 
 ## [v0.4.1] - 2020-08-07
-[v0.4.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.4.0...v0.4.1
+[v0.4.1]: https://github.com/zellerlab/GECCO/compare/v0.4.0...v0.4.1
 ### Fixed
 - `gecco run` command crashing on input sequences not containing any genes.
 
 ## [v0.4.0] - 2020-08-06
-[v0.4.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.3.0...v0.4.0
+[v0.4.0]: https://github.com/zellerlab/GECCO/compare/v0.3.0...v0.4.0
 ### Added
 - `gecco.model.ProductType` enum to model the biosynthetic class of a BGC.
 ### Removed
@@ -356,7 +376,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
    table to know the types of the input BGCs.
 
 ## [v0.3.0] - 2020-08-03
-[v0.3.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.2...v0.3.0
+[v0.3.0]: https://github.com/zellerlab/GECCO/compare/v0.2.2...v0.3.0
 ### Changed
 - Replaced Nearest-Neighbours classifier with Random Forest to perform type
   prediction for candidate BGCs.
@@ -367,7 +387,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - `--metric` argument to the `gecco run` CLI command.
 
 ## [v0.2.2] - 2020-07-31
-[v0.2.2]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.1...v0.2.2
+[v0.2.2]: https://github.com/zellerlab/GECCO/compare/v0.2.1...v0.2.2
 ### Changed
 - `Domain` and `Gene` can now carry qualifiers that are used when they
   are translated to a sequence feature.
@@ -376,7 +396,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
   in GenBank output files.
 
 ## [v0.2.1] - 2020-07-23
-[v0.2.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.2.0...v0.2.1
+[v0.2.1]: https://github.com/zellerlab/GECCO/compare/v0.2.0...v0.2.1
 ### Fixed
 - Various potential crashes in `ClusterRefiner` code.
 ### Removed
@@ -384,7 +404,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
   Fisher Exact Test feature selection.
 
 ## [v0.2.0] - 2020-07-23
-[v0.2.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.1.1...v0.2.0
+[v0.2.0]: https://github.com/zellerlab/GECCO/compare/v0.1.1...v0.2.0
 ### Fixed
 - `pandas` warning about unsorted columns in `gecco run`.
 ### Removed
@@ -397,7 +417,7 @@ Candidate release with support for a sliding window in the CRF prediction algori
   contain any domain annotation.
 
 ## [v0.1.1] - 2020-07-22
-[v0.1.1]: https://git.embl.de/grp-zeller/GECCO/compare/v0.1.0...v0.1.1
+[v0.1.1]: https://github.com/zellerlab/GECCO/compare/v0.1.0...v0.1.1
 ### Added
 - `ClusterCRF.predict_probabilities` to annotate a list of `Gene`.
 ### Changed
@@ -410,9 +430,9 @@ Candidate release with support for a sliding window in the CRF prediction algori
 - Included the `CHANGELOG.md` file to the generated docs.
 
 ## [v0.1.0] - 2020-07-17
-[v0.1.0]: https://git.embl.de/grp-zeller/GECCO/compare/v0.0.1...v0.1.0
+[v0.1.0]: https://github.com/zellerlab/GECCO/compare/v0.0.1...v0.1.0
 Initial release.
 
 ## [v0.0.1] - 2018-08-13
-[v0.0.1]: https://git.embl.de/grp-zeller/GECCO/compare/37afb97...v0.0.1
+[v0.0.1]: https://github.com/zellerlab/GECCO/compare/37afb97...v0.0.1
 Proof-of-concept.
