@@ -1,17 +1,28 @@
+import collections
+import csv
 import gzip
 import io
 import itertools
 import os
 import operator
 import typing
-from typing import BinaryIO, Container, Iterator, Iterable, Optional, List
+from typing import (
+    BinaryIO,
+    Container,
+    Collection,
+    Iterator,
+    Iterable,
+    Optional,
+    List,
+    Union
+)
 
 from .._utils import ProgressReader, guess_sequences_format
 from ._base import Command, CommandExit, InvalidArgument
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
-    from ...model import Cluster, Gene, FeatureTable, GeneTable
+    from ...model import Cluster, Gene, FeatureTable, GeneTable, ClusterTable
     from ...hmmer import HMM
     from ...types import TypeClassifier
 
@@ -68,11 +79,18 @@ class TableLoaderMixin(Command):
             # get filesize and unit
             input_size = os.stat(self.genes).st_size
             total, scale, unit = ProgressReader.scale_size(input_size)
-            task = self.progress.add_task("Loading genes", total=total, unit=unit, precision=".1f")
+            task = self.progress.add_task("Loading genetable", total=total, unit=unit, precision=".1f")
             # load gene table
             self.info("Loading", "genes table from file", repr(self.genes))
-            with ProgressReader(open(self.genes, "rb"), self.progress, task, scale) as genes_file:
-                yield from GeneTable.load(io.TextIOWrapper(genes_file)).to_genes()  # type: ignore
+            with typing.cast(BinaryIO, ProgressReader(open(self.genes, "rb"), self.progress, task, scale)) as in_:
+                if self.genes.endswith(".gz"):
+                    in_ = typing.cast(BinaryIO, gzip.open(in_))
+                table = GeneTable.load(io.TextIOWrapper(in_))
+            # count genes and yield gene objects
+            n_genes = len(set(table.protein_id))
+            unit = "gene" if n_genes == 1 else "genes"
+            task = self.progress.add_task("Building genes", total=n_genes, unit=unit, precision="")
+            yield from self.progress.track(table.to_genes(), task_id=task)
         except OSError as err:
             self.error("Fail to parse genes coordinates: {}", err)
             raise CommandExit(err.errno) from err
@@ -89,8 +107,10 @@ class TableLoaderMixin(Command):
                 task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
-                with ProgressReader(open(filename, "rb"), self.progress, task, scale) as in_:
-                    features += FeatureTable.load(io.TextIOWrapper(in_)) # type: ignore
+                with typing.cast(BinaryIO, ProgressReader(open(filename, "rb"), self.progress, task, scale)) as in_:
+                    if filename.endswith(".gz"):
+                        in_ = typing.cast(BinaryIO, gzip.open(in_))
+                    features += FeatureTable.load(io.TextIOWrapper(in_))
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
@@ -271,7 +291,7 @@ class AnnotatorMixin(DomainFilterMixin):
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
 
-    def _annotate_domains(self, genes: List["Gene"], whitelist: Optional[Container[str]] = None) -> List["Gene"]:
+    def _annotate_domains(self, genes: List["Gene"], whitelist: Optional[Collection[str]] = None) -> List["Gene"]:
         from ...hmmer import PyHMMER, embedded_hmms
 
         self.info("Running", "HMMER domain annotation", level=1)
@@ -280,7 +300,8 @@ class AnnotatorMixin(DomainFilterMixin):
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
         task = self.progress.add_task(description=f"Annotating domains", unit="HMMs", total=len(hmms), precision="")
         for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
-            task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=hmm.size, unit="domains", precision="")
+            total = hmm.size if whitelist is None else len(whitelist)
+            task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=total, unit="domains", precision="")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             genes = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback)
@@ -304,6 +325,8 @@ class AnnotatorMixin(DomainFilterMixin):
 
 
 class PredictorMixin(Command):
+    """Common code for a command that runs probability prediction.
+    """
 
     model: Optional[str]
     no_pad: bool
@@ -319,15 +342,20 @@ class PredictorMixin(Command):
             self.info("Loading", "embedded CRF pre-trained model", level=1)
         else:
             self.info("Loading", "CRF pre-trained model from", repr(self.model), level=1)
-        crf = ClusterCRF.trained(self.model)
+        model = ClusterCRF.trained(self.model)
 
-        self.info("Predicting", "cluster probabilitites with the CRF model", level=1)
-        unit = "genes" if len(genes) > 1 else "gene"
-        task = self.progress.add_task("Predicting marginals", total=len(genes), unit=unit, precision="")
-        return list(crf.predict_probabilities(
-            self.progress.track(genes, task_id=task, total=len(genes)),
+        self.info("Predicting", "cluster probabilitites with the model", level=1)
+        unit = "batches" if len(genes) > 1 else "batch"
+        task = self.progress.add_task("Predicting marginals", total=None, unit=unit, precision="")
+
+        def progress_callback(i: int, total: int) -> None:
+            self.progress.update(task_id=task, completed=i, total=total)
+
+        return model.predict_probabilities(
+            genes,
             pad=not self.no_pad,
-        ))
+            progress=progress_callback,
+        )
 
     def _extract_clusters(self, genes: List["Gene"]) -> List["Cluster"]:
         from ...refine import ClusterRefiner
@@ -381,4 +409,97 @@ class PredictorMixin(Command):
         return clusters_new
 
 
-# class PredictorMixin(Command):
+class ClusterLoaderMixin(Command):
+
+    clusters: str
+
+    def _load_clusters(self) -> "ClusterTable":
+        from ...model import ClusterTable
+
+        try:
+            # get filesize and unit
+            input_size = os.stat(self.clusters).st_size
+            total, scale, unit = ProgressReader.scale_size(input_size)
+            task = self.progress.add_task("Loading clusters", total=total, unit=unit, precision=".1f")
+            # load clusters
+            self.info("Loading", "clusters table from file", repr(self.clusters))
+            with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
+                return ClusterTable.load(io.TextIOWrapper(in_))   # type: ignore
+        except FileNotFoundError as err:
+            self.error("Could not find clusters file:", repr(self.clusters))
+            raise CommandExit(err.errno) from err
+
+    def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
+        cluster_by_seq = collections.defaultdict(list)
+        for cluster_row in clusters:
+            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+
+        gene_count = len(genes)
+        unit = "gene" if gene_count == 1 else "genes"
+        task = self.progress.add_task("Labelling genes", total=gene_count, unit=unit, precision="")
+
+        self.info("Labelling", "genes belonging to clusters")
+        labelled_genes = []
+        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
+            for gene in seq_genes:
+                if any(
+                    cluster_row.start <= gene.start and gene.end <= cluster_row.end
+                    for cluster_row in cluster_by_seq[seq_id]
+                ):
+                    gene = gene.with_probability(1)
+                else:
+                    gene = gene.with_probability(0)
+                labelled_genes.append(gene)
+                self.progress.update(task_id=task, advance=1)
+
+        return labelled_genes
+
+    def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
+        from ...model import Cluster
+
+        cluster_by_seq = collections.defaultdict(list)
+        for cluster_row in clusters:
+            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+
+        self.info("Extracting", "genes belonging to clusters")
+        genes_by_cluster = collections.defaultdict(list)
+        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
+            for gene in seq_genes:
+                for cluster_row in cluster_by_seq[seq_id]:
+                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
+                        genes_by_cluster[cluster_row.bgc_id].append(gene)
+
+        return [
+            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
+            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("bgc_id")))
+            if genes_by_cluster[cluster_row.bgc_id]
+        ]
+
+
+class CompositionWriterMixin(Command):
+
+    output_dir: str
+
+    def _save_domain_compositions(self, all_possible: List[str], clusters: List["Cluster"]) -> None:
+        import numpy
+        import scipy.sparse
+
+        self.info("Saving", "training matrix labels for type classifier")
+        with open(os.path.join(self.output_dir, "domains.tsv"), "w") as out:
+            out.writelines(f"{domain}\n" for domain in all_possible)
+        with open(os.path.join(self.output_dir, "types.tsv"), "w") as out:
+            writer = csv.writer(out, dialect="excel-tab")
+            for cluster in clusters:
+                types = ";".join(sorted(cluster.type.names))
+                writer.writerow([cluster.id, types])
+
+        self.info("Building", "new domain composition matrix")
+        comp = numpy.array([
+            c.domain_composition(all_possible)
+            for c in clusters
+        ])
+
+        comp_out = os.path.join(self.output_dir, "compositions.npz")
+        self.info("Saving", "new domain composition matrix to file", repr(comp_out))
+        scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(comp))
+

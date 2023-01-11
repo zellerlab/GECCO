@@ -17,14 +17,20 @@ from typing import Any, Dict, Union, Optional, List, Iterator, TextIO, Mapping, 
 
 from .._utils import in_context, patch_showwarnings, ProgressReader
 from ._base import Command, CommandExit, InvalidArgument
-from ._mixins import TableLoaderMixin, DomainFilterMixin, OutputWriterMixin
+from ._mixins import (
+    TableLoaderMixin,
+    DomainFilterMixin,
+    OutputWriterMixin,
+    ClusterLoaderMixin,
+    CompositionWriterMixin
+)
 
 if typing.TYPE_CHECKING:
     from ...crf import ClusterCRF
     from ...model import Cluster, Gene, FeatureTable, ClusterTable
 
 
-class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin):  # noqa: D101
+class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin, ClusterLoaderMixin, CompositionWriterMixin):  # noqa: D101
 
     summary = "train the CRF model on an embedded feature table."
 
@@ -222,97 +228,6 @@ class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin):  # noqa: D1
             for attrs, weight in crf.model.state_features_.items():
                 writer.writerow([*attrs, weight])
 
-    def _load_clusters(self) -> "ClusterTable":
-        from ...model import ClusterTable
-
-        try:
-            # get filesize and unit
-            input_size = os.stat(self.clusters).st_size
-            total, scale, unit = ProgressReader.scale_size(input_size)
-            task = self.progress.add_task("Loading clusters", total=total, unit=unit, precision=".1f")
-            # load clusters
-            self.info("Loading", "clusters table from file", repr(self.clusters))
-            with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
-                return ClusterTable.load(io.TextIOWrapper(in_))   # type: ignore
-        except FileNotFoundError as err:
-            self.error("Could not find clusters file:", repr(self.clusters))
-            raise CommandExit(err.errno) from err
-
-    def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
-        cluster_by_seq = collections.defaultdict(list)
-        for cluster_row in clusters:
-            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
-
-        gene_count = len(genes)
-        unit = "gene" if gene_count == 1 else "genes"
-        task = self.progress.add_task("Labelling genes", total=gene_count, unit=unit, precision="")
-
-        self.info("Labelling", "genes belonging to clusters")
-        labelled_genes = []
-        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
-            for gene in seq_genes:
-                if any(
-                    cluster_row.start <= gene.start and gene.end <= cluster_row.end
-                    for cluster_row in cluster_by_seq[seq_id]
-                ):
-                    gene = gene.with_probability(1)
-                else:
-                    gene = gene.with_probability(0)
-                labelled_genes.append(gene)
-                self.progress.update(task_id=task, advance=1)
-
-        return labelled_genes
-
-    def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
-        from ...model import Cluster
-
-        cluster_by_seq = collections.defaultdict(list)
-        for cluster_row in clusters:
-            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
-
-        self.info("Extracting", "genes belonging to clusters")
-        genes_by_cluster = collections.defaultdict(list)
-        for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
-            for gene in seq_genes:
-                for cluster_row in cluster_by_seq[seq_id]:
-                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        genes_by_cluster[cluster_row.bgc_id].append(gene)
-
-        return [
-            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
-            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("bgc_id")))
-            if genes_by_cluster[cluster_row.bgc_id]
-        ]
-
-    def _save_domain_compositions(self, crf: "ClusterCRF", clusters: List["Cluster"]) -> None:
-        import numpy
-        import scipy.sparse
-
-        self.info("Finding", "the array of possible protein domains", level=2)
-        if crf.significant_features is not None:
-            all_possible = sorted(crf.significant_features)
-        else:
-            all_possible = sorted({d.name for c in clusters for g in c.genes for d in g.protein.domains})
-
-        self.info("Saving", "training matrix labels for BGC type classifier")
-        with open(os.path.join(self.output_dir, "domains.tsv"), "w") as out:
-            out.writelines(f"{domain}\n" for domain in all_possible)
-        with open(os.path.join(self.output_dir, "types.tsv"), "w") as out:
-            writer = csv.writer(out, dialect="excel-tab")
-            for cluster in clusters:
-                types = ";".join(sorted(cluster.type.names))
-                writer.writerow([cluster.id, types])
-
-        self.info("Building", "new domain composition matrix")
-        comp = numpy.array([
-            c.domain_composition(all_possible)
-            for c in clusters
-        ])
-
-        comp_out = os.path.join(self.output_dir, "compositions.npz")
-        self.info("Saving", "new domain composition matrix to file", repr(comp_out))
-        scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(comp))
-
     # ---
 
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
@@ -349,11 +264,18 @@ class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin):  # noqa: D1
             # fit CRF
             crf = self._fit_model(genes)
             # save model
-            self._save_model(crf)
+            self.info("Saving", f"CRF model to {self.output_dir!r}")
+            crf.save(self.output_dir)
             self._save_transitions(crf)
             self._save_weights(crf)
+            # extract the domains names
+            self.info("Finding", "the array of possible protein domains", level=2)
+            if crf.significant_features is not None:
+                all_possible = sorted(crf.significant_features)
+            else:
+                all_possible = sorted({d.name for g in genes for d in g.protein.domains})
             # compute domain compositions
-            self._save_domain_compositions(crf, self._extract_clusters(genes, clusters))
+            self._save_domain_compositions(all_possible, self._extract_clusters(genes, clusters))
             self.success("Finished", "training new CRF model", level=0)
         except CommandExit as cexit:
             return cexit.code
