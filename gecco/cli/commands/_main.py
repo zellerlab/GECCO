@@ -18,10 +18,10 @@ from .._utils import in_context, patch_showwarnings
 from . import __name__ as __parent__
 from ._base import Command, CommandExit, InvalidArgument
 
-try:
-    import importlib.metadata as importlib_metadata
-except ImportError:
+if sys.version_info < (3, 10):
     import importlib_metadata  # type: ignore
+else:
+    import importlib.metadata as importlib_metadata
 
 
 class Main(Command):
