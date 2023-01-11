@@ -45,7 +45,7 @@ jobs:
     - name: Update CI dependencies
       run: python -m pip install -U pip coverage wheel numpy setuptools
     - name: List project dependencies
-      run: python setup.py list_requirements
+      run: python .github/workflows/list_requirements.py -i setup.cfg -o requirements.txt
     - name: Install project dependencies
       run: python -m pip install -r requirements.txt --prefer-binary
     - name: Build required data files
@@ -101,7 +101,7 @@ jobs:
     - name: Install numpy
       run: python -m pip install numpy --prefer-binary
     - name: List project dependencies
-      run: python setup.py list_requirements
+      run: python .github/workflows/list_requirements.py -i setup.cfg -o requirements.txt
     - name: Install project dependencies
       run: python -m pip install -r requirements.txt --prefer-binary
     - name: Build required data files
