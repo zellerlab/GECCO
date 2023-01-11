@@ -152,7 +152,7 @@ class TableLoaderMixin(Command):
                 hmm=row.hmm,
                 i_evalue=row.i_evalue,
                 pvalue=row.pvalue,
-                probability=row.bgc_probability,
+                probability=row.cluster_probability,
             )
             gene.protein.domains.append(domain)
 
@@ -360,7 +360,7 @@ class PredictorMixin(Command):
     def _extract_clusters(self, genes: List["Gene"]) -> List["Cluster"]:
         from ...refine import ClusterRefiner
 
-        self.info("Extracting", "predicted biosynthetic regions", level=1)
+        self.info("Extracting", "predicted clusters", level=1)
         refiner = ClusterRefiner(
             threshold=self.threshold,
             criterion=self.postproc,
@@ -388,7 +388,7 @@ class PredictorMixin(Command):
     def _predict_types(self, clusters: List["Cluster"], classifier: "TypeClassifier") -> List["Cluster"]:
         from ...model import ProductType
 
-        self.info("Predicting", "BGC types", level=1)
+        self.info("Predicting", "gene cluster types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"
         task = self.progress.add_task("Predicting types", total=len(clusters), unit=unit, precision="")
@@ -467,12 +467,12 @@ class ClusterLoaderMixin(Command):
             for gene in seq_genes:
                 for cluster_row in cluster_by_seq[seq_id]:
                     if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        genes_by_cluster[cluster_row.bgc_id].append(gene)
+                        genes_by_cluster[cluster_row.cluster_id].append(gene)
 
         return [
-            Cluster(cluster_row.bgc_id, genes_by_cluster[cluster_row.bgc_id], cluster_row.type)
-            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("bgc_id")))
-            if genes_by_cluster[cluster_row.bgc_id]
+            Cluster(cluster_row.cluster_id, genes_by_cluster[cluster_row.cluster_id], cluster_row.type)
+            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("cluster_id")))
+            if genes_by_cluster[cluster_row.cluster_id]
         ]
 
 

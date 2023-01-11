@@ -1,4 +1,4 @@
-"""BGC prediction using a conditional random field.
+"""Gene cluster prediction using a conditional random field.
 """
 
 import csv
@@ -261,7 +261,7 @@ class ClusterCRF(object):
         # label domains with their biosynthetic weight according to the CRF state weights
         predicted = [
             gene.with_protein(gene.protein.with_domains(
-                domain.with_biosynthetic_weight(
+                domain.with_cluster_weight(
                     self.model.state_features_.get((domain.name, '1'))
                 )
                 for domain in gene.protein.domains
@@ -269,7 +269,8 @@ class ClusterCRF(object):
             for gene in predicted
         ]
 
-        # return the genes that were passed as input but now having BGC
+        # return the genes that were passed as input but now having 
+        # gene cluster probabilities
         return predicted
 
     def fit(

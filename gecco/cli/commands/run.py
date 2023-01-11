@@ -38,7 +38,7 @@ if typing.TYPE_CHECKING:
 
 class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # noqa: D101
 
-    summary = "predict BGC from one or several contigs."
+    summary = "predict gene clusters from one or several contigs."
 
     @classmethod
     def doc(cls, fast: bool = False) -> str:  # noqa: D102
@@ -97,8 +97,9 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
 
         Parameters - Cluster Detection:
             --no-pad                      disable padding of gene sequences
-                                          (used to predict BGCs in contigs
-                                          smaller than the CRF window length).
+                                          (used to predict gene clusters in 
+                                          contigs smaller than the CRF window 
+                                          length).
             -c <N>, --cds <N>             the minimum number of coding sequences a
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster

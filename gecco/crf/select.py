@@ -13,7 +13,6 @@ from .._meta import requires
 if typing.TYPE_CHECKING:
     import fisher
     from statsmodels.stats import multitest
-    from ..bgc import BGC
 
 _CORRECTION_METHODS = {
     "bonferroni",
@@ -63,15 +62,15 @@ def fisher_significance(
     r"""Estimate the significance of each domain in the given proteins.
 
     For each feature $F$, we create the following contingency table, by
-    counting how many time the feature appears or does not appear in BGC
-    proteins, and non-BGC proteins:
+    counting how many time the feature appears or does not appear in 
+    proteins inside and outside target gene clusters:
 
     +-------------+-------------------------+-------------------------------+
     | *proteins*  |    with feature $F$     |      without feature $F $     |
     +=============+=========================+===============================+
-    | within BGC  |    :math:`N_{F,BGC}`    |    :math:`N_{\bar{F},BGC}`    |
+    | in cluster  |    :math:`N_{F,c}`      |    :math:`N_{\bar{F},c}`      |
     +-------------+-------------------------+-------------------------------+
-    | outside BGC | :math:`N_{F,\bar{BGC}}` | :math:`N_{\bar{F},\bar{BGC}}` |
+    | not cluster | :math:`N_{F,\bar{c}}`   | :math:`N_{\bar{F},\bar{c}}`   |
     +-------------+-------------------------+-------------------------------+
 
     Then, we run a Fisher Exact Test on this distribution, which gives us the
@@ -82,7 +81,7 @@ def fisher_significance(
         proteins (iterable of `~gecco.model.Protein`): An iterable yielding
             annotated proteins which domains to estimate the significance of.
             **Domains must have a ``probability`` of 1 if they are part of
-            BGC, or of 0 if they are not.**
+            a gene cluster, or of 0 if they are not.**
         correction_method (`str`, optional): The name of the multiple test
             correction method to use when computing significance, or `None` to
             skip correction. See `statsmodels.stats.multitest.multipletests`
@@ -97,8 +96,8 @@ def fisher_significance(
 
     Example:
         In the following example, we check the significance of three domains
-        (*A*, *B* and *C*) on BGC membership for a training set containing
-        7 proteins:
+        (*A*, *B* and *C*) on gene cluster membership for a training set 
+        containing 7 proteins:
 
         >>> data = [
         ...     Protein("prot1", _, [
@@ -124,10 +123,11 @@ def fisher_significance(
         >>> sorted(fisher_significance(data).items())
         [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]
 
-        Since *A* and *C* only appear in BGC and non BGC proteins respectively,
-        the p-value for a two-tailed Fisher Exact Test is under 5%, while *B*,
-        which appears in half of the BGC proteins and in half of the non-BGC
-        proteins, is not significant with regards to the fisher test.
+        Since *A* and *C* only appear in gene cluster and non gene cluster 
+        proteins respectively, the p-value for a two-tailed Fisher Exact Test 
+        is under 5%, while *B*, which appears in half of the cluster proteins 
+        and in half of the non-cluster proteins, is not significant with 
+        regards to the fisher test.
 
         It's also possible to get the uncorrected values by giving `None`
         instead of a correction method:
@@ -144,19 +144,19 @@ def fisher_significance(
     for protein in proteins:
         for domain in protein.domains:
             if domain.probability is None:
-                raise ValueError("domain is missing a BGC probability")
-            in_bgc = domain.probability > 0.5
-            proteins_[in_bgc].add(protein.id)
-            features_[in_bgc][domain.name].add(protein.id)
+                raise ValueError("Domain is missing a gene cluster probability")
+            in_cluster = domain.probability > 0.5
+            proteins_[in_cluster].add(protein.id)
+            features_[in_cluster][domain.name].add(protein.id)
 
     # make the contigency table for each feature
     significance = {}
     for feature in set(features_[False]).union(features_[True]):
         pvalue = fisher.pvalue(
-            len(features_[True][feature]),  # with feature, in BGC
-            len(proteins_[True]) - len(features_[True][feature]),  # without feature, in BGC
-            len(features_[False][feature]),  # with feature, not in BGC
-            len(proteins_[False]) - len(features_[False][feature]),  # without feature, not in BGC
+            len(features_[True][feature]),  # with feature, in cluster
+            len(proteins_[True]) - len(features_[True][feature]),  # without feature, in cluster
+            len(features_[False][feature]),  # with feature, not in cluster
+            len(proteins_[False]) - len(features_[False][feature]),  # without feature, not in cluster
         )
         significance[feature] = pvalue.two_tail
 

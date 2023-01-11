@@ -99,8 +99,8 @@ class Convert(Command):  # noqa: D101
             cluster_fh = ctx.enter_context(open(cluster_file))
             for row in ClusterTable.load(cluster_fh):
                 ty = ";".join(sorted(row.type.names))
-                coordinates[row.bgc_id] = (row.start, row.end)
-                types[row.bgc_id] = ty or "Unknown"
+                coordinates[row.cluster_id] = (row.start, row.end)
+                types[row.cluster_id] = ty or "Unknown"
 
         # collect `*_clusters_{N}.gbk` files
         gbk_files = glob.glob(os.path.join(self.input_dir, "*_cluster_*.gbk"))
@@ -121,7 +121,7 @@ class Convert(Command):  # noqa: D101
                 "Orig. end": coordinates[record.id][1],
             }
             # using a /subregion feature will make BiG-SLiCE think the
-            # BGC is coming from MIBiG, and the predicted type will be
+            # cluster is coming from MIBiG, and the predicted type will be
             # handled correctly
             subregion_feature = SeqFeature(FeatureLocation(0, len(record)), type="subregion")
             subregion_feature.qualifiers["contig_edge"] = ["False"]

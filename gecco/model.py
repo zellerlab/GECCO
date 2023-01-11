@@ -1,4 +1,4 @@
-"""Data layer classes storing information needed for BGC detection.
+"""Data layer classes storing information needed for gene cluster detection.
 """
 
 import collections
@@ -119,10 +119,11 @@ class Domain:
         pvalue (`float`): The p-value reported by ``hmmsearch`` that measure
             how likely the domain score is.
         probability (`float`, optional): The probability that this domain
-            is part of a BGC, or `None` if no prediction has been made yet.
-        biosynthetic_weight (`float`, optional): The biosynthetic weight
-            for this domain, as computed by the CRF model from the training
-            data.
+            is part of a gene cluster, or `None` if no prediction has been 
+            made yet.
+        cluster_weight (`float`, optional): The weight for this domain, 
+            measuring its importance as infered from the training clusters
+            by the CRF model.
         go_terms (`list` of `GOTerm`): The Gene Ontology terms
             for this particular domain.
         go_functions (`list` of `GOTerm`): The Gene Ontology term families for 
@@ -143,30 +144,30 @@ class Domain:
     i_evalue: float
     pvalue: float
     probability: Optional[float] = None
-    biosynthetic_weight: Optional[float] = None
+    cluster_weight: Optional[float] = None
     go_terms: List[GOTerm] = field(default_factory=list)
     go_functions: List[GOTerm] = field(default_factory=list)
     qualifiers: Dict[str, List[str]] = field(default_factory=dict)
 
     def with_probability(self, probability: Optional[float]) -> "Domain":
-        """Copy the current domain and assign it a BGC probability.
+        """Copy the current domain and assign it a cluster probability.
         """
         return Domain(
             self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
             probability,
-            self.biosynthetic_weight,
+            self.cluster_weight,
             self.go_terms,
             self.go_functions,
             self.qualifiers.copy()
         )
 
-    def with_biosynthetic_weight(self, biosynthetic_weight: Optional[float]) -> "Domain":
-        """Copy the current domain and assign it a biosynthetic weight.
+    def with_cluster_weight(self, cluster_weight: Optional[float]) -> "Domain":
+        """Copy the current domain and assign it a cluster weight.
         """
         return Domain(
             self.name, self.start, self.end, self.hmm, self.i_evalue, self.pvalue,
             self.probability,
-            biosynthetic_weight,
+            cluster_weight,
             self.go_terms,
             self.go_functions,
             self.qualifiers.copy()
@@ -267,7 +268,7 @@ class Gene:
 
     @property
     def average_probability(self) -> Optional[float]:
-        """`float`: The average of domain probabilities of being biosynthetic.
+        """`float`: The average of domain probabilities of being in a cluster.
         """
         if self._probability is not None:
             return self._probability
@@ -276,7 +277,7 @@ class Gene:
 
     @property
     def maximum_probability(self) -> Optional[float]:
-        """`float`: The highest of domain probabilities of being biosynthetic.
+        """`float`: The highest of domain probabilities of being in a cluster.
         """
         if self._probability is not None:
             return self._probability
@@ -289,7 +290,7 @@ class Gene:
     #                This is sorted by priority!
     _FUNCTION_PALETTE = {
         # transporter: blue
-        "transporter activityr": (0x64, 0x95, 0xed),
+        "transporter activity": (0x64, 0x95, 0xed),
         "cargo receptor activity": (0x64, 0x95, 0xed),
         "molecular carrier activity": (0x64, 0x95, 0xed),
         # regulatory: green
@@ -376,23 +377,14 @@ class Gene:
             for domain in self.protein.domains
             for term in domain.go_functions
         }
-        weights = [
-            domain.biosynthetic_weight or 0
-            for domain in self.protein.domains
-        ]
-
-        if self.protein.domains and statistics.mean(weights) > 0:
-            functions.add("biosynthetic activity")
-        elif self.protein.domains:
-            functions.add("non-biosynthetic activity")
-        else:
+        if not functions:
             functions.add("unknown")
         return functions
 
 
 @dataclass
 class Cluster:
-    """A sequence of contiguous genes with biosynthetic activity.
+    """A sequence of contiguous genes.
 
     Attributes:
         id (`str`): The identifier of the gene cluster.
@@ -402,7 +394,7 @@ class Cluster:
             synthesized by this gene cluster, according to similarity in
             domain composition with curated clusters.
         types_probabilities (`list` of `float`): The probability with which
-            each BGC type was identified (same dimension as the ``types``
+            each cluster type was identified (same dimension as the ``types``
             attribute).
 
     """
@@ -470,7 +462,7 @@ class Cluster:
         Arguments:
             all_possible (sequence of `str`, optional): A sequence containing
                 all domain names to consider when computing domain composition
-                for the BGC. If `None` given, then only domains within the
+                for the cluster. If `None` given, then only domains within the
                 cluster are taken into account.
             normalize (`bool`): Normalize the composition vector so that it
                 sums to 1.
@@ -483,7 +475,7 @@ class Cluster:
 
         Returns:
             `~numpy.ndarray`: A numerical array containing the relative domain
-            composition of the BGC.
+            composition of the gene cluster.
 
         """
         domains = [d for gene in self.genes for d in gene.protein.domains]
@@ -521,21 +513,21 @@ class Cluster:
 
         # NB(@althonos): we use inclusive 1-based ranges in the data model
         # but slicing expects 0-based ranges with exclusive ends
-        bgc = self.source[self.start - 1 : self.end]
-        bgc.id = bgc.name = self.id
+        cluster = self.source[self.start - 1 : self.end]
+        cluster.id = cluster.name = self.id
 
         # copy sequence annotations
-        bgc.annotations = self.source.annotations.copy()
-        bgc.annotations["topology"] = "linear"
-        bgc.annotations["molecule_type"] = "DNA"
+        cluster.annotations = self.source.annotations.copy()
+        cluster.annotations["topology"] = "linear"
+        cluster.annotations["molecule_type"] = "DNA"
         with patch_locale("C"):
-            bgc.annotations['date'] = now.strftime("%d-%b-%Y").upper()
+            cluster.annotations['date'] = now.strftime("%d-%b-%Y").upper()
 
         biopython_version = tuple(map(int, Bio.__version__.split(".")))
         if biopython_version < (1, 77):
             from Bio import Alphabet
 
-            bgc.seq.alphabet = Alphabet.generic_dna
+            cluster.seq.alphabet = Alphabet.generic_dna
 
         # add GECCO preprint as a reference
         ref = Reference()
@@ -551,18 +543,18 @@ class Cluster:
             "Elisa Cappio Barazzone",
             "Georg Zeller"
         ])
-        bgc.annotations.setdefault("references", []).append(ref)
+        cluster.annotations.setdefault("references", []).append(ref)
 
         # add GECCO-specific annotations as a structured comment
         probabilities = {
             f"{key.lower()}_probability":f"{value:.3f}"
             for key, value in self.type_probabilities.items()
         }
-        structured_comment = bgc.annotations.setdefault("structured_comment", OrderedDict())
+        structured_comment = cluster.annotations.setdefault("structured_comment", OrderedDict())
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
             "creation_date": now.isoformat(),
-            "biosyn_class": ";".join(sorted(self.type.names)) or "Unknown",
+            "cluster_type": ";".join(sorted(self.type.names)) or "Unknown",
             **probabilities,
         }
 
@@ -571,7 +563,7 @@ class Cluster:
             # write gene as a /cds GenBank record
             cds = gene.to_seq_feature()
             cds.location += -self.start
-            bgc.features.append(cds)
+            cluster.features.append(cds)
             # write domains as /misc_feature annotations
             for domain in gene.protein.domains:
                 misc = domain.to_seq_feature(protein_coordinates=False)
@@ -585,10 +577,10 @@ class Cluster:
                         cds.location.end - misc.location.end,
                         cds.location.end - misc.location.start
                     )
-                bgc.features.append(misc)
+                cluster.features.append(misc)
 
-        # return the complete BGC
-        return bgc
+        # return the complete gene cluster record
+        return cluster
 
 
 class _UnknownSeq(Seq):
@@ -630,7 +622,7 @@ class FeatureTable(Table):
     pvalue: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
     domain_start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
     domain_end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
-    bgc_probability: List[Optional[float]] = field(default_factory = list)
+    cluster_probability: List[Optional[float]] = field(default_factory = list)
 
     class Row(NamedTuple):
         """A single row in a feature table.
@@ -647,7 +639,7 @@ class FeatureTable(Table):
         pvalue: float
         domain_start: int
         domain_end: int
-        bgc_probability: Optional[float]
+        cluster_probability: Optional[float]
 
     if typing.TYPE_CHECKING:
 
@@ -683,7 +675,7 @@ class FeatureTable(Table):
                 table.pvalue.append(domain.pvalue)
                 table.domain_start.append(domain.start)
                 table.domain_end.append(domain.end)
-                table.bgc_probability.append(domain.probability)
+                table.cluster_probability.append(domain.probability)
         return table
 
     def to_genes(self) -> Iterable[Gene]:
@@ -709,7 +701,7 @@ class FeatureTable(Table):
             protein = Protein(rows[0].protein_id, seq=_UnknownSeq)
             gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
             for row in rows:
-                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.pvalue, row.bgc_probability)
+                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.pvalue, row.cluster_probability)
                 gene.protein.domains.append(domain)
             yield gene
 
@@ -731,7 +723,7 @@ class ClusterTable(Table):
     """
 
     sequence_id: List[str] = field(default_factory = list)
-    bgc_id: List[str] = field(default_factory = list)
+    cluster_id: List[str] = field(default_factory = list)
     start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
     end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
     average_p: List[Optional[float]] = field(default_factory = list)
@@ -748,7 +740,7 @@ class ClusterTable(Table):
         """
 
         sequence_id: str
-        bgc_id: str
+        cluster_id: str
         start: int
         end: int
         average_p: Optional[float]
@@ -770,7 +762,7 @@ class ClusterTable(Table):
         table = cls()
         for cluster in clusters:
             table.sequence_id.append(cluster.source.id)
-            table.bgc_id.append(cluster.id)
+            table.cluster_id.append(cluster.id)
             table.start.append(cluster.start)
             table.end.append(cluster.end)
             table.average_p.append(cluster.average_probability)
@@ -878,7 +870,7 @@ class ClusterTable(Table):
 
 @dataclass(frozen=True)
 class GeneTable(Table):
-    """A table storing gene coordinates and optional biosynthetic probabilities.
+    """A table storing gene coordinates and optional cluster probabilities.
     """
 
     sequence_id: List[str] = field(default_factory = list)

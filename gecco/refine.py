@@ -1,4 +1,4 @@
-"""Algorithm to smooth contiguous BGC predictions into single regions.
+"""Algorithm to smooth contiguous gene cluster predictions into single regions.
 """
 
 import collections.abc
@@ -48,7 +48,7 @@ BIO_PFAMS = frozenset({
 
 
 class GeneGrouper:
-    """A callable to group genes under or over a BGC probability threshold.
+    """A callable to group genes under or over a probability threshold.
 
     Use with a list of genes in combination with `itertools.groupby`.
     """
@@ -65,7 +65,7 @@ class GeneGrouper:
 
 
 class ClusterRefiner:
-    """A post-processor to extract contiguous BGCs from CRF predictions.
+    """A post-processor to extract contiguous clusters from CRF predictions.
     """
 
     def __init__(
@@ -75,16 +75,15 @@ class ClusterRefiner:
         n_cds: int = 5,
         n_biopfams: int = 5,
         average_threshold: float = 0.6,
-        edge_distance: int = 10,
+        edge_distance: int = 0,
     ) -> None:
         """Create a new `ClusterRefiner` instance.
 
         Arguments:
             threshold (`float`): The probability threshold to use to consider
-                a protein to be part of a BGC region.
-            criterion (`str`): The criterion to use when checking for BGC
-                validity. See `gecco.bgc.BGC.is_valid` documentation for
-                allowed values and expected behaviours.
+                a protein to be part of a gene cluster.
+            criterion (`str`): The criterion to use when checking for cluster
+                validity. 
             n_cds (`int`): The minimum number of genes a gene cluster must
                 contain to be considered valid. If ``criterion`` is ``gecco``,
                 then this is the minimum number of **annotated** CDS.
@@ -92,14 +91,12 @@ class ClusterRefiner:
                 domains a gene cluster must contain to be considered valid
                 (*only when the criterion is* ``antismash``).
             average_threshold (`int`): The average probability threshold to
-                use to consider a BGC valid (*only when the criterion is*
-                ``antismash``).
-            edge_distance (`int`): The minimum distance from the edge the BGC
-                must be located (it may start at an edge, but must span for
-                longer than ``edge_distance``), in number of annotated genes.
-                Lowering this number will increase the number of false-positives
-                in the case of very short sequences. (*only when the criterion
-                is* ``gecco``).
+                use to consider a gene cluster valid (*only when the 
+                criterion is* ``antismash``).
+            edge_distance (`int`): The minimum distance from the edge the 
+                gene cluster must be located (it may start at an edge, but must 
+                span for longer than ``edge_distance``), in number of annotated 
+                genes (*only when the criterion is* ``gecco``).
 
         """
         self.threshold = threshold
@@ -155,7 +152,7 @@ class ClusterRefiner:
             cds_crit = len(cluster.genes) >= self.n_cds
             return p_crit and bio_crit and cds_crit
         else:
-            raise ValueError(f"unknown BGC filtering criterion: {self.criterion}")
+            raise ValueError(f"Unknown cluster filtering criterion: {self.criterion}")
 
     def _trim_cluster(self, cluster: Cluster) -> Cluster:
         """Remove unannotated proteins from the cluster edges.
@@ -170,7 +167,7 @@ class ClusterRefiner:
         self,
         genes: List[Gene],
     ) -> Iterator[Tuple[List[Gene], Cluster]]:
-        """Iterate over contiguous BGC segments from a list of genes.
+        """Iterate over contiguous cluster segments from a list of genes.
         """
         grouper = GeneGrouper(self.threshold)
         key = operator.attrgetter("source.id")
@@ -182,6 +179,6 @@ class ClusterRefiner:
             # group contiguous genes if they are over or under the threshold
             groups = itertools.groupby(seqsort, key=grouper)
             # filter out regions that are not identified to be clusters
-            bgcs = (genes for in_bgc, genes in groups if in_bgc)
-            for i, bgc in enumerate(bgcs):
-                yield seqsort, Cluster(id=f"{seq_id}_cluster_{i+1}", genes=list(bgc))
+            clusters = (genes for in_cluster, genes in groups if in_cluster)
+            for i, cluster in enumerate(clusters):
+                yield seqsort, Cluster(id=f"{seq_id}_cluster_{i+1}", genes=list(cluster))

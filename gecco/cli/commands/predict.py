@@ -38,7 +38,7 @@ if typing.TYPE_CHECKING:
 
 class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFilterMixin, PredictorMixin):  # noqa: D101
 
-    summary = "predict BGCs on contigs that have already been annotated."
+    summary = "predict gene clusters on contigs that have already been annotated."
 
     @classmethod
     def doc(cls, fast: bool = False) -> str:  # noqa: D102
@@ -90,8 +90,9 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
 
         Parameters - Cluster Detection:
             --no-pad                      disable padding of gene sequences
-                                          (used to predict BGCs in contigs
-                                          smaller than the CRF window length).
+                                          (used to predict gene clusters in 
+                                          contigs smaller than the CRF window 
+                                          length).
             -c <N>, --cds <N>             the minimum number of coding sequences a
                                           valid cluster must contain. [default: 3]
             -m <m>, --threshold <m>       the probability threshold for cluster
@@ -282,7 +283,7 @@ class Predict(TableLoaderMixin, SequenceLoaderMixin, OutputWriterMixin, DomainFi
             if self.antismash_sideload:
                 self._write_sideload_json(clusters)
             unit = "cluster" if len(clusters) == 1 else "clusters"
-            self.success("Found", len(clusters), "biosynthetic gene", unit, level=0)
+            self.success("Found", len(clusters), "gene", unit, level=0)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:

@@ -1,4 +1,4 @@
-"""Supervised classifier to predict the biosynthetic type of a cluster.
+"""Supervised classifier to predict the type of a cluster.
 """
 
 import csv
@@ -78,7 +78,7 @@ class TypeClassifier(object):
 
         Returns:
             `~gecco.types.TypeClassifier`: A random forest model that can be
-            used to perform BGC type predictions without training first.
+            used to perform cluster type predictions without training first.
 
         """
 
