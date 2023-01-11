@@ -8,23 +8,29 @@ jobs:
 
   test_linux:
     name: Test (Linux)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       OS: Linux
     strategy:
       matrix:
         include:
-        - python-version: 3.6
+        - python-version: "3.6"
           python-release: v3.6
           python-impl: CPython
-        - python-version: 3.7
+        - python-version: "3.7"
           python-release: v3.7
           python-impl: CPython
-        - python-version: 3.8
+        - python-version: "3.8"
           python-release: v3.8
           python-impl: CPython
-        - python-version: 3.9
+        - python-version: "3.9"
           python-release: v3.9
+          python-impl: CPython
+        - python-version: "3.10"
+          python-release: v3.10
+          python-impl: CPython
+        - python-version: "3.11"
+          python-release: v3.11
           python-impl: CPython
     steps:
     - name: Checkout code
