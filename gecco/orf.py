@@ -137,7 +137,7 @@ class PyrodigalFinder(ORFFinder):
                         strand=Strand(orf.strand),
                         protein=protein,
                         qualifiers={
-                            "inference": ["ab initio prediction:Prodigal:2.6"],
+                            "inference": [f"ab initio prediction:Pyrodigal:{pyrodigal.__version__}"],
                             "transl_table": [str(orf.translation_table)],
                         }
                     )
