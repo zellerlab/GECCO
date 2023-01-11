@@ -14,6 +14,7 @@ import docopt
 import rich.console
 import rich.progress
 import rich.logging
+from rich.text import Text
 
 from ... import __version__, __name__ as __progname__
 
@@ -30,6 +31,21 @@ class CommandExit(Exception):
 
     def __init__(self, code: int) -> None:
         self.code = code
+
+
+class MofNWithPrecisionColumn(rich.progress.MofNCompleteColumn):
+
+    def render(self, task: "rich.progress.Task") -> "Text":
+        """Show completed/total."""
+        completed = task.completed
+        total = task.total if task.total is not None else "?"
+        precision = task.fields.get("precision", "")
+        total_width = len(f"{total:{precision}}")
+        return Text(
+            f"{completed:{total_width}{precision}}{self.separator}{total:{precision}}",
+            style="progress.download",
+        )
+
 
 class Command(metaclass=abc.ABCMeta):
     """An abstract base class for ``gecco`` subcommands.
@@ -99,7 +115,7 @@ class Command(metaclass=abc.ABCMeta):
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
             "[progress.description]{task.description}",
             rich.progress.BarColumn(bar_width=60),
-            "[progress.completed]{task.completed:{task.fields[precision]}}/{task.total:{task.fields[precision]}}",
+            MofNWithPrecisionColumn(),
             "[progress.completed]{task.fields[unit]}",
             "[progress.percentage]{task.percentage:>3.0f}%",
             rich.progress.TimeElapsedColumn(),
