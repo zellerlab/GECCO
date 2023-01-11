@@ -26,7 +26,7 @@ import scipy.sparse
 import sklearn.ensemble
 import sklearn.preprocessing
 
-from ..model import ProductType, Cluster
+from ..model import ClusterType, Cluster
 
 try:
     import importlib.resources as importlib_resources
@@ -41,25 +41,25 @@ __all__ = ["TypeBinarizer", "TypeClassifier"]
 
 
 class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
-    """A `MultiLabelBinarizer` working with `ProductType` instances.
+    """A `MultiLabelBinarizer` working with `ClusterType` instances.
     """
 
     def __init__(self, classes: List[str], **kwargs: object):
         self.classes_ = classes
         super().__init__(classes=classes, **kwargs)
 
-    def transform(self, y: List[ProductType]) -> Iterable[Iterable[int]]:
+    def transform(self, y: List[ClusterType]) -> Iterable[Iterable[int]]:
         matrix = numpy.zeros((len(y), len(self.classes_)))
         for i, label in enumerate(y):
             for j, cls in enumerate(self.classes_):
                 matrix[i, j] = cls in label.names
         return matrix
 
-    def inverse_transform(self, yt: "NDArray[numpy.bool_]") -> Iterable[ProductType]:
+    def inverse_transform(self, yt: "NDArray[numpy.bool_]") -> Iterable[ClusterType]:
         classes = []
         for y in yt:
             filtered = (cls for i, cls in enumerate(self.classes_) if y[i])
-            classes.append(ProductType(*filtered))
+            classes.append(ClusterType(*filtered))
         return classes
 
 
@@ -103,7 +103,7 @@ class TypeClassifier(object):
                 for ty in filter(None, line.split("\t")[1].strip().split(";")):
                     unpacked.add(ty)
                     unique_types.add(ty)
-                types.append(ProductType(*unpacked))
+                types.append(ClusterType(*unpacked))
 
         classifier = cls(classes=sorted(unique_types), random_state=0)
         types_bin = classifier.binarizer.transform(types)

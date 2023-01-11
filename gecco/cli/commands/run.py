@@ -24,7 +24,6 @@ from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 from ._mixins import SequenceLoaderMixin, OutputWriterMixin, PredictorMixin
 from .._utils import patch_showwarnings
-from ...model import ProductType
 
 try:
     import importlib.resources as importlib_resources

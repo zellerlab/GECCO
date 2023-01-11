@@ -8,7 +8,7 @@ Data Model
 Python Layer
 ------------
 
-.. autoclass:: ProductType(enum.IntFlag)
+.. autoclass:: ClusterType(object)
    :members:
 
 .. autoclass:: Strand(enum.IntEnum)

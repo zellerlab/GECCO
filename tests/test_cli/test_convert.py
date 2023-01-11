@@ -14,7 +14,7 @@ from Bio.Seq import Seq
 import gecco.orf
 import gecco.hmmer
 import gecco.cli.commands.convert
-from gecco.model import Cluster, ProductType, ClusterTable, FeatureTable
+from gecco.model import Cluster, ClusterType, ClusterTable, FeatureTable
 from gecco.cli import main
 from gecco.cli.commands.run import Run
 from gecco.cli.commands.convert import Convert
@@ -45,7 +45,7 @@ class TestConvert(TestCommand, unittest.TestCase):
 
         # create a cluster containing the whole sequence and write it down as
         # a GenBank file to the mock "output" folder
-        cluster = Cluster("BGC0001866.1_cluster_1", genes, type=ProductType("Polyketide"))
+        cluster = Cluster("BGC0001866.1_cluster_1", genes, type=ClusterType("Polyketide"))
         record = cluster.to_seq_record()
         with open(os.path.join(self.tmpdir, "{}.gbk".format(cluster.id)), "w") as f:
             Bio.SeqIO.write(record, f, "genbank")

@@ -35,7 +35,7 @@ if typing.TYPE_CHECKING:
 
 
 __all__ = [
-    "ProductType",
+    "ClusterType",
     "Strand",
     "Domain",
     "Protein",
@@ -47,45 +47,45 @@ __all__ = [
 
 
 # fmt: off
-class ProductType(object):
-    """An immutable storage of type for the product synthesized by a cluster.
+class ClusterType(object):
+    """An immutable storage for the type of a gene cluster.
     """
 
     def __init__(self, *names: str) -> None:
         """Create a new product type from one or more base types.
 
         Example:
-            >>> t1 = ProductType()                    # unknown type
-            >>> t2 = ProductType("Polyketide")        # single type
-            >>> t3 = ProductType("Polyketide", "NRP") # multiple types
+            >>> t1 = ClusterType()                    # unknown type
+            >>> t2 = ClusterType("Polyketide")        # single type
+            >>> t3 = ClusterType("Polyketide", "NRP") # multiple types
 
         """
         self.names = frozenset(names)
 
     def __repr__(self) -> str:  # noqa: D105
-        return "ProductType({})".format(", ".join(map(repr, sorted(self.names))))
+        return "ClusterType({})".format(", ".join(map(repr, sorted(self.names))))
 
     def __hash__(self) -> int:  # noqa: D105
         return hash(self.names)
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
-        if not isinstance(other, ProductType):
+        if not isinstance(other, ClusterType):
             return NotImplemented
         return self.names == other.names
 
     def __bool__(self) -> bool:  # noqa: D105
         return len(self.names) != 0
 
-    def unpack(self) -> List["ProductType"]:
-        """Unpack a composite `ProductType` into a list of individual types.
+    def unpack(self) -> List["ClusterType"]:
+        """Unpack a composite `ClusterType` into a list of individual types.
 
         Example:
-            >>> ty = ProductType("Polyketide", "Saccharide")
+            >>> ty = ClusterType("Polyketide", "Saccharide")
             >>> ty.unpack()
-            [ProductType('Polyketide'), ProductType('Saccharide')]
+            [ClusterType('Polyketide'), ClusterType('Saccharide')]
 
         """
-        return [ ProductType(x) for x in sorted(self.names) ]
+        return [ ClusterType(x) for x in sorted(self.names) ]
 
 
 class Strand(enum.IntEnum):
@@ -390,9 +390,9 @@ class Cluster:
         id (`str`): The identifier of the gene cluster.
         genes (`list` of `~gecco.model.Gene`): A list of the genes belonging
             to this gene cluster.
-        types (`gecco.model.ProductType`): The putative types of product
-            synthesized by this gene cluster, according to similarity in
-            domain composition with curated clusters.
+        types (`gecco.model.ClusterType`): The putative types of this gene 
+            cluster, according to similarity in domain composition with 
+            curated clusters.
         types_probabilities (`list` of `float`): The probability with which
             each cluster type was identified (same dimension as the ``types``
             attribute).
@@ -401,14 +401,14 @@ class Cluster:
 
     id: str
     genes: List[Gene]
-    type: ProductType
+    type: ClusterType
     type_probabilities: Dict[str, float]
 
     def __init__(
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
-        type: ProductType = ProductType(),
+        type: ClusterType = ClusterType(),
         type_probabilities: Optional[Dict[str, float]] = None,
     ):  # noqa: D107
         self.id = id
@@ -709,12 +709,12 @@ class FeatureTable(Table):
         return len(self.sequence_id)
 
 
-def _format_product_type(value: "ProductType") -> str:
+def _format_product_type(value: "ClusterType") -> str:
     return ";".join(sorted(value.names))
 
 
-def _parse_product_type(value: str) -> "ProductType":
-    return ProductType(*map(str.strip, value.split(";"))) if value.strip() else ProductType()
+def _parse_product_type(value: str) -> "ClusterType":
+    return ClusterType(*map(str.strip, value.split(";"))) if value.strip() else ClusterType()
 
 
 @dataclass(frozen=True)
@@ -729,7 +729,7 @@ class ClusterTable(Table):
     average_p: List[Optional[float]] = field(default_factory = list)
     max_p: List[Optional[float]] = field(default_factory = list)
 
-    type: List[ProductType] = field(default_factory = list)
+    type: List[ClusterType] = field(default_factory = list)
     type_p: List[Dict[str, float]] = field(default_factory = list)
 
     proteins: List[Optional[List[str]]] = field(default_factory = list)
@@ -746,14 +746,14 @@ class ClusterTable(Table):
         average_p: Optional[float]
         max_p: Optional[float]
 
-        type: ProductType
-        type_p: Dict[ProductType, float]
+        type: ClusterType
+        type_p: Dict[ClusterType, float]
 
         proteins: Optional[List[str]]
         domains: Optional[List[str]]
 
-    _FORMAT_FIELD = {ProductType: _format_product_type, **Table._FORMAT_FIELD}
-    _PARSE_FIELD = {ProductType: _parse_product_type, **Table._PARSE_FIELD}
+    _FORMAT_FIELD = {ClusterType: _format_product_type, **Table._FORMAT_FIELD}
+    _PARSE_FIELD = {ClusterType: _parse_product_type, **Table._PARSE_FIELD}
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":

@@ -16,7 +16,6 @@ from typing import Any, Dict, Union, Optional, Iterable, List, TextIO, Mapping, 
 import docopt
 
 from .._utils import patch_showwarnings
-from ...model import ProductType
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
 from .train import Train
@@ -127,7 +126,7 @@ class Cv(Train):  # noqa: D101
 
     def _loto_splits(self, seqs: List[List["Gene"]]) -> List[Tuple["NDArray[numpy.bool_]", "NDArray[numpy.bool_]"]]:
         from ...crf.cv import LeaveOneGroupOut
-        from ...model import ClusterTable, ProductType
+        from ...model import ClusterTable, ClusterType
 
         self.info("Loading", "the clusters table")
         with open(self.clusters) as in_:
@@ -143,7 +142,7 @@ class Cv(Train):  # noqa: D101
             if ty is None:
                 seq_id = next(gene.source.id for gene in cluster)
                 self.warn("Failed", f"to find type of cluster in {seq_id!r}")
-                ty = ProductType()
+                ty = ClusterType()
             groups.append(ty.unpack())
 
         return list(LeaveOneGroupOut().split(seqs, groups=groups))   # type: ignore

@@ -386,8 +386,6 @@ class PredictorMixin(Command):
         return TypeClassifier.trained(self.model)
 
     def _predict_types(self, clusters: List["Cluster"], classifier: "TypeClassifier") -> List["Cluster"]:
-        from ...model import ProductType
-
         self.info("Predicting", "gene cluster types", level=1)
 
         unit = "cluster" if len(clusters) == 1 else "clusters"

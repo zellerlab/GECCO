@@ -8,7 +8,7 @@ import warnings
 from unittest import mock
 
 import Bio.SeqIO
-from gecco.model import ClusterTable, ProductType
+from gecco.model import ClusterTable, ClusterType
 
 
 class TestClusterTable(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestClusterTable(unittest.TestCase):
 
     def test_load(self):
         self.assertEqual(len(self.table), 1)
-        self.assertEqual(self.table.type[0], ProductType("Polyketide"))
+        self.assertEqual(self.table.type[0], ClusterType("Polyketide"))
 
     def test_load_unknown_type(self):
         row = self.row.copy()
@@ -40,7 +40,7 @@ class TestClusterTable(unittest.TestCase):
         rows = ["\t".join(x) for x in (self.header, row)]
         table = ClusterTable.load(rows)
         self.assertEqual(len(table), 1)
-        self.assertEqual(table.type[0], ProductType())
+        self.assertEqual(table.type[0], ClusterType())
 
     def test_dump(self):
         lines = self.table.dumps().splitlines()
