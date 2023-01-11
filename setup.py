@@ -28,9 +28,9 @@ from distutils.command.clean import clean as _clean
 from setuptools.command.sdist import sdist as _sdist
 
 try:
-    from tqdm import tqdm
+    import rich.progress
 except ImportError as err:
-    tqdm = err
+    rich = None
 
 try:
     from pyhmmer.plan7 import HMMFile
@@ -116,16 +116,17 @@ class update_interpro(setuptools.Command):
         self.info("downloading {!r}".format(url))
         with open(path, "wb") as dst:
             with urllib.request.urlopen(url) as res:
-                with tqdm.wrapattr(res, method="read", total=int(res.headers['Content-Length'])) as res:
-                    shutil.copyfileobj(res, dst)
+                total = int(res.headers['Content-Length'])
+                with rich.progress.wrap_file(res, total=total) as src:
+                    shutil.copyfileobj(src, dst)
 
     def run(self):
-        # Check `tqdm` is installed
-        if isinstance(tqdm, ImportError):
-            raise RuntimeError("tqdm is required to run the `update_model` command") from tqdm
+        # Check `rich` is installed
+        if isinstance(rich, ImportError):
+            raise RuntimeError("`rich` is required to run the `update_model` command") from rich
         # Check `pronto` is installed
         if isinstance(pronto, ImportError):
-            raise RuntimeError("pronto is required to run the `update_interpro` command") from pronto
+            raise RuntimeError("`pronto` is required to run the `update_interpro` command") from pronto
 
         # download Gene Ontology
         go_path = os.path.join(self.build_temp, "go.obo")
@@ -144,10 +145,9 @@ class update_interpro(setuptools.Command):
 
         # load XML database
         self.info("loading {!r}".format(xml_path))
-        with open(xml_path, "rb") as src:
-            with tqdm.wrapattr(src, method="read", total=os.stat(xml_path).st_size) as src:
-                with gzip.GzipFile(fileobj=src, mode="rb") as src:
-                    tree = etree.parse(src)
+        with rich.progress.open(xml_path, mode="rb") as src:
+            with gzip.GzipFile(fileobj=src, mode="rb") as src:
+                tree = etree.parse(src)
 
         # build entries
         entries = []
@@ -217,9 +217,9 @@ class update_model(setuptools.Command):
         self.announce(msg, level=2)
 
     def run(self):
-        # Check `tqdm` is installed
-        if isinstance(tqdm, ImportError):
-            raise RuntimeError("tqdm is required to run the `update_model` command") from tqdm
+        # Check `rich` is installed
+        if isinstance(rich, ImportError):
+            raise RuntimeError("`rich` is required to run the `update_model` command") from rich
 
         # Copy the file to the new in-source location and compute its hash.
         hasher = hashlib.md5()
@@ -281,11 +281,11 @@ class build_data(setuptools.Command):
         # make sure the build/lib/ folder exists
         self.mkpath(self.build_lib)
 
-        # Check `tqdm` and `pyhmmer` are installed
+        # Check `rich` and `pyhmmer` are installed
         if isinstance(HMMFile, ImportError):
             raise RuntimeError("pyhmmer is required to run the `build_data` command") from HMMFile
-        if isinstance(tqdm, ImportError):
-            raise RuntimeError("tqdm is required to run the `build_data` command") from tqdm
+        if isinstance(rich, ImportError):
+            raise RuntimeError("`rich` is required to run the `build_data` command") from rich
 
         # Load domain whitelist from the type classifier data
         domains_file = os.path.join("gecco", "types", "domains.tsv")
@@ -344,13 +344,11 @@ class build_data(setuptools.Command):
         # fetch the resource
         self.info(f"fetching {url}")
         response = urllib.request.urlopen(url)
-        # use `tqdm` to make a progress bar
-        pbar = tqdm.wrapattr(
+        # use `rich.progress` to make a progress bar
+        pbar = rich.progress.wrap_file(
             response,
-            "read",
             total=int(response.headers["Content-Length"]),
-            desc=os.path.basename(output),
-            leave=False,
+            description=os.path.basename(output),
         )
         # download to `output`
         with contextlib.ExitStack() as ctx:
@@ -363,13 +361,11 @@ class build_data(setuptools.Command):
         # fetch the resource from the URL in the ".ini" files
         self.info(f"using fallback {options['url']}")
         response = urllib.request.urlopen(options["url"])
-        # use `tqdm` to make a progress bar
-        pbar = tqdm.wrapattr(
+        # use `rich` to make a progress bar
+        pbar = rich.progress.wrap_file(
             response,
-            "read",
             total=int(response.headers["Content-Length"]),
-            desc=os.path.basename(output),
-            leave=False,
+            description=os.path.basename(output),
         )
         # download to `output`
         nsource = nwritten = 0
