@@ -3,10 +3,10 @@ GECCO
 
 *Biosynthetic Gene Cluster prediction with Conditional Random Fields.*
 
-|GitLabCI| |License| |Coverage| |Source| |Mirror| |Issues| |Preprint| |PyPI| |Bioconda| |Galaxy| |Versions| |Wheel|
+|Actions| |License| |Coverage| |Source| |Mirror| |Issues| |Preprint| |PyPI| |Bioconda| |Galaxy| |Versions| |Wheel|
 
-.. |GitLabCI| image:: https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&logo=gitlab&style=flat-square&maxAge=600
-   :target: https://git.embl.de/grp-zeller/GECCO/-/pipelines
+.. |Actions| image:: https://img.shields.io/github/actions/workflow/status/zellerlab/GECCO/test.yml?branch=master&style=flat-square&maxAge=300
+   :target: https://github.com/zellerlab/GECCO/actions/workflows/test.yml
 
 .. |Coverage| image:: https://img.shields.io/codecov/c/gh/zellerlab/GECCO?logo=codecov&style=flat-square&maxAge=600
    :target: https://codecov.io/gh/zellerlab/GECCO/

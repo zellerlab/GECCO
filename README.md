@@ -8,7 +8,7 @@ GECCO (Gene Cluster prediction with Conditional Random Fields) is a fast and
 scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs)
 in genomic and metagenomic data using Conditional Random Fields (CRFs).
 
-[![GitLabCI](https://img.shields.io/gitlab/pipeline/grp-zeller/GECCO/master?gitlab_url=https%3A%2F%2Fgit.embl.de&style=flat-square&maxAge=600)](https://git.embl.de/grp-zeller/GECCO/-/pipelines/)
+[![Actions](https://img.shields.io/github/actions/workflow/status/zellerlab/GECCO/test.yml?branch=master&style=flat-square&maxAge=300)](https://github.com/zellerlab/GECCO/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
 [![Coverage](https://img.shields.io/codecov/c/gh/zellerlab/GECCO?style=flat-square&maxAge=600)]( https://codecov.io/gh/zellerlab/GECCO/)
 [![Docs](https://img.shields.io/badge/docs-gecco.embl.de-green.svg?maxAge=2678400&style=flat-square)](https://gecco.embl.de)
