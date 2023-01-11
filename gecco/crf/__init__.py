@@ -59,6 +59,8 @@ class ClusterCRF(object):
     """A wrapper for `sklearn_crfsuite.CRF` to work with the GECCO data model.
     """
 
+    _FILENAME = "model.pkl"
+
     @classmethod
     def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":
         """Create a new pre-trained `ClusterCRF` instance from a model path.
@@ -78,11 +80,11 @@ class ClusterCRF(object):
         """
         # get the path to the pickled model and read its signature file
         if model_path is not None:
-            pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "model.pkl"), "rb")
-            md5_file: ContextManager[TextIO] = open(os.path.join(model_path, "model.pkl.md5"))
+            pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, cls._FILENAME), "rb")
+            md5_file: ContextManager[TextIO] = open(os.path.join(model_path, f"{cls._FILENAME}.md5"))
         else:
             pkl_file = importlib_resources.open_binary(__name__, "model.pkl")
-            md5_file = importlib_resources.open_text(__name__, "model.pkl.md5")
+            md5_file = importlib_resources.open_text(__name__, f"{cls._FILENAME}.md5")
         with md5_file as sig:
             signature = sig.read().strip()
 
@@ -113,7 +115,12 @@ class ClusterCRF(object):
             algorithm (`str`): The optimization algorithm for the model. See
                 https://sklearn-crfsuite.readthedocs.io/en/latest/api.html
                 for available values.
-            window_size (`int`):
+            window_size (`int`): The size of the sliding window to use
+                when training and predicting probabilities on sequences
+                of genes.
+            window_step (`int`): The step between consecutive sliding
+                windows to use when training and predicting probabilities
+                on sequences of genes.
 
         Any additional keyword argument is passed as-is to the internal
         `~sklearn_crfsuite.CRF` constructor.
@@ -136,16 +143,49 @@ class ClusterCRF(object):
         self.algorithm = algorithm
         self.significance: Optional[Dict[str, float]] = None
         self.significant_features: Optional[FrozenSet[str]] = None
-        self.model = sklearn_crfsuite.CRF(
-            algorithm=algorithm,
-            # all_possible_transitions=True,
-            # all_possible_states=True,
-            **kwargs,
-        )
+        self.model = None
+        self._options = {"algorithm": algorithm, **kwargs}
 
-    def predict_probabilities(self, genes: Iterable[Gene], *, pad: bool = True) -> List[Gene]:
+    def predict_probabilities(
+        self,
+        genes: Iterable[Gene],
+        *,
+        pad: bool = True,
+        progress: Optional[Callable[[int, int], None]] = None,
+    ) -> List[Gene]:
         """Predict how likely each given gene is part of a gene cluster.
+
+        Arguments:
+            genes (iterable of `~gecco.model.Gene`): The genes to compute
+                probabilities for.
+
+        Keyword Arguments:
+            batch_size (`int`): The number of samples to load per batch.
+                *Ignored, always 1 with the CRF.*
+            pad (`bool`): Whether to pad sequences too small for a single
+                window. Setting this to `False` will skip probability
+                prediction entirely for sequences smaller than the window
+                size.
+            progress (callable): A callable that accepts two `int`, the
+                current batch index and the total number of batches.
+
+        Returns:
+            `list` of `~gecco.model.Gene`: A list of new `Gene` objects with
+            their probability set.
+
+        Raises:
+            `~sklearn.exceptions.NotFittedError`: When calling this method
+                on an object that has not been fitted yet.
+
         """
+        # silence progress if no callback given, ignored
+        _progress = progress or (lambda x,y: None)
+        window_index = 0
+
+        # check that the model was trained
+        if self.model is None:
+            raise NotFittedError("This ClusterCRF instance is not fitted yet.")
+
         # select the feature extraction method
         if self.feature_type == "protein":
             extract_features = features.extract_features_protein
@@ -157,48 +197,68 @@ class ClusterCRF(object):
             raise ValueError(f"invalid feature type: {self.feature_type!r}")
 
         # sort genes by sequence id and domains inside genes by coordinate
-        genes = sorted(genes, key=operator.attrgetter("source.id"))
+        genes = sorted(genes, key=operator.attrgetter("source.id", "start"))
         for gene in genes:
             gene.protein.domains.sort(key=operator.attrgetter("start"))
 
-        # predict sequence by sequence
-        predicted = []
-        for _, group in itertools.groupby(genes, key=operator.attrgetter("source.id")):
+        # group genes by contigs
+        contigs = {}
+        for contig_id, group in itertools.groupby(genes, key=operator.attrgetter("source.id")):
+            contigs[contig_id] = list(group)
+
+        # extract features from all contigs
+        contig_features = {}
+        deltas = {}
+        for contig_id, contig in contigs.items():
             # extract features
-            sequence: List[Gene] = sorted(group, key=operator.attrgetter("start"))
-            feats: List[Dict[str, bool]] = extract_features(sequence)
-            delta: int = 0
+            feats: List[Dict[str, bool]] = extract_features(contig)
+            deltas[contig_id] = 0
             # ignore sequences too small with a warning
             if len(feats) < self.window_size:
                 if pad:
                     unit = self.feature_type if self.window_size - len(feats) == 1 else f"{self.feature_type}s"
                     warnings.warn(
-                        f"Contig {sequence[0].source.id!r} does not contain enough"
-                        f" {self.feature_type}s ({len(sequence)}) for sliding window"
+                        f"Contig {contig[0].source.id!r} does not contain enough"
+                        f" {self.feature_type}s ({len(contig)}) for sliding window"
                         f" of size {self.window_size}, padding with"
                         f" {self.window_size - len(feats)} {unit}"
                     )
-                    # insert on both ends
-                    delta = self.window_size - len(feats)
-                    for _ in range(delta // 2):
-                        feats.insert(0, {})
-                    for _ in range(delta // 2 + delta % 2):
-                        feats.append({})
+                    # insert empty features as padding on both ends
+                    deltas[contig_id] = delta = self.window_size - len(feats)
+                    feats = [{} for _ in range(delta // 2)] + feats + [{} for _ in range((delta+1)//2)]
                 else:
                     warnings.warn(
-                        f"Contig {sequence[0].source.id!r} does not contain enough"
-                        f" {self.feature_type}s ({len(sequence)}) for sliding window"
+                        f"Contig {contig[0].source.id!r} does not contain enough"
+                        f" {self.feature_type}s ({len(contig)}) for sliding window"
                         f" of size {self.window_size}"
                     )
-                    predicted.extend(sequence)
                     continue
+
+            # store features for the current contig
+            contig_features[contig_id] = feats
+
+            # compute total number of windows to process
+            total = sum(len(feats) - self.window_size + 1 for feats in contig_features.values())
+            _progress(window_index, total)
+
+            # predict probabilities
+            predicted = []
+            for contig_id, contig in contigs.items():
+                # get features if the sequence was not skipped
+                if contig_id not in contig_features:
+                    predicted.extend(contig)
+                    continue
+                feats = contig_features[contig_id]
+
             # predict marginals over a sliding window, storing maximum probabilities
-            probabilities = numpy.zeros(max(len(sequence), self.window_size))
+            probabilities = numpy.zeros(max(len(contig), self.window_size))
             for win in sliding_window(len(feats), self.window_size, self.window_step):
                 marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
                 numpy.maximum(probabilities[win], marginals, out=probabilities[win])
             # label genes with maximal probabilities
-            predicted.extend(annotate_probabilities(sequence, probabilities[delta//2:][:len(sequence)]))  # type: ignore
+            predicted.extend(annotate_probabilities(contig, probabilities[deltas[contig_id]//2:][:len(contig)]))
+
+
 
         # label genes with biosynthetic weights from the CRF and return them
         return [
@@ -214,12 +274,27 @@ class ClusterCRF(object):
     def fit(
         self,
         genes: Iterable[Gene],
+        *,
         select: Optional[float] = None,
         shuffle: bool = True,
-        *,
         cpus: Optional[int] = None,
         correction_method: Optional[str] = None,
     ) -> None:
+        """Fit the CRF model to the given training data.
+
+        Arguments:
+            genes (iterable of `~gecco.model.Gene`): The genes to extract
+                domains from for training the CRF.
+            select (`float`, *optional*): The fraction of features to
+                select based on Fisher-tested significance. Leave as `None`
+                to skip feature selection.
+            shuffle (`bool`): Whether or not to shuffle the contigs
+                after having grouped the genes together.
+            correction_method (`str`, *optional*): The correction method
+                to use for correcting p-values used for feature selection.
+                Ignored if ``select`` is `False`.
+
+        """
         _cpus = os.cpu_count() if not cpus else cpus
         # select the feature extraction method
         if self.feature_type == "protein":
@@ -296,4 +371,29 @@ class ClusterCRF(object):
             raise ValueError("only negative labels found, something is wrong.")
 
         # fit the model
-        self.model.fit(training_features, training_labels)
+        self.model = model = sklearn_crfsuite.CRF(**self._options)
+        model.fit(training_features, training_labels)
+
+    def save(self, model_path: "os.PathLike[str]") -> None:
+        """Save the `ClusterCRF` to an on-disk location.
+
+        Models serialized at a given location can be later loaded from that
+        same location using the `ClusterCRF.trained` class method.
+
+        Arguments:
+            model_path (`str`): The path to the directory where to write
+                the model files.
+
+        """
+        # pickle the CRF model
+        model_out = os.path.join(model_path, self._FILENAME)
+        with open(model_out, "wb") as out:
+            pickle.dump(self, out, protocol=4)
+        # compute a checksum for the pickled model
+        hasher = hashlib.md5()
+        with open(model_out, "rb") as out:
+            for chunk in iter(lambda: out.read(io.DEFAULT_BUFFER_SIZE), b""):
+                hasher.update(chunk)
+        # write the checksum next to the pickled file
+        with open(f"{model_out}.md5", "w") as out_hash:
+            out_hash.write(hasher.hexdigest())
