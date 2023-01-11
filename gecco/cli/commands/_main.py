@@ -80,7 +80,7 @@ class Main(Command):
         gecco - Gene Cluster Prediction with Conditional Random Fields
 
         Usage:
-            gecco [-v | -vv | -q | -qq] <cmd> [<args>...]
+            gecco [-v | -vv | -q | -qq] [--no-progress-bar] <cmd> [<args>...]
             gecco --version
             gecco --help [<cmd>]
 
@@ -95,6 +95,8 @@ class Main(Command):
             -v, --verbose              increase verbosity (-v is verbose,
                                        -vv is very verbose and makes the
                                        output more suitable for logging).
+            --no-progress-bar          disable progress bars from the output,
+                                       independently of verbosity.
             -V, --version              show the program version and exit.
 
         """
@@ -152,7 +154,7 @@ class Main(Command):
                 )
                 subcmd.verbose = self.verbose
                 subcmd.quiet = self.quiet
-                subcmd.progress.disable = self.quiet > 0
+                subcmd.progress.disable = self.args["--no-progress-bar"]
             # run the subcommand
             return subcmd.execute(ctx)
         except CommandExit as sysexit:
