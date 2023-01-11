@@ -233,35 +233,33 @@ class ClusterCRF(object):
                         f" of size {self.window_size}"
                     )
                     continue
-
             # store features for the current contig
             contig_features[contig_id] = feats
 
-            # compute total number of windows to process
-            total = sum(len(feats) - self.window_size + 1 for feats in contig_features.values())
-            _progress(window_index, total)
+        # compute total number of windows to process
+        total = sum(len(feats) - self.window_size + 1 for feats in contig_features.values())
+        _progress(window_index, total)
 
-            # predict probabilities
-            predicted = []
-            for contig_id, contig in contigs.items():
-                # get features if the sequence was not skipped
-                if contig_id not in contig_features:
-                    predicted.extend(contig)
-                    continue
-                feats = contig_features[contig_id]
-
+        # predict probabilities
+        predicted = []
+        for contig_id, contig in contigs.items():
+            # get features if the sequence was not skipped
+            if contig_id not in contig_features:
+                predicted.extend(contig)
+                continue
+            feats = contig_features[contig_id]
             # predict marginals over a sliding window, storing maximum probabilities
             probabilities = numpy.zeros(max(len(contig), self.window_size))
             for win in sliding_window(len(feats), self.window_size, self.window_step):
                 marginals = [p['1'] for p in self.model.predict_marginals_single(feats[win])]
                 numpy.maximum(probabilities[win], marginals, out=probabilities[win])
+                window_index += 1
+                _progress(window_index, total)
             # label genes with maximal probabilities
             predicted.extend(annotate_probabilities(contig, probabilities[deltas[contig_id]//2:][:len(contig)]))
 
-
-
-        # label genes with biosynthetic weights from the CRF and return them
-        return [
+        # label domains with their biosynthetic weight according to the CRF state weights
+        predicted = [
             gene.with_protein(gene.protein.with_domains(
                 domain.with_biosynthetic_weight(
                     self.model.state_features_.get((domain.name, '1'))
@@ -270,6 +268,9 @@ class ClusterCRF(object):
             ))
             for gene in predicted
         ]
+
+        # return the genes that were passed as input but now having BGC
+        return predicted
 
     def fit(
         self,
