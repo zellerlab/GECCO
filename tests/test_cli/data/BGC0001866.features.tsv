@@ -1,4 +1,4 @@
-sequence_id	protein_id	start	end	strand	domain	hmm	i_evalue	pvalue	domain_start	domain_end	bgc_probability
+sequence_id	protein_id	start	end	strand	domain	hmm	i_evalue	pvalue	domain_start	domain_end	cluster_probability
 BGC0001866.1	BGC0001866.1_1	347	1489	-	PF00394	Pfam	2.262067179461254e-08	8.178117062405111e-12	1	63	0.9791890143072265
 BGC0001866.1	BGC0001866.1_1	347	1489	-	PF07731	Pfam	4.059222969454281e-23	1.467542649838858e-26	150	281	0.9791890143072265
 BGC0001866.1	BGC0001866.1_6	3946	4389	+	PF00891	Pfam	4.890642309934635e-16	1.7681280946979883e-19	17	121	0.9955095513800687

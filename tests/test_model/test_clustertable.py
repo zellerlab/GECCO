@@ -17,7 +17,7 @@ class TestClusterTable(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.header = [
-            "sequence_id", "bgc_id", "start", "end", "average_p",
+            "sequence_id", "cluster_id", "start", "end", "average_p",
             "max_p", "type", "alkaloid_probability", "nrp_probability",
             "polyketide_probability", "ripp_probability", "saccharide_probability",
             "terpene_probability", "proteins", "domains",
