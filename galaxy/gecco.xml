@@ -43,10 +43,9 @@
         #if $antismash_sideload:
             --antismash-sideload
         #end if
-        #if $pad:
-        #else:
+        #unless $pad:
             --no-pad
-        #end if
+        #end unless
 
         && mv input_tempfile.genes.tsv '$genes'
         && mv input_tempfile.features.tsv '$features'
