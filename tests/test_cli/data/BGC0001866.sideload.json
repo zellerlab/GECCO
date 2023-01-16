@@ -27,11 +27,13 @@
             "e-filter": "None",
             "edge-distance": "0",
             "mask": "False",
+            "no-pad": "False",
+            "p-filter": "1e-09",
             "postproc": "'gecco'",
             "threshold": "0.8"
         },
         "description": "Biosynthetic Gene Cluster prediction with Conditional Random Fields.",
         "name": "GECCO",
-        "version": "0.9.1"
+        "version": "0.9.6"
     }
 }

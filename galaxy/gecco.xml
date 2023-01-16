@@ -1,8 +1,17 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tool id="gecco" name="GECCO" version="0.9.1" python_template_version="3.5">
+<tool id="gecco" name="GECCO" version="0.9.6" python_template_version="3.5">
     <description>is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).</description>
+    <creator>
+        <organization name="Zeller Team" url="https://www.embl.org/groups/zeller/"/>
+    </creator>
+    <edam_topics>
+        <edam_topic>topic_0080</edam_topic>
+    </edam_topics>
+    <edam_operations>
+        <edam_operation>operation_0415</edam_operation>
+    </edam_operations>
     <requirements>
-        <requirement type="package" version="0.9.1">gecco</requirement>
+        <requirement type="package" version="0.9.6">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -34,6 +43,10 @@
         #if $antismash_sideload:
             --antismash-sideload
         #end if
+        #if $pad:
+        #else:
+            --no-pad
+        #end if
 
         && mv input_tempfile.genes.tsv '$genes'
         && mv input_tempfile.features.tsv '$features'
@@ -46,6 +59,7 @@
     <inputs>
         <param name="input" type="data" format="genbank,fasta,embl" label="Sequence file in GenBank, EMBL or FASTA format"/>
         <param argument="--mask" type="boolean" checked="false" label="Enable masking of regions with unknown nucleotides when finding ORFs"/>
+        <param argument="--pad" type="boolean" checked="true" label="Enable padding of gene sequences smaller than the CRF window length"/>
         <param argument="--cds" type="integer" min="0" value="" optional="true" label="Minimum number of genes required for a cluster"/>
         <param argument="--threshold" type="float" min="0" max="1" value="" optional="true" label="Probability threshold for cluster detection"/>
         <param argument="--postproc" type="select" label="Post-processing method for gene cluster validation">
@@ -72,10 +86,10 @@
             <output name="features" file="features.tsv"/>
             <output name="genes" file="genes.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
+            <param name="edge_distance" value="10"/>
         </test>
         <test>
             <param name="input" value="BGC0001866.fna"/>
-            <param name="edge_distance" value="0"/>
             <output name="features" file="features.tsv"/>
             <output name="genes" file="genes.tsv"/>
             <output name="clusters" file="clusters.tsv"/>
@@ -86,7 +100,6 @@
         <test>
             <param name="input" value="BGC0001866.fna"/>
             <param name="antismash_sideload" value="True"/>
-            <param name="edge_distance" value="0"/>
             <output name="features" file="features.tsv"/>
             <output name="genes" file="genes.tsv"/>
             <output name="clusters" file="clusters.tsv"/>

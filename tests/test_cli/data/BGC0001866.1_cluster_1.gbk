@@ -1,4 +1,4 @@
-LOCUS       BGC0001866.1_cluster_1 32633 bp    DNA     linear   UNK 06-APR-2022
+LOCUS       BGC0001866.1_cluster_1 32633 bp    DNA     linear   UNK 16-JAN-2023
 DEFINITION  BGC0001866.1 Byssochlamys spectabilis strain CBS 101075 chromosome
             Unknown C8Q69scaffold_14, whole genome shotgun sequence.
 ACCESSION   BGC0001866.1_cluster_1
@@ -15,19 +15,19 @@ REFERENCE   1
   JOURNAL   bioRxiv (2021.05.03.442509)
   REMARK    doi:10.1101/2021.05.03.442509
 COMMENT     ##GECCO-Data-START##
-            version                :: GECCO v0.9.1
-            creation_date          :: 2022-04-06T01:08:36.965708
-            biosyn_class           :: Polyketide
-            alkaloid_probability   :: 0.010000000000000009
-            polyketide_probability :: 0.96
-            ripp_probability       :: 0.0
-            saccharide_probability :: 0.0
-            terpene_probability    :: 0.010000000000000009
-            nrp_probability        :: 0.14
+            version                :: GECCO v0.9.6
+            creation_date          :: 2023-01-16T17:20:45.175113
+            cluster_type           :: Polyketide
+            alkaloid_probability   :: 0.010
+            nrp_probability        :: 0.140
+            polyketide_probability :: 0.960
+            ripp_probability       :: 0.000
+            saccharide_probability :: 0.000
+            terpene_probability    :: 0.010
             ##GECCO-Data-END##
 FEATURES             Location/Qualifiers
      CDS             complement(1..1143)
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_1"
                      /translation="MWIYEVDGHYIEPRRADTFLIWAGERYSAMIRLDKKPMDYSIRVP
@@ -37,98 +37,134 @@ FEATURES             Location/Qualifiers
                      QPESFNMVNPPYRDTFLTEFTGAMWVVLRYQVTSPGAWLLHCHFEMHLDNGMAMAILDG
                      VDKWPHVPPEYTQGFHGFREHELPGPAGFWGLVSKILRPESLVWAGGAAVVLLSLFIGG
                      LWRLWQRRMQGTYYVLSQEDERDRFSMDKEAWKSEETKRM*"
-     misc_feature    1..189
+                     /function="binding"
+                     /function="catalytic activity"
+                     /colour="129 14 21"
+                     /ApEinfo_fwdcolor="#810e15"
+                     /ApEinfo_revcolor="#810e15"
+     misc_feature    955..1143
                      /inference="protein motif"
                      /db_xref="PFAM:PF00394"
                      /db_xref="InterPro:IPR001117"
                      /note="e-value: 2.262067179461254e-08"
                      /note="p-value: 8.178117062405111e-12"
-                     /function="Multicopper oxidase"
+                     /function="Multicopper oxidase, type 1"
                      /standard_name="PF00394"
-     misc_feature    448..843
+     misc_feature    301..696
                      /inference="protein motif"
                      /db_xref="PFAM:PF07731"
                      /db_xref="InterPro:IPR011706"
+                     /db_xref="GO:0005507"
+                     /db_xref="GO:0016491"
                      /note="e-value: 4.059222969454281e-23"
                      /note="p-value: 1.467542649838858e-26"
-                     /function="Multicopper oxidase"
+                     /function="Multicopper oxidase, C-terminal"
                      /standard_name="PF07731"
      CDS             1179..1670
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_2"
                      /translation="MSSLRSSSHSPSGLPGQPRLPLLDRSREHSLPGDRAGWRTRSRLR
                      ATDLLSMVRMGSTYTIIRDMNYTDDESPGRSPFVCDSVIRPALVHERDLLVNKPLMART
                      IDAPFAVEKNTIDATDFISQSTRNVLISVHWNHTRSAVGCLHLLLYTGSSCSSPSQKAS
                      *"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             complement(2167..2376)
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_3"
                      /translation="MPAYLLLLACNVLLVLGAHVQRELVLTWEEGAPNGQSRQMIKTNG
                      QFPSPTLIFDEGDDVEVGGISFAN*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             2559..3032
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_4"
                      /translation="MLFNSEVGVEEHVVLWSFQETTSITMAEEIKLTPLETFAQAISAS
                      AKTIATYCRDSGHPQLSDDNSSGLTGDVLPPSAPQAVTAARQTILEASYRLQQLVTEPS
                      QYLPRLTVYVSVEQSPMKDQTNDRKAPAPGCLTLAVPFQNPGAHPRARHQDIL*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             3007..3576
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_5"
                      /translation="MQGTRTYYELATEAKVPLHQLQSIARMAITGSFLREPEPNIVAHS
                      RTSAHFVENPSLRDWTLFLAEDTAPMAMKLVEATEKWGDTRSKTETAFNLALGTDLAFF
                      KYLSSNPQFTQKFSGYMKNVTASEGTSIKHLVNGFDWASLGNAIVVDVRLQSSFTPYRS
                      HTDVIFYRLAVLLVMQALLSRNRSPI*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             3600..4043
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_6"
                      /translation="MVTSTSKDNREKTPLPETVASRISFESHDFFKPQPVQNADVYLLR
                      MILHDWSFKEAGEILANLVPSVKQGARILIMDTVLPRHGTVPVTEEALLRVRDMTMMET
                      FNSHEREIDEWKDLIQGVHTGLRVQQVIQPAGSSMAIIEVVRG*"
+                     /function="catalytic activity"
+                     /colour="129 14 21"
+                     /ApEinfo_fwdcolor="#810e15"
+                     /ApEinfo_revcolor="#810e15"
      misc_feature    3648..3962
                      /inference="protein motif"
                      /db_xref="PFAM:PF00891"
                      /db_xref="InterPro:IPR001077"
+                     /db_xref="GO:0008171"
                      /note="e-value: 4.890642309934635e-16"
                      /note="p-value: 1.7681280946979883e-19"
                      /function="O-methyltransferase domain"
                      /standard_name="PF00891"
      CDS             4337..4792
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_7"
                      /translation="MTQIVFGIAPTLLKTFSHLTALDLWRPSAPYVFDPVTSSTYLGTI
                      ADGVEEFLGIFYGQDTGGSNRFAPPKPYIPSRHSFINASTAGAACPQPYVPLPADPYTV
                      LTNVSEDCLSLRIARPENTKSTAKLPVMVWLYGGAYNRLPTDLQWET*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    4478..4756
                      /inference="protein motif"
                      /db_xref="PFAM:PF00135"
                      /db_xref="InterPro:IPR002018"
                      /note="e-value: 4.819217021121008e-21"
                      /note="p-value: 1.7423055029360116e-24"
-                     /function="Carboxylesterase family"
+                     /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             5038..5466
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_8"
                      /translation="MQDQRLGIEWIKNHISAFGGDPDNITLFGEDEGATYIALHILSNH
                      EVPFHRAILQSGAAITHHDVNGNRSARNFAAVAARCNCLSDGDRQVDSQDTVDCLRRVP
                      MEDLVNATFEVAHSVDPVNGFRALYVLLHFPSHKCKQD*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    5041..5379
                      /inference="protein motif"
                      /db_xref="PFAM:PF00135"
                      /db_xref="InterPro:IPR002018"
                      /note="e-value: 4.0935350990176556e-30"
                      /note="p-value: 1.4799476135277136e-33"
-                     /function="Carboxylesterase family"
+                     /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             5477..6253
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_9"
                      /translation="MPAVDGYMIPDEPSNLLSRGQVPANISILAGWTRDESSMSVPTSI
@@ -136,16 +172,20 @@ FEATURES             Location/Qualifiers
                      LTLTCPTIFQAWSLRLSSNCTTPVYLYELRQSPFATALNNSGVGYLGIVHFSDVPYVFN
                      ELERTYYITDPEENKLAQRMSASWTAFASGAFPLCERSERSLGRWEEAYGGDRVCRDRM
                      PEHVRVKGIGDNGDQDDGDEIGKLMARCGFINRLEY*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    5480..6103
                      /inference="protein motif"
                      /db_xref="PFAM:PF00135"
                      /db_xref="InterPro:IPR002018"
                      /note="e-value: 1.4624647008379705e-15"
                      /note="p-value: 5.287291037013632e-19"
-                     /function="Carboxylesterase family"
+                     /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             7412..8683
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_10"
                      /translation="MTGARFDESDHKWTVEGINGSHGTIRIRCRWYILALGFASKPYIP
@@ -156,39 +196,56 @@ FEATURES             Location/Qualifiers
                      FDTNTGALTSIHIQDTDGILLKDRWSYDGVMTTFGMSTSKFPNMFFFYGPQAPTAFSNG
                      PSCIELQGEFVEELILDMIGKGVTRVDTTSEAEKRWKESTLSLWNQFVFSSTKGFYTGE
                      NIPGKKAEPLNWYVLVLGLGVSKR*"
+                     /function="binding"
+                     /function="catalytic activity"
+                     /colour="129 14 21"
+                     /ApEinfo_fwdcolor="#810e15"
+                     /ApEinfo_revcolor="#810e15"
      misc_feature    7448..7783
                      /inference="protein motif"
                      /db_xref="PFAM:PF13434"
                      /db_xref="InterPro:IPR025700"
                      /note="e-value: 5.955898730893757e-08"
                      /note="p-value: 2.153253337271785e-11"
-                     /function="L-lysine 6-monooxygenase (NADPH-requiring)"
+                     /function="L-lysine 6-monooxygenase/L-ornithine
+                     5-monooxygenase"
                      /standard_name="PF13434"
      misc_feature    7517..7717
                      /inference="protein motif"
                      /db_xref="PFAM:PF00743"
                      /db_xref="InterPro:IPR020946"
+                     /db_xref="GO:0004499"
+                     /db_xref="GO:0050660"
+                     /db_xref="GO:0050661"
                      /note="e-value: 5.246542281818287e-07"
                      /note="p-value: 1.8967976434628658e-10"
-                     /function="Flavin-binding monooxygenase-like"
+                     /function="Flavin monooxygenase-like"
                      /standard_name="PF00743"
      CDS             9454..10038
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_11"
                      /translation="MCRGRLTRTVDERGIVSTESAHAAQRHHLASHVLDARFAGSIARL
                      GSLCLFLALLVAFVQELQKSESHHQRSGGVGLEDRRVVREGLVKPVVTHFGYVPFRRRS
                      CGMGSQVRCGDSSVIHQEVDIPILGGDVVDDALKVSMRGNAALDRVDVAMGLSQIVSTI
                      VIALWTWFVLNQPTAWLLLVRARAVARVCRL*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             10763..11191
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_12"
                      /translation="MRAGQLVPLVSTPTPSCLALQIVFCCCSTFLSDPLVLQNHRKMAD
                      EQKTPLESGQQPAVAQHTSTAELQTEKPGQMNGNGTADKPGPPGGKPFGPGMGPPIQYP
                      TGFKLYSIMTGLYLASFLTALVGWRSITDLTDSETYIG*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             11204..12316
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_13"
                      /translation="MLVVAIPQITDHFNSIDDIGWYGSAYLLTFCAFQLLFGKIYSFYN
@@ -198,31 +255,43 @@ FEATURES             Location/Qualifiers
                      FVGVQLWLQDKGTIPPRVMKQRSIAAGMAFTICVTAGFMSFNYYLPIWFQAIKNASSFH
                      SGVMMLPTVISSGVASLACGFIIHRVGYYTPFMIGGSVLMAIGAGLLTTFTPTTEHPKW
                      IGYQVLWALGCGMSTFQPPFFARCIFVGGY*"
+                     /function="transporter activity"
+                     /colour="100 149 237"
+                     /ApEinfo_fwdcolor="#6495ed"
+                     /ApEinfo_revcolor="#6495ed"
      misc_feature    11204..12289
                      /inference="protein motif"
                      /db_xref="PFAM:PF07690"
                      /db_xref="InterPro:IPR011701"
+                     /db_xref="GO:0022857"
+                     /db_xref="GO:0055085"
                      /note="e-value: 6.020530714201243e-37"
                      /note="p-value: 2.1766199255969786e-40"
-                     /function="Major Facilitator Superfamily"
+                     /function="Major facilitator superfamily"
                      /standard_name="PF07690"
      misc_feature    11252..11935
                      /inference="protein motif"
                      /db_xref="PFAM:PF06609"
                      /db_xref="InterPro:IPR010573"
+                     /db_xref="GO:0022857"
+                     /db_xref="GO:0055085"
                      /note="e-value: 9.83839354265682e-09"
                      /note="p-value: 3.55690294383833e-12"
-                     /function="Fungal trichothecene efflux pump (TRI12)"
+                     /function="Major facilitator transporter Str1/Tri12-like"
                      /standard_name="PF06609"
      CDS             12335..12781
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_14"
                      /translation="MQQASLAAQTVLPKPDAPIGISLIFFSQSLGGSVFLAVDDSIYSN
                      RLAAKLGSIPNLPQSALTNTGATNIRNLVAPQYLGRLLGGYNDALMDVFRVAVASSCAC
                      VVAAAFMEWKNVRAAKAAGPGGPGGPGGPGGPGGPEGLRGGNKV*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      CDS             14574..15566
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_15"
                      /translation="MTFEEMLSRPSPPPFAGPSHNSNRPTNMASTNQDQYYHDKGKHGE
@@ -231,16 +300,24 @@ FEATURES             Location/Qualifiers
                      ENGSHPTTDQVLKANSDAMKDAADLLACPCAKDFCFPIILGITACRVLAWYQVVIDMYD
                      PEIPMATMPTAREDIKHCPIAFGAYQLDEEVSQAMTSQFVLRNLRAMTRFVKTYVENFC
                      SDINKNRPGSCSLIYRSLGTFMQTRLGNTIEQLEDRLAAFDGEYTKNIG*"
+                     /function="binding"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    14988..15245
                      /inference="protein motif"
                      /db_xref="PFAM:PF08493"
                      /db_xref="InterPro:IPR013700"
+                     /db_xref="GO:0003677"
+                     /db_xref="GO:0005634"
+                     /db_xref="GO:0006355"
+                     /db_xref="GO:0045122"
                      /note="e-value: 2.686865976406516e-17"
                      /note="p-value: 9.713904470016327e-21"
                      /function="Aflatoxin regulatory protein"
                      /standard_name="PF08493"
      CDS             16827..18797
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_16"
                      /translation="MAICGIAVRLPGGISNDAQLWDFLLAKRDARSQVPGSRYNISGYH
@@ -255,13 +332,17 @@ FEATURES             Location/Qualifiers
                      GAQWPGMGVELFKSNATFRRSILEMDSVLQSLPDAPAWSIADEISKEHQTSMLYLSSYS
                      QPICTALQVALVNTLFELNIRPYAVIGHSSGELAAAYAAGRLTASQAVTLAYYRGIVAG
                      KVAQAGCMAAVGMGASEIIHF*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    16830..17570
                      /inference="protein motif"
                      /db_xref="PFAM:PF00109"
                      /db_xref="InterPro:IPR014030"
                      /note="e-value: 9.30510909096118e-60"
                      /note="p-value: 3.364103069761815e-63"
-                     /function="Beta-ketoacyl synthase, N-terminal domain"
+                     /function="Beta-ketoacyl synthase, N-terminal"
                      /standard_name="PF00109"
      misc_feature    17595..17930
                      /inference="protein motif"
@@ -269,7 +350,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR014031"
                      /note="e-value: 2.2857331200304854e-35"
                      /note="p-value: 8.263677223537547e-39"
-                     /function="Beta-ketoacyl synthase, C-terminal domain"
+                     /function="Beta-ketoacyl synthase, C-terminal"
                      /standard_name="PF02801"
      misc_feature    17937..18290
                      /inference="protein motif"
@@ -277,7 +358,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR032821"
                      /note="e-value: 4.800730099641783e-25"
                      /note="p-value: 1.7356218726109122e-28"
-                     /function="Ketoacyl-synthetase C-terminal extension"
+                     /function="Polyketide synthase, C-terminal extension"
                      /standard_name="PF16197"
      misc_feature    18360..18770
                      /inference="protein motif"
@@ -285,10 +366,10 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR014043"
                      /note="e-value: 1.113401436161595e-26"
                      /note="p-value: 4.025312495161225e-30"
-                     /function="Acyl transferase domain"
+                     /function="Acyl transferase"
                      /standard_name="PF00698"
      CDS             18806..22078
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_17"
                      /translation="MVVACENSPSSVTISGDIDQVQYVMQEISLAHPEILCRQIKSDTA
@@ -310,13 +391,17 @@ FEATURES             Location/Qualifiers
                      WVTRSIQIDCRDPRYSPTLGVARTVRSEFGLDFGTCEVDTLKYTSIGLVIDVFEAFHGR
                      RHGQNAYPEYEYAIREDTVHIGRLSSFSVQEELRRIQKAHVETKDNRISLVAGTSGFDS
                      LAWQADAGQQVQLLGDDEVELQVDTAGVNFLVRCSFQFQGES*"
+                     /function="catalytic activity"
+                     /colour="129 14 21"
+                     /ApEinfo_fwdcolor="#810e15"
+                     /ApEinfo_revcolor="#810e15"
      misc_feature    18809..19258
                      /inference="protein motif"
                      /db_xref="PFAM:PF00698"
                      /db_xref="InterPro:IPR014043"
                      /note="e-value: 2.7208690154402465e-16"
                      /note="p-value: 9.836836642950999e-20"
-                     /function="Acyl transferase domain"
+                     /function="Acyl transferase"
                      /standard_name="PF00698"
      misc_feature    19487..20317
                      /inference="protein motif"
@@ -324,14 +409,13 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR020807"
                      /note="e-value: 2.598574865139864e-60"
                      /note="p-value: 9.394703055458656e-64"
-                     /function="Polyketide synthase dehydratase"
+                     /function="Polyketide synthase, dehydratase domain"
                      /standard_name="PF14765"
      misc_feature    20786..21256
                      /inference="protein motif"
                      /db_xref="PFAM:PF13489"
                      /note="e-value: 1.04446701072283e-12"
                      /note="p-value: 3.776091868123029e-16"
-                     /function="Methyltransferase domain"
                      /standard_name="PF13489"
      misc_feature    20801..21133
                      /inference="protein motif"
@@ -347,7 +431,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR041698"
                      /note="e-value: 2.4253465299984994e-13"
                      /note="p-value: 8.76842563267715e-17"
-                     /function="Methyltransferase domain"
+                     /function="Methyltransferase domain 25"
                      /standard_name="PF13649"
      misc_feature    20807..21103
                      /inference="protein motif"
@@ -355,33 +439,38 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR013217"
                      /note="e-value: 3.7410690716593694e-22"
                      /note="p-value: 1.3525195486837923e-25"
-                     /function="Methyltransferase domain"
+                     /function="Methyltransferase type 12"
                      /standard_name="PF08242"
      misc_feature    20807..21106
                      /inference="protein motif"
                      /db_xref="PFAM:PF08241"
                      /db_xref="InterPro:IPR013216"
+                     /db_xref="GO:0008168"
                      /note="e-value: 5.4075572021556884e-12"
                      /note="p-value: 1.9550098344742185e-15"
-                     /function="Methyltransferase domain"
+                     /function="Methyltransferase type 11"
                      /standard_name="PF08241"
      CDS             22416..22889
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_18"
                      /translation="MQTVLINSASDGVGLAAIQISKMIGATIYATVIGEDKVEYLTASH
                      GIPRDHIFNSRDSSFLDGIMRVTNGRGVDLVLTSLSADFIQASCDCVANFGKLVNLSKP
                      TAANQGQFPIDSFHPNMSYASVDIIDYIKRRPKESKRYVITFRHSYQLCPACN*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    22449..22766
                      /inference="protein motif"
                      /db_xref="PFAM:PF00107"
                      /db_xref="InterPro:IPR013149"
                      /note="e-value: 1.1299405916297285e-15"
                      /note="p-value: 4.085106983476965e-19"
-                     /function="Zinc-binding dehydrogenase"
+                     /function="Alcohol dehydrogenase-like, C-terminal"
                      /standard_name="PF00107"
      CDS             22922..24277
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_19"
                      /translation="MELYKQGHIQPITPVKTFTATDIRQCFDYMQSGQHIGQLRLSLKS
@@ -392,13 +481,17 @@ FEATURES             Location/Qualifiers
                      QTLDYSRYENPAQFITGLRDTTGMLDSTGGKSMLLDSRLAAYVGNSAAVTAPTETKTSA
                      NKLNNFVSSAATDSAILSEPSATQFVSLEIARWVFDLLMKPVDDDSEIDLSRSLVDVGL
                      DSLAAVEMRSWLKSSLGLDISVLEIMASPSLAAMGEHVIRELVRKFGGDNKN*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    23114..23638
                      /inference="protein motif"
                      /db_xref="PFAM:PF08659"
                      /db_xref="InterPro:IPR013968"
                      /note="e-value: 1.5610077818520667e-61"
                      /note="p-value: 5.643556695054471e-65"
-                     /function="KR domain"
+                     /function="Polyketide synthase, ketoreductase domain"
                      /standard_name="PF08659"
      misc_feature    23123..23584
                      /inference="protein motif"
@@ -406,7 +499,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR002347"
                      /note="e-value: 1.1731018314976082e-07"
                      /note="p-value: 4.2411490654288077e-11"
-                     /function="short chain dehydrogenase"
+                     /function="Short-chain dehydrogenase/reductase SDR"
                      /standard_name="PF00106"
      misc_feature    24071..24232
                      /inference="protein motif"
@@ -414,25 +507,28 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR009081"
                      /note="e-value: 3.463550267794435e-10"
                      /note="p-value: 1.2521873708584363e-13"
-                     /function="Phosphopantetheine attachment site"
+                     /function="Phosphopantetheine binding ACP domain"
                      /standard_name="PF00550"
      CDS             25423..25710
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_20"
                      /translation="MAQKLRFYLFGDQTYDYDEQLRALLTSHDPVVRSFLERAYYTLRA
                      EVARIPNGYQARISRFSSIAELLSQRREHGVDASLEQALTVVYQLASFMR*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    25444..25704
                      /inference="protein motif"
                      /db_xref="PFAM:PF16073"
                      /db_xref="InterPro:IPR032088"
                      /note="e-value: 9.422238725791962e-24"
                      /note="p-value: 3.406449286258844e-27"
-                     /function="Starter unit:ACP transacylase in aflatoxin
-                     biosynthesis"
+                     /function="Starter unit:ACP transacylase"
                      /standard_name="PF16073"
      CDS             26198..29653
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_21"
                      /translation="MSRPYISAYASGGVTISGPPSVLAELRNTPGLSKLRAKDIPIHAP
@@ -455,14 +551,17 @@ FEATURES             Location/Qualifiers
                      GMVKSTLGNSIKALPTLQRNRNTWEVLTESVSTLYCMGFDINWTEYHRDFPSSQRVLRL
                      PSYSWDLKSYWIPYRNDWTLYKGDIVPESSIALPTHQNKPHSTSPKQQAPTPILETTTL
                      HRIVDEKSTEGTFSITCESDVSRPDLSPLVQGHKVEGIGLCTPV*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    26201..26338
                      /inference="protein motif"
                      /db_xref="PFAM:PF16073"
                      /db_xref="InterPro:IPR032088"
                      /note="e-value: 4.380197593141013e-11"
                      /note="p-value: 1.5835855362042708e-14"
-                     /function="Starter unit:ACP transacylase in aflatoxin
-                     biosynthesis"
+                     /function="Starter unit:ACP transacylase"
                      /standard_name="PF16073"
      misc_feature    26729..27475
                      /inference="protein motif"
@@ -470,7 +569,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR014030"
                      /note="e-value: 2.7499815692371726e-82"
                      /note="p-value: 9.942088102809735e-86"
-                     /function="Beta-ketoacyl synthase, N-terminal domain"
+                     /function="Beta-ketoacyl synthase, N-terminal"
                      /standard_name="PF00109"
      misc_feature    27497..27862
                      /inference="protein motif"
@@ -478,7 +577,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR014031"
                      /note="e-value: 2.4774456171918303e-34"
                      /note="p-value: 8.956780973217029e-38"
-                     /function="Beta-ketoacyl synthase, C-terminal domain"
+                     /function="Beta-ketoacyl synthase, C-terminal"
                      /standard_name="PF02801"
      misc_feature    27896..28216
                      /inference="protein motif"
@@ -486,7 +585,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR032821"
                      /note="e-value: 8.475099126640419e-07"
                      /note="p-value: 3.0640271607521397e-10"
-                     /function="Ketoacyl-synthetase C-terminal extension"
+                     /function="Polyketide synthase, C-terminal extension"
                      /standard_name="PF16197"
      misc_feature    28322..29233
                      /inference="protein motif"
@@ -494,10 +593,10 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR014043"
                      /note="e-value: 4.739349423268586e-38"
                      /note="p-value: 1.7134307387088164e-41"
-                     /function="Acyl transferase domain"
+                     /function="Acyl transferase"
                      /standard_name="PF00698"
      CDS             29804..30544
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_22"
                      /translation="MVIEKALMPLNAGPQLLRVTASLIWSEKEASVRFYSVDVRRPSSK
@@ -505,16 +604,20 @@ FEATURES             Location/Qualifiers
                      YRFNGPMAYNMVQALAEFHPDYRCIDETILDNETLEAACTVSFGNVKKEGVFHTHPGYI
                      DGLTQSGGFVMNANDKTNLGVEVFVNHGWDSFQLYEPVTDDRSYQTHVRMRPAESNQWK
                      GDVVVLSGENLVACVRGLTVSRET*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    29918..30535
                      /inference="protein motif"
                      /db_xref="PFAM:PF14765"
                      /db_xref="InterPro:IPR020807"
                      /note="e-value: 8.019334685871699e-11"
                      /note="p-value: 2.8992533209948296e-14"
-                     /function="Polyketide synthase dehydratase"
+                     /function="Polyketide synthase, dehydratase domain"
                      /standard_name="PF14765"
      CDS             30591..32633
-                     /inference="ab initio prediction:Prodigal:2.6"
+                     /inference="ab initio prediction:Pyrodigal:2.0.4"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_23"
                      /translation="MLTTFQIQGVPRRVLRYILQSSAKTTQTATSSVPAPSQAPVMVPQ
@@ -529,13 +632,17 @@ FEATURES             Location/Qualifiers
                      LAYRAAQILQKAAANPQKPVVESLLLLDSPPPTGLGKLPKHFFDYCDQIGIFGQGTAKA
                      PEWLITHFQGTNSVLHEYHATPFSFGTAPRTGIIWASQTVFETRAVAPPPVRPDDTEDM
                      KFLTERRTDFSAGSWGHMFPGTEVLIETAYGADHFSLLVSLLFRD*"
+                     /function="unknown"
+                     /colour="128 128 128"
+                     /ApEinfo_fwdcolor="#808080"
+                     /ApEinfo_revcolor="#808080"
      misc_feature    30789..30974
                      /inference="protein motif"
                      /db_xref="PFAM:PF00550"
                      /db_xref="InterPro:IPR009081"
                      /note="e-value: 6.066413293337807e-14"
                      /note="p-value: 2.193207987468477e-17"
-                     /function="Phosphopantetheine attachment site"
+                     /function="Phosphopantetheine binding ACP domain"
                      /standard_name="PF00550"
      misc_feature    31110..31304
                      /inference="protein motif"
@@ -543,7 +650,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR009081"
                      /note="e-value: 4.042537132792419e-10"
                      /note="p-value: 1.461510170930014e-13"
-                     /function="Phosphopantetheine attachment site"
+                     /function="Phosphopantetheine binding ACP domain"
                      /standard_name="PF00550"
      misc_feature    31485..31670
                      /inference="protein motif"
@@ -551,15 +658,16 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR009081"
                      /note="e-value: 1.4101442109719659e-08"
                      /note="p-value: 5.098135252971677e-12"
-                     /function="Phosphopantetheine attachment site"
+                     /function="Phosphopantetheine binding ACP domain"
                      /standard_name="PF00550"
      misc_feature    31917..32240
                      /inference="protein motif"
                      /db_xref="PFAM:PF00975"
                      /db_xref="InterPro:IPR001031"
+                     /db_xref="GO:0009058"
                      /note="e-value: 6.91897478936856e-24"
                      /note="p-value: 2.5014370171252933e-27"
-                     /function="Thioesterase domain"
+                     /function="Thioesterase"
                      /standard_name="PF00975"
 ORIGIN
         1 ttacatccgc ttagtctcct cggacttcca tgcttccttg tccattgaga aacgatccct
