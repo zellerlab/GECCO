@@ -96,11 +96,10 @@ class Convert(Command):  # noqa: D101
         coordinates = {}
         types = {}
         for cluster_file in self.progress.track(cluster_files, task_id=task):
-            cluster_fh = ctx.enter_context(open(cluster_file))
-            for row in ClusterTable.load(cluster_fh):
-                ty = ";".join(sorted(row.type.names))
-                coordinates[row.cluster_id] = (row.start, row.end)
-                types[row.cluster_id] = ty or "Unknown"
+            table = ClusterTable.load(cluster_file)
+            for i, cluster_id in enumerate(table.cluster_id):
+                coordinates[cluster_id] = (table.start[i], table.end[i])
+                types[cluster_id] = table.type[i] or "Unknown"
 
         # collect `*_clusters_{N}.gbk` files
         gbk_files = glob.glob(os.path.join(self.input_dir, "*_cluster_*.gbk"))

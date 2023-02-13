@@ -35,9 +35,9 @@ class TestRun(TestCommand, unittest.TestCase):
     def test_fasta_genome(self):
         sequence = os.path.join(self.folder, "data", "BGC0001866.fna")
         source = Bio.SeqIO.read(sequence, "fasta")
-        with open(os.path.join(self.folder, "data", "BGC0001866.features.tsv")) as f:
-            features = FeatureTable.load(f)
-            genes = list(features.to_genes())
+        filename = os.path.join(self.folder, "data", "BGC0001866.features.tsv") 
+        features = FeatureTable.load(filename)
+        genes = list(features.to_genes())
 
         # we mock time consuming operations (type prediction and HMM annotation)
         # with precomputed or fake results
@@ -65,6 +65,6 @@ class TestRun(TestCommand, unittest.TestCase):
         self.assertIn("BGC0001866.features.tsv", output)
         self.assertIn("BGC0001866.clusters.tsv", output)
 
-        with open(os.path.join(self.tmpdir, "BGC0001866.clusters.tsv")) as f:
-            clusters = ClusterTable.load(f)
+        filename = os.path.join(self.tmpdir, "BGC0001866.clusters.tsv") 
+        clusters = ClusterTable.load(filename)
         self.assertEqual(len(clusters), 1)

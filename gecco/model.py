@@ -10,6 +10,7 @@ import functools
 import itertools
 import math
 import operator
+import os
 import re
 import statistics
 import typing
@@ -17,10 +18,12 @@ from array import array
 from collections import OrderedDict
 from collections.abc import Sized
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, TextIO, NamedTuple, Union, Iterator, Set
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, BinaryIO, NamedTuple, Union, Iterator, Set
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, BinaryIO, NamedTuple, Union, Iterator
 
 import Bio
 import numpy
+import polars
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
 from Bio.SeqRecord import SeqRecord
@@ -64,6 +67,9 @@ class ClusterType(object):
 
     def __repr__(self) -> str:  # noqa: D105
         return "ClusterType({})".format(", ".join(map(repr, sorted(self.names))))
+
+    def __str__(self) -> str: # noqa: D105
+        return "Unknown" if not self else ";".join(sorted(self.names))
 
     def __hash__(self) -> int:  # noqa: D105
         return hash(self.names)
@@ -401,14 +407,14 @@ class Cluster:
 
     id: str
     genes: List[Gene]
-    type: ClusterType
+    type: Optional[ClusterType]
     type_probabilities: Dict[str, float]
 
     def __init__(
         self,
         id: str,
         genes: Optional[List[Gene]] = None,
-        type: ClusterType = ClusterType(),
+        type: Optional[ClusterType] = None,
         type_probabilities: Optional[Dict[str, float]] = None,
     ):  # noqa: D107
         self.id = id
@@ -606,77 +612,52 @@ class _UnknownSeq(Seq):
         return "N"
 
 
-@dataclass(frozen=True)
 class FeatureTable(Table):
     """A table storing condensed domain annotations from different genes.
     """
 
-    sequence_id: List[str] = field(default_factory = list)
-    protein_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))          # type: ignore
-    end: List[int] = field(default_factory = lambda: array("l"))            # type: ignore
-    strand: List[str] = field(default_factory = list)
-    domain: List[str] = field(default_factory = list)
-    hmm: List[str] = field(default_factory = list)
-    i_evalue: List[float] = field(default_factory = lambda: array("d"))     # type: ignore
-    pvalue: List[float] = field(default_factory = lambda: array("d"))       # type: ignore
-    domain_start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
-    domain_end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
-    cluster_probability: List[Optional[float]] = field(default_factory = list)
-
-    class Row(NamedTuple):
-        """A single row in a feature table.
-        """
-
-        sequence_id: str
-        protein_id: str
-        start: int
-        end: int
-        strand: str
-        domain: str
-        hmm: str
-        i_evalue: float
-        pvalue: float
-        domain_start: int
-        domain_end: int
-        cluster_probability: Optional[float]
-
-    if typing.TYPE_CHECKING:
-
-        @typing.overload  # type: ignore
-        def __getitem__(self, item: int) -> "FeatureTable.Row":  # noqa: D105
-            pass
-
-        @typing.overload
-        def __getitem__(self, item: slice) -> "FeatureTable.Row":  # noqa: D105
-            pass
-
-        def __getitem__(self, item: Union[slice, int]) -> Union["FeatureTable", "FeatureTable.Row"]:   # noqa: D105
-            return super().__getitem__(item)  # type: ignore
-
-        def __iter__(self) -> Iterator["FeatureTable.Row"]:  # type: ignore  # noqa: D105
-            return super().__iter__()  # type: ignore
+    @classmethod
+    def _get_columns(cls) -> List["Table.Column"]:
+        return [
+            Table.Column("sequence_id", str),
+            Table.Column("protein_id", str),
+            Table.Column("start", int),
+            Table.Column("end", int),
+            Table.Column("strand", str),
+            Table.Column("domain", str),
+            Table.Column("hmm", str),
+            Table.Column("i_evalue", float),
+            Table.Column("pvalue", float),
+            Table.Column("domain_start", int),
+            Table.Column("domain_end", int),
+            Table.Column("cluster_probability", float, default=math.nan),
+        ]
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
         """Create a new feature table from an iterable of genes.
         """
-        table = cls()
+        columns = cls._get_columns()
+        data = { column.name: [] for column in columns }
         for gene in genes:
             for domain in gene.protein.domains:
-                table.sequence_id.append(gene.source.id)
-                table.protein_id.append(gene.protein.id)
-                table.start.append(gene.start)
-                table.end.append(gene.end)
-                table.strand.append(gene.strand.sign)
-                table.domain.append(domain.name)
-                table.hmm.append(domain.hmm)
-                table.i_evalue.append(domain.i_evalue)
-                table.pvalue.append(domain.pvalue)
-                table.domain_start.append(domain.start)
-                table.domain_end.append(domain.end)
-                table.cluster_probability.append(domain.probability)
-        return table
+                data["sequence_id"].append(gene.source.id)
+                data["protein_id"].append(gene.protein.id)
+                data["start"].append(gene.start)
+                data["end"].append(gene.end)
+                data["strand"].append(gene.strand.sign)
+                data["domain"].append(domain.name)
+                data["hmm"].append(domain.hmm)
+                data["i_evalue"].append(domain.i_evalue)
+                data["pvalue"].append(domain.pvalue)
+                data["domain_start"].append(domain.start)
+                data["domain_end"].append(domain.end)
+                if domain.probability is not None:
+                    data["cluster_probability"].append(domain.probability)
+        for name in list(data):
+            if not data[name]:
+                del data[name]
+        return cls(polars.DataFrame(data))
 
     def to_genes(self) -> Iterable[Gene]:
         """Convert a feature table to actual genes.
@@ -684,6 +665,7 @@ class FeatureTable(Table):
         Since the source sequence cannot be known, a *dummy* sequence is
         built for each gene of size ``gene.end``, so that each gene can still
         be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
+
         """
         # group rows by protein/gene ID
         protein_indices = collections.defaultdict(list)
@@ -691,238 +673,124 @@ class FeatureTable(Table):
             protein_indices[protein_id].append(i)
         # yield genes in order
         for protein_id in sorted(protein_indices):
-            rows = [self[i] for i in protein_indices[protein_id]]
-            assert all(x.sequence_id == rows[0].sequence_id for x in rows)
-            assert all(x.protein_id == rows[0].protein_id for x in rows)
-            assert all(x.start == rows[0].start for x in rows)
-            assert all(x.end == rows[0].end for x in rows)
-            source = SeqRecord(id=rows[0].sequence_id, seq=_UnknownSeq())
-            strand = Strand.Coding if rows[0].strand == "+" else Strand.Reverse
-            protein = Protein(rows[0].protein_id, seq=_UnknownSeq)
-            gene = Gene(source, rows[0].start, rows[0].end, strand, protein)
-            for row in rows:
-                domain = Domain(row.domain, row.domain_start, row.domain_end, row.hmm, row.i_evalue, row.pvalue, row.cluster_probability)
+            indices = protein_indices[protein_id]
+            assert all(self.sequence_id[i] == self.sequence_id[indices[0]] for i in indices)
+            assert all(self.protein_id[i] == self.protein_id[indices[0]] for i in indices)
+            assert all(self.start[i] == self.start[indices[0]] for i in indices)
+            assert all(self.end[i] == self.end[indices[0]] for i in indices)
+            source = SeqRecord(id=self.sequence_id[indices[0]], seq=_UnknownSeq())
+            strand = Strand.Coding if self.strand[indices[0]] == "+" else Strand.Reverse
+            protein = Protein(self.protein_id[indices[0]], seq=_UnknownSeq)
+            gene = Gene(source, self.start[indices[0]], self.end[indices[0]], strand, protein)
+            for i in indices:
+                domain = Domain(
+                    self.domain[i], 
+                    self.domain_start[i], 
+                    self.domain_end[i],
+                    self.hmm[i], 
+                    self.i_evalue[i], 
+                    self.pvalue[i], 
+                    self.cluster_probability[i]
+                )
                 gene.protein.domains.append(domain)
             yield gene
 
-    def __len__(self) -> int:  # noqa: D105
-        return len(self.sequence_id)
 
-
-def _format_product_type(value: "ClusterType") -> str:
-    return ";".join(sorted(value.names))
-
-
-def _parse_product_type(value: str) -> "ClusterType":
-    return ClusterType(*map(str.strip, value.split(";"))) if value.strip() else ClusterType()
-
-
-@dataclass(frozen=True)
 class ClusterTable(Table):
     """A table storing condensed information from several clusters.
     """
 
-    sequence_id: List[str] = field(default_factory = list)
-    cluster_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))   # type: ignore
-    end: List[int] = field(default_factory = lambda: array("l"))     # type: ignore
-    average_p: List[Optional[float]] = field(default_factory = list)
-    max_p: List[Optional[float]] = field(default_factory = list)
-
-    type: List[ClusterType] = field(default_factory = list)
-    type_p: List[Dict[str, float]] = field(default_factory = list)
-
-    proteins: List[Optional[List[str]]] = field(default_factory = list)
-    domains: List[Optional[List[str]]] = field(default_factory = list)
-
-    class Row(NamedTuple):
-        """A single row in a cluster table.
-        """
-
-        sequence_id: str
-        cluster_id: str
-        start: int
-        end: int
-        average_p: Optional[float]
-        max_p: Optional[float]
-
-        type: ClusterType
-        type_p: Dict[ClusterType, float]
-
-        proteins: Optional[List[str]]
-        domains: Optional[List[str]]
-
-    _FORMAT_FIELD = {ClusterType: _format_product_type, **Table._FORMAT_FIELD}
-    _PARSE_FIELD = {ClusterType: _parse_product_type, **Table._PARSE_FIELD}
+    @classmethod
+    def _get_columns(cls) -> List["Table.Column"]:
+        return [
+            Table.Column("sequence_id", str),
+            Table.Column("cluster_id", str),
+            Table.Column("start", int),
+            Table.Column("end", int),
+            Table.Column("average_p", float, default=math.nan),
+            Table.Column("max_p", float, default=math.nan),
+            Table.Column("type", str, default="Unknown"),
+            # + possible type columns that are handled in `from_clusters`
+            Table.Column("proteins", str, default=""),
+            Table.Column("domains", str, default=""),
+        ]
 
     @classmethod
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
         """Create a new cluster table from an iterable of clusters.
         """
-        table = cls()
+        data = collections.defaultdict(list)
         for cluster in clusters:
-            table.sequence_id.append(cluster.source.id)
-            table.cluster_id.append(cluster.id)
-            table.start.append(cluster.start)
-            table.end.append(cluster.end)
-            table.average_p.append(cluster.average_probability)
-            table.max_p.append(cluster.maximum_probability)
+            data["sequence_id"].append(cluster.source.id)
+            data["bgc_id"].append(cluster.id)
+            data["start"].append(cluster.start)
+            data["end"].append(cluster.end)
+            if cluster.average_probability is not None:
+                data["average_p"].append(cluster.average_probability)
+            if cluster.maximum_probability is not None:
+                data["max_p"].append(cluster.maximum_probability)
+            if cluster.type is not None:
+                data["type"].append(str(cluster.type))
+                for type_name in sorted(cluster.type_probabilities, key=str.casefold):
+                    data[f"{type_name.lower()}_probability"].append(cluster.type_probabilities[type_name])
+            data["proteins"].append(";".join(
+                sorted(gene.protein.id for gene in cluster.genes)
+            ))
+            data["domains"].append(";".join(sorted( 
+                domain.name 
+                for gene in cluster.genes 
+                for domain in gene.protein.domains 
+            )))
+            # TODO: member proteins
+            # TODO: member domains
+        return cls(polars.DataFrame(data))
 
-            table.type.append(cluster.type)
-            table.type_p.append(cluster.type_probabilities.copy())
-
-            table.proteins.append([ gene.protein.id for gene in cluster.genes ])
-            domains = {d.name for g in cluster.genes for d in g.protein.domains}
-            table.domains.append(sorted(domains))
-        return table
-
-    def __len__(self) -> int:  # noqa: D105
-        return len(self.sequence_id)
-
-    if typing.TYPE_CHECKING:
-
-        @typing.overload  # type: ignore
-        def __getitem__(self, item: int) -> "ClusterTable.Row":  # noqa: D105
-            pass
-
-        @typing.overload
-        def __getitem__(self, item: slice) -> "ClusterTable.Row":  # noqa: D105
-            pass
-
-        def __getitem__(self, item: Union[slice, int]) -> Union["ClusterTable", "ClusterTable.Row"]:   # noqa: D105
-            return super().__getitem__(item)  # type: ignore
-
-        def __iter__(self) -> Iterator["ClusterTable.Row"]:  # type: ignore  # noqa: D105
-            return super().__iter__()  # type: ignore
-
-    def dump(self, fh: TextIO, dialect: str = "excel-tab", header: bool = True) -> None:  # noqa: D102
-        writer = csv.writer(fh, dialect=dialect)
-        column_names = list(self.__annotations__)
-        type_p_col = column_names.index("type_p")
-        column_names.pop(type_p_col)
-        optional = self._optional_columns()
-
-        # do not write optional columns if they are completely empty
-        for name in optional:
-            if all(x is None for x in getattr(self, name)):
-                column_names.remove(name)
-
-        # build column formatters
-        columns = [getattr(self, name) for name in column_names]
-        formatters = [self._FORMAT_FIELD[self.Row.__annotations__[name]] for name in column_names]
-
-        # add probability columns if any row countains probabilities
-        if any(d for d in self.type_p):
-            classes = sorted({
-                name
-                for probabilities in self.type_p
-                for name in probabilities.keys()
-            })
-            for name in classes:
-                column_names.insert(type_p_col, f"{name.lower()}_probability")
-                columns.insert(type_p_col, [self.type_p[i][name] for i in range(len(self))])
-                formatters.insert(type_p_col, str)  # type: ignore
-                type_p_col += 1
-
-         # write header if desired
-        if header:
-            writer.writerow(column_names)
-        # write each row
-        for i in range(len(self)):
-            writer.writerow([format(col[i]) for col,format in zip(columns, formatters)])
-
-    @classmethod
-    def load(cls, fh: TextIO, dialect: str = "excel-tab") -> "ClusterTable":  # noqa: D102
-        table = cls()
-        reader = csv.reader(fh, dialect=dialect)
-        header = next(reader)
-
-        # check that if a column is missing, it is one of the optional values
-        optional = cls._optional_columns()
-        missing = set(cls.__annotations__).difference({"type_p"}).difference(header)
-        missing_required = missing.difference(optional)
-        if missing_required:
-            raise ValueError("table is missing columns: {}".format(", ".join(missing_required)))
-
-        # get the name of each column and check which columns are optional
-        columns = [getattr(table, col, None) for col in header]
-        parsers = [
-            cls._PARSE_FIELD[table.Row.__annotations__[col]]
-            if col in table.Row.__annotations__
-            else None
-            for col in header
-        ]
-
-        # extract elements from the CSV rows
-        for row in reader:
-            probabilities = {}
-            for name, col, value, parser in zip(header, columns, row, parsers):
-                if parser is not None and col is not None:
-                    col.append(parser(value))
-                elif name.endswith("_probability"):
-                    probabilities[name[:-12]] = float(value)
-            table.type_p.append(probabilities)
-
-        for col in missing:
-            getattr(table, col).extend(None for _ in range(len(table)))
-        return table
+    def dump(self, fh: Union[BinaryIO, str, os.PathLike]) -> None:
+        # patch `Table.dump` so that all columns are always written
+        data = self.data
+        for column_name in data.columns:
+            if data[column_name].dtype in (polars.Float32, polars.Float64):
+                data = data.with_columns(polars.col(column_name).fill_nan(None))
+        data.write_csv(fh, sep="\t")
 
 
-@dataclass(frozen=True)
 class GeneTable(Table):
     """A table storing gene coordinates and optional cluster probabilities.
     """
 
-    sequence_id: List[str] = field(default_factory = list)
-    protein_id: List[str] = field(default_factory = list)
-    start: List[int] = field(default_factory = lambda: array("l"))    # type: ignore
-    end: List[int] = field(default_factory = lambda: array("l"))      # type: ignore
-    strand: List[str] = field(default_factory = list)
-    average_p: List[Optional[float]] = field(default_factory = list)
-    max_p: List[Optional[float]] = field(default_factory = list)
-
-    class Row(NamedTuple):
-        """A single row in a gene table.
-        """
-
-        sequence_id: str
-        protein_id: str
-        start: int
-        end: int
-        strand: str
-        average_p: Optional[float]
-        max_p: Optional[float]
-
-    if typing.TYPE_CHECKING:
-
-        @typing.overload  # type: ignore
-        def __getitem__(self, item: int) -> "GeneTable.Row":  # noqa: D105
-            pass
-
-        @typing.overload
-        def __getitem__(self, item: slice) -> "GeneTable.Row":  # noqa: D105
-            pass
-
-        def __getitem__(self, item: Union[slice, int]) -> Union["GeneTable", "GeneTable.Row"]:   # noqa: D105
-            return super().__getitem__(item)  # type: ignore
-
-        def __iter__(self) -> Iterator["GeneTable.Row"]:  # type: ignore  # noqa: D105
-            return super().__iter__()  # type: ignore
+    @classmethod
+    def _get_columns(cls) -> List["Table.Column"]:
+        return [
+            Table.Column("sequence_id", str),
+            Table.Column("protein_id", str),
+            Table.Column("start", int),
+            Table.Column("end", int),
+            Table.Column("strand", str),
+            Table.Column("average_p", float, default=math.nan),
+            Table.Column("max_p", float, default=math.nan),
+        ]
 
     @classmethod
     def from_genes(cls, genes: Iterable[Gene]) -> "GeneTable":
         """Create a new gene table from an iterable of genes.
         """
-        table = cls()
+        columns = cls._get_columns()
+        data = { column.name: [] for column in columns }
         for gene in genes:
-            table.sequence_id.append(gene.source.id)
-            table.protein_id.append(gene.protein.id)
-            table.start.append(gene.start)
-            table.end.append(gene.end)
-            table.strand.append(gene.strand.sign)
-            table.average_p.append(gene.average_probability)
-            table.max_p.append(gene.maximum_probability)
-        return table
+            data["sequence_id"].append(gene.source.id)
+            data["protein_id"].append(gene.protein.id)
+            data["start"].append(gene.start)
+            data["end"].append(gene.end)
+            data["strand"].append(gene.strand.sign)
+            if gene.average_probability is not None:
+                data["average_p"].append(gene.average_probability)
+            else:
+                data["average_p"].append(math.nan)
+            if gene.maximum_probability is not None:
+                data["max_p"].append(gene.maximum_probability)
+            else:
+                data["max_p"].append(math.nan)
+        return cls(polars.DataFrame(data))
 
     def to_genes(self) -> Iterable[Gene]:
         """Convert a gene table to actual genes.
@@ -932,12 +800,16 @@ class GeneTable(Table):
         be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
 
         """
-        for row in typing.cast(Iterable["GeneTable.Row"], self):
-            source = SeqRecord(id=row.sequence_id, seq=_UnknownSeq())
-            strand = Strand.Coding if row.strand == "+" else Strand.Reverse
-            seq = Seq("X" * (row.end - row.start // 3))
-            protein = Protein(row.protein_id, seq=_UnknownSeq())
-            yield Gene(source, row.start, row.end, strand, protein, _probability=row.average_p)
-
-    def __len__(self) -> int:  # noqa: D105
-        return len(self.protein_id)
+        # check if a probability column is available 
+        has_probas = "average_p" in self.data.columns
+        # yield genes in order
+        for i, protein_id in enumerate(self.protein_id):
+            source = SeqRecord(id=self.sequence_id[i], seq=_UnknownSeq())
+            strand = Strand.Coding if self.strand[i] == "+" else Strand.Reverse
+            start = self.start[i]
+            end = self.end[i]
+            seq = Seq("X" * ((end - start) // 3))
+            protein = Protein(self.protein_id[i], seq=seq)
+            probability = self.average_p[i] if has_probas else None
+            gene = Gene(source, start, end, strand, protein, _probability=probability)
+            yield gene

@@ -3,12 +3,14 @@
 
 import itertools
 import io
+import math
 import os
 import unittest
 import warnings
 from unittest import mock
 
 import Bio.SeqIO
+import polars
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -66,40 +68,34 @@ class TestGeneTable(unittest.TestCase):
         ]
 
         table = GeneTable.from_genes(genes)
-
-        rows = list(table)
         self.assertEqual(len(table), 3)
-        self.assertEqual(len(rows), 3)
 
-        row1 = rows[0]
-        self.assertEqual(row1.sequence_id, "seq1")
-        self.assertEqual(row1.protein_id, "seq1_1")
-        self.assertEqual(row1.start, 1)
-        self.assertEqual(row1.end, 100)
-        self.assertEqual(row1.strand, "+")
-        self.assertEqual(row1.average_p, 0.8)
-        self.assertEqual(row1.max_p, 0.8)
+        self.assertEqual(table.sequence_id[0], "seq1")
+        self.assertEqual(table.protein_id[0], "seq1_1")
+        self.assertEqual(table.start[0], 1)
+        self.assertEqual(table.end[0], 100)
+        self.assertEqual(table.strand[0], "+")
+        self.assertEqual(table.average_p[0], 0.8)
+        self.assertEqual(table.max_p[0], 0.8)
 
-        row2 = rows[1]
-        self.assertEqual(row2.sequence_id, "seq2")
-        self.assertEqual(row2.protein_id, "seq2_1")
-        self.assertEqual(row2.start, 3)
-        self.assertEqual(row2.end, 300)
-        self.assertEqual(row2.strand, "+")
-        self.assertEqual(row2.average_p, 0.6)
-        self.assertEqual(row2.max_p, 0.6)
+        self.assertEqual(table.sequence_id[1], "seq2")
+        self.assertEqual(table.protein_id[1], "seq2_1")
+        self.assertEqual(table.start[1], 3)
+        self.assertEqual(table.end[1], 300)
+        self.assertEqual(table.strand[1], "+")
+        self.assertEqual(table.average_p[1], 0.6)
+        self.assertEqual(table.max_p[1], 0.6)
 
-        row3 = rows[2]
-        self.assertEqual(row3.sequence_id, "seq2")
-        self.assertEqual(row3.protein_id, "seq2_2")
-        self.assertEqual(row3.start, 4)
-        self.assertEqual(row3.end, 49)
-        self.assertEqual(row3.strand, "-")
-        self.assertIs(row3.average_p, None)
-        self.assertIs(row3.max_p, None)
+        self.assertEqual(table.sequence_id[2], "seq2")
+        self.assertEqual(table.protein_id[2], "seq2_2")
+        self.assertEqual(table.start[2], 4)
+        self.assertEqual(table.end[2], 49)
+        self.assertEqual(table.strand[2], "-")
+        self.assertTrue(math.isnan(table.average_p[2]))
+        self.assertTrue(math.isnan(table.max_p[2]))
 
     def test_to_genes(self):
-        table = GeneTable(
+        table = GeneTable(polars.DataFrame(dict(
             sequence_id=["seq1", "seq2", "seq2"],
             protein_id=["seq1_1", "seq2_1", "seq2_2"],
             start=[100, 200, 300],
@@ -107,7 +103,7 @@ class TestGeneTable(unittest.TestCase):
             strand=["+", "-", "+"],
             average_p=[0.6, 0.2, None],
             max_p=[0.8, 0.2, None],
-        )
+        )))
 
         genes = list(table.to_genes())
 
@@ -133,19 +129,17 @@ class TestGeneTable(unittest.TestCase):
         self.assertIs(genes[2].average_probability, None)
 
     def test_dump(self):
-        table = GeneTable(
+        table = GeneTable(polars.DataFrame(dict(
             sequence_id=["seq_1", "seq_2", "seq_2"],
             protein_id=["seq1_1", "seq2_1", "seq2_2"],
             start=[100, 200, 300],
             end=[160, 260, 360],
             strand=["+", "-", "+"],
-            average_p=[0.6, 0.2, None],
-            max_p=[0.8, 0.2, None],
-        )
+            average_p=[0.6, 0.2, math.nan],
+            max_p=[0.8, 0.2, math.nan],
+        )))
 
-        buffer = io.StringIO()
-        table.dump(buffer)
-        lines = buffer.getvalue().splitlines()
+        lines = table.dumps().decode("utf-8").splitlines()
 
         self.assertEqual(
             lines[0],
@@ -165,19 +159,17 @@ class TestGeneTable(unittest.TestCase):
         )
 
     def test_dump_no_probability(self):
-        table = GeneTable(
+        table = GeneTable(polars.DataFrame(dict(
             sequence_id=["seq_1", "seq_2"],
             protein_id=["seq1_1", "seq2_1"],
             start=[100, 200],
             end=[160, 260],
             strand=["+", "-"],
-            average_p=[None, None],
-            max_p=[None, None],
-        )
+            #average_p=[math.nan, math.nan],
+            #max_p=[math.nan, math.nan],
+        )))
 
-        buffer = io.StringIO()
-        table.dump(buffer)
-        lines = buffer.getvalue().splitlines()
+        lines = table.dumps().decode("utf-8").splitlines()
 
         self.assertEqual(
             lines[0],
@@ -197,22 +189,22 @@ class TestGeneTable(unittest.TestCase):
             "\t".join(["sequence_id", "protein_id", "start", "end", "strand", "average_p", "max_p"]),
             "\t".join(["seq1", "seq1_1", "100", "160", "+", "0.6", "0.8"]),
             "\t".join(["seq2", "seq2_1", "200", "260", "-", "", ""]),
-        ])
+        ]).encode("utf-8")
 
-        table = GeneTable.load(io.StringIO(lines))
+        table = GeneTable.loads(lines)
 
-        self.assertEqual(table[0].sequence_id, "seq1")
-        self.assertEqual(table[0].protein_id, "seq1_1")
-        self.assertEqual(table[0].start, 100)
-        self.assertEqual(table[0].end, 160)
-        self.assertEqual(table[0].strand, "+")
-        self.assertEqual(table[0].average_p, 0.6)
-        self.assertEqual(table[0].max_p, 0.8)
+        self.assertEqual(table.sequence_id[0], "seq1")
+        self.assertEqual(table.protein_id[0], "seq1_1")
+        self.assertEqual(table.start[0], 100)
+        self.assertEqual(table.end[0], 160)
+        self.assertEqual(table.strand[0], "+")
+        self.assertEqual(table.average_p[0], 0.6)
+        self.assertEqual(table.max_p[0], 0.8)
 
-        self.assertEqual(table[1].sequence_id, "seq2")
-        self.assertEqual(table[1].protein_id, "seq2_1")
-        self.assertEqual(table[1].start, 200)
-        self.assertEqual(table[1].end, 260)
-        self.assertEqual(table[1].strand, "-")
-        self.assertEqual(table[1].average_p, None)
-        self.assertEqual(table[1].max_p, None)
+        self.assertEqual(table.sequence_id[1], "seq2")
+        self.assertEqual(table.protein_id[1], "seq2_1")
+        self.assertEqual(table.start[1], 200)
+        self.assertEqual(table.end[1], 260)
+        self.assertEqual(table.strand[1], "-")
+        self.assertTrue(math.isnan(table.average_p[1]))
+        self.assertTrue(math.isnan(table.max_p[1]))

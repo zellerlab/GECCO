@@ -83,9 +83,7 @@ class TableLoaderMixin(Command):
             # load gene table
             self.info("Loading", "genes table from file", repr(self.genes))
             with typing.cast(BinaryIO, ProgressReader(open(self.genes, "rb"), self.progress, task, scale)) as in_:
-                if self.genes.endswith(".gz"):
-                    in_ = typing.cast(BinaryIO, gzip.open(in_))
-                table = GeneTable.load(io.TextIOWrapper(in_))
+                table = GeneTable.load(in_)
             # count genes and yield gene objects
             n_genes = len(set(table.protein_id))
             unit = "gene" if n_genes == 1 else "genes"
@@ -108,9 +106,7 @@ class TableLoaderMixin(Command):
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
                 with typing.cast(BinaryIO, ProgressReader(open(filename, "rb"), self.progress, task, scale)) as in_:
-                    if filename.endswith(".gz"):
-                        in_ = typing.cast(BinaryIO, gzip.open(in_))
-                    features += FeatureTable.load(io.TextIOWrapper(in_))
+                    features += FeatureTable.load(in_)
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
@@ -129,30 +125,29 @@ class TableLoaderMixin(Command):
         # add domains from the feature table
         unit = "row" if len(features) == 1 else "rows"
         task = self.progress.add_task("Annotating genes", total=len(features), unit=unit, precision="")
-        for row in typing.cast(Iterable["FeatureTable.Row"], self.progress.track(features, total=len(features), task_id=task)):
+        for i in self.progress.track(range(len(features)), task_id=task):
             # get gene by ID and check consistency
-            gene = gene_index[row.protein_id]
-            if gene.source.id != row.sequence_id:
-                raise ValueError(f"Mismatched source sequence for {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
-            elif gene.end - gene.start != row.end - row.start:
-                raise ValueError(f"Mismatched gene length for {row.protein_id!r}: {gene.end - gene.start!r} != {row.end - row.start!r}")
-            elif gene.start != row.start:
-                raise ValueError(f"Mismatched gene start for {row.protein_id!r}: {gene.start!r} != {row.start!r}")
-            elif gene.end != row.end:
-                raise ValueError(f"Mismatched gene end for {row.protein_id!r}: {gene.end!r} != {row.end!r}")
-            elif gene.strand.sign != row.strand:
-                raise ValueError(f"Mismatched gene strand for {row.protein_id!r}: {gene.strand.sign!r} != {row.strand!r}")
-            elif gene.source.id != row.sequence_id:
-                raise ValueError(f"Mismatched sequence ID {row.protein_id!r}: {gene.source.id!r} != {row.sequence_id!r}")
+            length = features.end[i] - features.start[i]
+            gene = gene_index[features.protein_id[i]]
+            if gene.source.id != features.sequence_id[i]:
+                raise ValueError(f"Mismatched source sequence for {features.protein_id[i]!r}: {gene.source.id!r} != {features.sequence_id[i]!r}")
+            elif gene.end - gene.start != length:
+                raise ValueError(f"Mismatched gene length for {row.protein_id!r}: {gene.end - gene.start!r} != {length!r}")
+            elif gene.start != features.start[i]:
+                raise ValueError(f"Mismatched gene start for {row.protein_id!r}: {gene.start!r} != {features.start[i]!r}")
+            elif gene.end != features.end[i]:
+                raise ValueError(f"Mismatched gene end for {row.protein_id!r}: {gene.end!r} != {features.end[i]!r}")
+            elif gene.strand.sign != features.strand[i]:
+                raise ValueError(f"Mismatched gene strand for {row.protein_id!r}: {gene.strand.sign!r} != {features.strand[i]!r}")
             # add the row domain to the gene
             domain = Domain(
-                name=row.domain,
-                start=row.domain_start,
-                end=row.domain_end,
-                hmm=row.hmm,
-                i_evalue=row.i_evalue,
-                pvalue=row.pvalue,
-                probability=row.cluster_probability,
+                name=features.domain[i],
+                start=features.domain_start[i],
+                end=features.domain_end[i],
+                hmm=features.hmm[i],
+                i_evalue=features.i_evalue[i],
+                pvalue=features.pvalue[i],
+                probability=features.cluster_probability[i],
             )
             gene.protein.domains.append(domain)
 
@@ -186,7 +181,7 @@ class OutputWriterMixin(Command):
         base, _ = os.path.splitext(os.path.basename(self.genome))
         pred_out = os.path.join(self.output_dir, f"{base}.features.tsv")
         self.info("Writing", "feature table to", repr(pred_out), level=1)
-        with open(pred_out, "w") as f:
+        with open(pred_out, "wb") as f:
             FeatureTable.from_genes(genes).dump(f)
 
     def _write_genes_table(self, genes: List["Gene"]) -> None:
@@ -195,7 +190,7 @@ class OutputWriterMixin(Command):
         base, _ = os.path.splitext(os.path.basename(self.genome))
         pred_out = os.path.join(self.output_dir, f"{base}.genes.tsv")
         self.info("Writing", "gene table to", repr(pred_out), level=1)
-        with open(pred_out, "w") as f:
+        with open(pred_out, "wb") as f:
             GeneTable.from_genes(genes).dump(f)
 
     def _write_cluster_table(self, clusters: List["Cluster"]) -> None:
@@ -204,7 +199,7 @@ class OutputWriterMixin(Command):
         base, _ = os.path.splitext(os.path.basename(self.genome))
         cluster_out = os.path.join(self.output_dir, f"{base}.clusters.tsv")
         self.info("Writing", "cluster table to", repr(cluster_out), level=1)
-        with open(cluster_out, "w") as out:
+        with open(cluster_out, "wb") as out:
             ClusterTable.from_clusters(clusters).dump(out)
 
     def _write_clusters(self, clusters: List["Cluster"], merge: bool = False) -> None:
@@ -422,15 +417,15 @@ class ClusterLoaderMixin(Command):
             # load clusters
             self.info("Loading", "clusters table from file", repr(self.clusters))
             with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
-                return ClusterTable.load(io.TextIOWrapper(in_))   # type: ignore
+                return ClusterTable.load(in_)   # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
 
     def _label_genes(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Gene"]:
         cluster_by_seq = collections.defaultdict(list)
-        for cluster_row in clusters:
-            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+        for i in range(len(clusters)):
+            cluster_by_seq[clusters.sequence_id[i]].append((clusters.start[i], clusters.end[i]))
 
         gene_count = len(genes)
         unit = "gene" if gene_count == 1 else "genes"
@@ -441,8 +436,8 @@ class ClusterLoaderMixin(Command):
         for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
                 if any(
-                    cluster_row.start <= gene.start and gene.end <= cluster_row.end
-                    for cluster_row in cluster_by_seq[seq_id]
+                    cluster_start <= gene.start and gene.end <= cluster_end
+                    for (cluster_start, cluster_end) in cluster_by_seq[seq_id]
                 ):
                     gene = gene.with_probability(1)
                 else:
@@ -453,24 +448,37 @@ class ClusterLoaderMixin(Command):
         return labelled_genes
 
     def _extract_clusters(self, genes: List["Gene"], clusters: "ClusterTable") -> List["Cluster"]:
-        from ...model import Cluster
+        from ...model import Cluster, ClusterType
 
+        cluster_types = {}
         cluster_by_seq = collections.defaultdict(list)
-        for cluster_row in clusters:
-            cluster_by_seq[cluster_row.sequence_id].append(cluster_row)
+        for i in range(len(clusters)):
+            seq_id = clusters.sequence_id[i]
+            cluster_id = clusters.cluster_id[i]
+            cluster_by_seq[seq_id].append((
+                clusters.start[i], 
+                clusters.end[i], 
+                clusters.bgc_id[i], 
+            ))
+            if not "type" in clusters.data.columns:
+                cluster_types[cluster_id] = None
+            elif clusters.type[i] == "Unknown" or clusters.type[i] is None:
+                cluster_types[cluster_id] = ProductType()
+            else:
+                cluster_types[cluster_id] = ProductType(*clusters.type[i].split(";"))
 
         self.info("Extracting", "genes belonging to clusters")
         genes_by_cluster = collections.defaultdict(list)
         for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
-                for cluster_row in cluster_by_seq[seq_id]:
-                    if cluster_row.start <= gene.start and gene.end <= cluster_row.end:
-                        genes_by_cluster[cluster_row.cluster_id].append(gene)
+                for cluster_start, cluster_end, cluster_id in cluster_by_seq[seq_id]:
+                    if cluster_start <= gene.start and gene.end <= cluster_end:
+                        genes_by_cluster[cluster_id].append(gene)
 
         return [
-            Cluster(cluster_row.cluster_id, genes_by_cluster[cluster_row.cluster_id], cluster_row.type)
-            for cluster_row in typing.cast(Iterable["ClusterTable.Row"], sorted(clusters, key=operator.attrgetter("cluster_id")))
-            if genes_by_cluster[cluster_row.cluster_id]
+            Cluster(cluster_id, genes_by_cluster[cluster_id], cluster_types[cluster_id])
+            for cluster_id in sorted(clusters.cluster_id)
+            if genes_by_cluster[cluster_id]
         ]
 
 
