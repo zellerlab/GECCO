@@ -458,7 +458,7 @@ class ClusterLoaderMixin(Command):
             cluster_by_seq[seq_id].append((
                 clusters.start[i], 
                 clusters.end[i], 
-                clusters.bgc_id[i], 
+                clusters.cluster_id[i], 
             ))
             if not "type" in clusters.data.columns:
                 cluster_types[cluster_id] = None
