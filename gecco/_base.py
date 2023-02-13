@@ -28,51 +28,9 @@ from typing import (
 
 import polars
 
-from ._meta import classproperty, requires
-
 if typing.TYPE_CHECKING:
-    import pandas
-
-
-_SELF = typing.TypeVar("_SELF")
-_TABLE = typing.TypeVar("_TABLE", bound="Table")
-
-
-def _parse_str(value: str) -> str:
-    return value
-
-def _parse_int(value: str) -> int:
-    return int(value)
-
-def _parse_float(value: str) -> float:
-    return float(value)
-
-def _parse_optional_float(value: str) -> typing.Optional[float]:
-    return float(value) if value else None
-
-def _parse_list_str(value: str) -> typing.List[str]:
-    return value.split(";")
-
-def _parse_optional_list_str(value: str) -> typing.Optional[typing.List[str]]:
-    return None if not value else _parse_list_str(value)
-
-def _format_int(value: int) -> str:
-    return str(value)
-
-def _format_str(value: str) -> str:
-    return value
-
-def _format_float(value: float) -> str:
-    return str(value)
-
-def _format_optional_float(value: typing.Optional[float]) -> str:
-    return "" if value is None else str(value)
-
-def _format_list_str(value: typing.List[str]) -> str:
-    return ";".join(value)
-
-def _format_optional_list_str(value: typing.Optional[typing.List[str]]) -> str:
-    return "" if value is None else _format_list_str(value)
+    _SELF = typing.TypeVar("_SELF")
+    _TABLE = typing.TypeVar("_TABLE", bound="Table")
 
 
 class Dumpable(metaclass=abc.ABCMeta):
