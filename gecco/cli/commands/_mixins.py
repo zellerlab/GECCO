@@ -463,9 +463,9 @@ class ClusterLoaderMixin(Command):
             if not "type" in clusters.data.columns:
                 cluster_types[cluster_id] = None
             elif clusters.type[i] == "Unknown" or clusters.type[i] is None:
-                cluster_types[cluster_id] = ProductType()
+                cluster_types[cluster_id] = ClusterType()
             else:
-                cluster_types[cluster_id] = ProductType(*clusters.type[i].split(";"))
+                cluster_types[cluster_id] = ClusterType(*clusters.type[i].split(";"))
 
         self.info("Extracting", "genes belonging to clusters")
         genes_by_cluster = collections.defaultdict(list)
