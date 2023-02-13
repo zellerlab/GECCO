@@ -53,15 +53,15 @@ class Loadable(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def load(cls: typing.Type[_SELF], fh: Union[BinaryIO, str, os.PathLike]) -> _SELF:
+    def load(cls: typing.Type["_SELF"], fh: Union[BinaryIO, str, os.PathLike]) -> "_SELF":
         raise NotImplementedError
 
     @classmethod
-    def loads(cls: typing.Type[_SELF], s: bytes) -> _SELF:
+    def loads(cls: typing.Type["_SELF"], s: bytes) -> "_SELF":
         return cls.load(io.BytesIO(s))  # type: ignore
 
 
-class Table(Dumpable, Loadable):#, Sequence["Table.Row"]):
+class Table(Dumpable, Loadable):
     """A metaclass for objects that
     """
 
@@ -86,10 +86,10 @@ class Table(Dumpable, Loadable):#, Sequence["Table.Row"]):
                     data = data.with_columns(polars.lit(column.default).alias(column.name))
             self.data = data
         else:
-            self.data = polars.DataFrame(schema={
-                column.name: column.dtype
+            self.data = polars.DataFrame([
+                polars.Series(column.name, dtype=column.dtype)
                 for column in columns
-            })
+            ])
 
     def __bool__(self) -> bool: # noqa: D105
         return len(self) != 0
@@ -103,7 +103,7 @@ class Table(Dumpable, Loadable):#, Sequence["Table.Row"]):
         except polars.exceptions.ColumnNotFoundError as err:
             raise AttributeError(name) from err
 
-    def __iadd__(self: _TABLE, rhs: object) -> _TABLE:  # noqa: D105
+    def __iadd__(self: "_TABLE", rhs: object) -> "_TABLE":  # noqa: D105
         if not isinstance(rhs, type(self)):
             return NotImplemented
         self.data = polars.concat([self.data, rhs.data])
@@ -111,9 +111,9 @@ class Table(Dumpable, Loadable):#, Sequence["Table.Row"]):
 
     @classmethod
     def load(
-        cls: typing.Type[_TABLE], 
+        cls: typing.Type["_TABLE"], 
         fh: Union[BinaryIO, str, os.PathLike], 
-    ) -> _TABLE:
+    ) -> "_TABLE":
         columns = cls._get_columns()
         data = polars.read_csv(
             fh,
