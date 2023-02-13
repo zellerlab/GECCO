@@ -27,7 +27,7 @@ in genomic and metagenomic data using Conditional Random Fields (CRFs).
 ## 🔧 Installing GECCO
 
 GECCO is implemented in [Python](https://www.python.org/), and supports [all
-versions](https://endoflife.date/python) from Python 3.6. It requires
+versions](https://endoflife.date/python) from Python 3.7. It requires
 additional libraries that can be installed directly from
 [PyPI](https://pypi.org), the Python Package Index.
 
