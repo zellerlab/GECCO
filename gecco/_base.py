@@ -67,7 +67,7 @@ class Table(Dumpable, Loadable):
 
     class Column(typing.NamedTuple):
         name: str
-        dtype: type
+        dtype: polars.datatypes.DataTypeClass
         default: Optional[object] = None
 
     @classmethod

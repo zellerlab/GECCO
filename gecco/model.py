@@ -30,7 +30,7 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 from .interpro import GOTerm
-from ._base import Dumpable, Table, _SELF
+from ._base import Dumpable, Table
 from ._meta import patch_locale
 
 if typing.TYPE_CHECKING:
@@ -619,18 +619,18 @@ class FeatureTable(Table):
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
         return [
-            Table.Column("sequence_id", str),
-            Table.Column("protein_id", str),
-            Table.Column("start", int),
-            Table.Column("end", int),
-            Table.Column("strand", str),
-            Table.Column("domain", str),
-            Table.Column("hmm", str),
-            Table.Column("i_evalue", float),
-            Table.Column("pvalue", float),
-            Table.Column("domain_start", int),
-            Table.Column("domain_end", int),
-            Table.Column("cluster_probability", float, default=math.nan),
+            Table.Column("sequence_id", polars.Utf8),
+            Table.Column("protein_id", polars.Utf8),
+            Table.Column("start", polars.Int64),
+            Table.Column("end", polars.Int64),
+            Table.Column("strand", polars.Utf8),
+            Table.Column("domain", polars.Utf8),
+            Table.Column("hmm", polars.Utf8),
+            Table.Column("i_evalue", polars.Float64),
+            Table.Column("pvalue", polars.Float64),
+            Table.Column("domain_start", polars.Int64),
+            Table.Column("domain_end", polars.Int64),
+            Table.Column("cluster_probability", polars.Float64, default=math.nan),
         ]
 
     @classmethod
@@ -703,16 +703,16 @@ class ClusterTable(Table):
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
         return [
-            Table.Column("sequence_id", str),
-            Table.Column("cluster_id", str),
-            Table.Column("start", int),
-            Table.Column("end", int),
-            Table.Column("average_p", float, default=math.nan),
-            Table.Column("max_p", float, default=math.nan),
-            Table.Column("type", str, default="Unknown"),
+            Table.Column("sequence_id", polars.Utf8),
+            Table.Column("cluster_id", polars.Utf8),
+            Table.Column("start", polars.Int64),
+            Table.Column("end", polars.Int64),
+            Table.Column("average_p", polars.Float64, default=math.nan),
+            Table.Column("max_p", polars.Float64, default=math.nan),
+            Table.Column("type", polars.Utf8, default="Unknown"),
             # + possible type columns that are handled in `from_clusters`
-            Table.Column("proteins", str, default=""),
-            Table.Column("domains", str, default=""),
+            Table.Column("proteins", polars.Utf8, default=""),
+            Table.Column("domains", polars.Utf8, default=""),
         ]
 
     @classmethod
@@ -749,7 +749,7 @@ class ClusterTable(Table):
         # patch `Table.dump` so that all columns are always written
         data = self.data
         for column_name in data.columns:
-            if data[column_name].dtype in (polars.Float32, polars.Float64):
+            if data[column_name].dtype in (polars.Float64, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_nan(None))
         data.write_csv(fh, sep="\t")
 
@@ -761,13 +761,13 @@ class GeneTable(Table):
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
         return [
-            Table.Column("sequence_id", str),
-            Table.Column("protein_id", str),
-            Table.Column("start", int),
-            Table.Column("end", int),
-            Table.Column("strand", str),
-            Table.Column("average_p", float, default=math.nan),
-            Table.Column("max_p", float, default=math.nan),
+            Table.Column("sequence_id", polars.Utf8),
+            Table.Column("protein_id", polars.Utf8),
+            Table.Column("start", polars.Int64),
+            Table.Column("end", polars.Int64),
+            Table.Column("strand", polars.Utf8),
+            Table.Column("average_p", polars.Float64, default=math.nan),
+            Table.Column("max_p", polars.Float64, default=math.nan),
         ]
 
     @classmethod
