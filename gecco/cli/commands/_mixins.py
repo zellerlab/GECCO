@@ -249,6 +249,7 @@ class AnnotatorMixin(DomainFilterMixin):
     hmm: Optional[List[str]]
     hmm_x: Optional[List[str]]
     jobs: int
+    bit_cutoffs: Optional[str]
 
     def _custom_hmms(self) -> Iterable["HMM"]:
         from ...hmmer import HMM
@@ -299,7 +300,7 @@ class AnnotatorMixin(DomainFilterMixin):
             task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=total, unit="domains", precision="")
             callback = lambda h, t: self.progress.update(task, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
-            genes = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback)
+            genes = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback, bit_cutoffs=self.bit_cutoffs)
             self.success("Finished", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             self.progress.update(task_id=task, visible=False)
 
@@ -456,9 +457,9 @@ class ClusterLoaderMixin(Command):
             seq_id = clusters.sequence_id[i]
             cluster_id = clusters.cluster_id[i]
             cluster_by_seq[seq_id].append((
-                clusters.start[i], 
-                clusters.end[i], 
-                clusters.cluster_id[i], 
+                clusters.start[i],
+                clusters.end[i],
+                clusters.cluster_id[i],
             ))
             if not "type" in clusters.data.columns:
                 cluster_types[cluster_id] = None

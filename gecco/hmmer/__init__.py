@@ -99,7 +99,8 @@ class PyHMMER(DomainAnnotator):
     def run(
         self,
         genes: Iterable[Gene],
-        progress: Optional[Callable[[pyhmmer.plan7.HMM, int], None]] = None
+        progress: Optional[Callable[[pyhmmer.plan7.HMM, int], None]] = None,
+        bit_cutoffs: Optional[str] = None,
     ) -> List[Gene]:
         # collect genes and keep them in original order
         gene_index = list(genes)
@@ -135,62 +136,64 @@ class PyHMMER(DomainAnnotator):
                 profiles,
                 esl_sqs,
                 cpus=cpus,
-                callback=progress,
+                callback=progress, # type: ignore
                 Z=self.hmm.size,  # type: ignore
-                domZ=self.hmm.size  # type: ignore
+                domZ=self.hmm.size, # type: ignore
+                bit_cutoffs=bit_cutoffs,  # type: ignore
             )
 
             # Load InterPro metadata for the annotation
             interpro = InterPro.load()
 
             # Transcribe HMMER hits to GECCO model
-            for hit in itertools.chain.from_iterable(hmms_hits):
-                target_index = int(hit.name)
-                for domain in hit.domains:
-                    # extract name and get InterPro metadata about hit
-                    raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
-                    accession = self.hmm.relabel(raw_acc.decode('utf-8'))
-                    entry = interpro.by_accession.get(accession)
+            for hits in hmms_hits:
+                for hit in hits.reported:
+                    target_index = int(hit.name)
+                    for domain in hit.domains.reported:
+                        # extract name and get InterPro metadata about hit
+                        raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
+                        accession = self.hmm.relabel(raw_acc.decode('utf-8'))
+                        entry = interpro.by_accession.get(accession)
 
-                    # extract coordinates
-                    start = domain.alignment.target_from
-                    end = domain.alignment.target_to
+                        # extract coordinates
+                        start = domain.alignment.target_from
+                        end = domain.alignment.target_to
 
-                    # extract qualifiers and GO terms
-                    qualifiers: Dict[str, List[str]] = {
-                        "inference": ["protein motif"],
-                        "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
-                        "note": [
-                            "e-value: {}".format(domain.i_evalue),
-                            "p-value: {}".format(domain.pvalue),
-                        ],
-                    }
-                    if entry is not None:
-                        qualifiers["function"] = [entry.name]
-                        qualifiers["db_xref"].append("InterPro:{}".format(entry.accession))
-                        go_terms = entry.go_terms
-                        go_functions = entry.go_functions
-                    else:
-                        go_terms = []
-                        go_functions = []
+                        # extract qualifiers and GO terms
+                        qualifiers: Dict[str, List[str]] = {
+                            "inference": ["protein motif"],
+                            "db_xref": ["{}:{}".format(self.hmm.id.upper(), accession)],
+                            "note": [
+                                "e-value: {}".format(domain.i_evalue),
+                                "p-value: {}".format(domain.pvalue),
+                            ],
+                        }
+                        if entry is not None:
+                            qualifiers["function"] = [entry.name]
+                            qualifiers["db_xref"].append("InterPro:{}".format(entry.accession))
+                            go_terms = entry.go_terms
+                            go_functions = entry.go_functions
+                        else:
+                            go_terms = []
+                            go_functions = []
 
-                    # add the domain to the protein domains of the right gene
-                    assert domain.env_from < domain.env_to
-                    assert domain.i_evalue >= 0
-                    assert domain.pvalue >= 0
-                    gene_index[target_index].protein.domains.append(
-                        Domain(
-                            accession,
-                            start,
-                            end,
-                            self.hmm.id,
-                            domain.i_evalue,
-                            domain.pvalue,
-                            go_terms=go_terms,
-                            go_functions=go_functions,
-                            qualifiers=qualifiers,
+                        # add the domain to the protein domains of the right gene
+                        assert domain.env_from < domain.env_to
+                        assert domain.i_evalue >= 0
+                        assert domain.pvalue >= 0
+                        gene_index[target_index].protein.domains.append(
+                            Domain(
+                                accession,
+                                start,
+                                end,
+                                self.hmm.id,
+                                domain.i_evalue,
+                                domain.pvalue,
+                                go_terms=go_terms,
+                                go_functions=go_functions,
+                                qualifiers=qualifiers,
+                            )
                         )
-                    )
 
         # deduplicate hits per gene for exclusive HMMs
         if self.hmm.exclusive:

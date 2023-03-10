@@ -87,6 +87,9 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
                                           a p-value filter instead.
             -p <p>, --p-filter <p>        the p-value cutoff for protein domains
                                           to be included. [default: 1e-9]
+            --bit-cutoffs <name>          use bitscore cutoffs (one of *noise*,
+                                          *gathering*, or *trusted*) to filter
+                                          domain annotations.
 
         Parameters - Debug:
             --hmm <hmm>                   the path to one or more alternative
@@ -96,6 +99,7 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
         """
 
     def _check(self) -> None:
+        _BITSCORE_CUTOFFS = {"gathering", "noise", "trusted"}
         super()._check()
         try:
             self.e_filter = self._check_flag(
@@ -122,6 +126,13 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.cds_feature: Optional[str] = self._check_flag("--cds-feature", optional=True)
             self.locus_tag: str = self._check_flag("--locus-tag")
+            self.bit_cutoffs: str = self._check_flag(
+                "--bit-cutoffs",
+                str,
+                _BITSCORE_CUTOFFS.__contains__,
+                optional=True,
+                hint="one of {}".format(", ".join(sorted(_BITSCORE_CUTOFFS)))
+            )
         except InvalidArgument:
             raise CommandExit(1)
 

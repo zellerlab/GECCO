@@ -93,11 +93,14 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                                           a p-value filter instead.
             -p <p>, --p-filter <p>        the p-value cutoff for protein domains
                                           to be included. [default: 1e-9]
+            --bit-cutoffs <name>          use bitscore cutoffs (one of *noise*,
+                                          *gathering*, or *trusted*) to filter
+                                          domain annotations.
 
         Parameters - Cluster Detection:
             --no-pad                      disable padding of gene sequences
-                                          (used to predict gene clusters in 
-                                          contigs smaller than the CRF window 
+                                          (used to predict gene clusters in
+                                          contigs smaller than the CRF window
                                           length).
             -c <N>, --cds <N>             the minimum number of coding sequences a
                                           valid cluster must contain. [default: 3]
@@ -125,6 +128,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
         """
 
     def _check(self) -> None:
+        _BITSCORE_CUTOFFS = {"gathering", "noise", "trusted"}
         Command._check(self)
         try:
             self.cds = self._check_flag("--cds", int, lambda x: x > 0, hint="positive integer")
@@ -162,6 +166,13 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             self.locus_tag = self._check_flag("--locus-tag")
             self.no_pad = self._check_flag("--no-pad", bool)
             self.merge_gbk = self._check_flag("--merge-gbk", bool)
+            self.bit_cutoffs: str = self._check_flag(
+                "--bit-cutoffs",
+                str,
+                _BITSCORE_CUTOFFS.__contains__,
+                optional=True,
+                hint="one of {}".format(", ".join(sorted(_BITSCORE_CUTOFFS)))
+            )
         except InvalidArgument:
             raise CommandExit(1)
 
@@ -197,6 +208,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                     "cds": repr(self.cds),
                     "e-filter": repr(self.e_filter),
                     "p-filter": repr(self.p_filter),
+                    "bit-cutoffs": repr(self.bit_cutoffs),
                     "postproc": repr(self.postproc),
                     "threshold": repr(self.threshold),
                     "mask": repr(self.mask),
