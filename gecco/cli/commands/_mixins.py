@@ -3,6 +3,8 @@ import csv
 import gzip
 import io
 import itertools
+import math
+import multiprocessing.pool
 import os
 import operator
 import typing
@@ -221,6 +223,7 @@ class DomainFilterMixin(Command):
 
     e_filter: Optional[float]
     p_filter: Optional[float]
+    disentangle: bool
 
     def _filter_domains(self, genes: List["Gene"]) -> List["Gene"]:
         # Filter i-evalue and p-value if required
@@ -243,11 +246,35 @@ class DomainFilterMixin(Command):
             self.info("Using", "remaining", count, "domains", level=1)
         return genes
 
+    def _disentangle(self, gene: "Gene") -> "Gene":
+        if len(gene.protein.domains) <= 1:
+            return gene
+
+        domains_to_keep = []
+        gene_domains = gene.protein.domains.copy()
+        while gene_domains:
+            # get a domain and collect other overlaping domains
+            domain = gene_domains.pop()
+            overlaps = [
+                other for other in gene_domains
+                if other.start <= domain.end and domain.start <= other.end
+            ]
+            # keep only overlapping domain with the best p-value
+            if not overlaps or domain.pvalue < min(d.pvalue for d in overlaps):
+                domains_to_keep.append(domain)
+                for other in overlaps:
+                    gene_domains.remove(other)
+
+        return gene.with_protein(gene.protein.with_domains(domains_to_keep))
+
+    def _disentangle_domains(self, genes: List["Gene"]) -> List["Gene"]:
+        self.info("Disentangling", "overlapping domains in each gene", level=1)
+        return list(map(self._disentangle, genes))
+
 
 class AnnotatorMixin(DomainFilterMixin):
 
     hmm: Optional[List[str]]
-    hmm_x: Optional[List[str]]
     jobs: int
     bit_cutoffs: Optional[str]
 
@@ -267,23 +294,6 @@ class AnnotatorMixin(DomainFilterMixin):
                 url="?",
                 path=path,
                 size=None,
-                exclusive=False,
-                relabel_with=r"s/([^\.]*)(\..*)?/\1/"
-            )
-        for path in typing.cast(List[str], self.hmm_x):
-            base = os.path.basename(path)
-            file = open(path, "rb")
-            if base.endswith(".gz"):
-                base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
-            base, _ = os.path.splitext(base)
-            yield HMM(
-                id=base,
-                version="?",
-                url="?",
-                path=path,
-                size=None,
-                exclusive=True,
                 relabel_with=r"s/([^\.]*)(\..*)?/\1/"
             )
 
@@ -307,6 +317,10 @@ class AnnotatorMixin(DomainFilterMixin):
         # Count number of annotated domains
         count = sum(1 for gene in genes for domain in gene.protein.domains)
         self.success("Found", count, "domains across all proteins", level=1)
+
+        # Disentangle if required
+        if self.disentangle:
+            genes = self._disentangle_domains(genes)
 
         # Filter i-evalue and p-value if required
         genes = self._filter_domains(genes)

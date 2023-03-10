@@ -81,6 +81,8 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
                                           flag. [default: locus_tag]
 
         Parameters - Domain Annotation:
+            --hmm <hmm>                   the path to one or more alternative
+                                          HMM file to use (in HMMER format).
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
                                           to be included. This is not stable
                                           across versions, so consider using
@@ -90,12 +92,11 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
             --bit-cutoffs <name>          use bitscore cutoffs (one of *noise*,
                                           *gathering*, or *trusted*) to filter
                                           domain annotations.
+            --disentangle                 disentangle overlapping domains in 
+                                          each gene by keeping only the domains
+                                          with the lowest E-value over a given
+                                          position.
 
-        Parameters - Debug:
-            --hmm <hmm>                   the path to one or more alternative
-                                          HMM file to use (in HMMER format).
-            --hmm-x <hmm>                 the path to one or more exclusive
-                                          HMM file to use (in HMMER format).
         """
 
     def _check(self) -> None:
@@ -120,12 +121,12 @@ class Annotate(SequenceLoaderMixin, OutputWriterMixin, AnnotatorMixin):  # noqa:
             self.format: Optional[str] = self._check_flag("--format", optional=True)
             self.genome: str = self._check_flag("--genome")
             self.hmm: Optional[List[str]] = self._check_flag("--hmm", optional=True)
-            self.hmm_x: Optional[List[str]] = self._check_flag("--hmm-x", optional=True)
             self.output_dir: str = self._check_flag("--output-dir")
             self.mask = self._check_flag("--mask", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
             self.cds_feature: Optional[str] = self._check_flag("--cds-feature", optional=True)
             self.locus_tag: str = self._check_flag("--locus-tag")
+            self.disentangle = self._check_flag("--disentangle", bool)
             self.bit_cutoffs: str = self._check_flag(
                 "--bit-cutoffs",
                 str,

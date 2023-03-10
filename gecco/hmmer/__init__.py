@@ -42,7 +42,6 @@ class HMM(typing.NamedTuple):
     url: str
     path: str
     size: Optional[int] = None
-    exclusive: bool = False
     relabel_with: Optional[str] = None
     md5: Optional[str] = None
 
@@ -194,24 +193,6 @@ class PyHMMER(DomainAnnotator):
                                 qualifiers=qualifiers,
                             )
                         )
-
-        # deduplicate hits per gene for exclusive HMMs
-        if self.hmm.exclusive:
-            for i, gene in enumerate(gene_index):
-                # extract domains specific to this HMM
-                hmm_domains = [
-                    domain for domain in gene.protein.domains
-                    if domain.hmm == self.hmm.id
-                ]
-                # if more than one domain was found, keep the one with lowest p-value
-                # (but make sure to keep any domain found by other HMMs, if any)
-                if len(hmm_domains) > 1:
-                    best_domain = min(hmm_domains, key=lambda domain: domain.pvalue)
-                    gene_index[i] = gene.with_protein(gene.protein.with_domains([
-                        domain for domain in gene.protein.domains
-                        if domain.hmm != self.hmm.id
-                        or domain.name is best_domain.name
-                    ]))
 
         # return the updated list of genes that was given in argument
         return gene_index

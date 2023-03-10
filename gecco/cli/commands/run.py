@@ -87,6 +87,8 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                                           flag. [default: locus_tag]
 
         Parameters - Domain Annotation:
+            --hmm <hmm>                   the path to one or more alternative
+                                          HMM file to use (in HMMER format).
             -e <e>, --e-filter <e>        the e-value cutoff for protein domains
                                           to be included. This is not stable
                                           across versions, so consider using
@@ -96,8 +98,14 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             --bit-cutoffs <name>          use bitscore cutoffs (one of *noise*,
                                           *gathering*, or *trusted*) to filter
                                           domain annotations.
+            --disentangle                 disentangle overlapping domains in 
+                                          each gene by keeping only the domains
+                                          with the lowest E-value over a given
+                                          position.
 
         Parameters - Cluster Detection:
+            --model <directory>           the path to an alternative CRF model
+                                          to use (obtained with `gecco train`).
             --no-pad                      disable padding of gene sequences
                                           (used to predict gene clusters in
                                           contigs smaller than the CRF window
@@ -118,13 +126,6 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
                                           false positives on small contigs.
                                           [default: 0]
 
-        Parameters - Debug:
-            --model <directory>           the path to an alternative CRF model
-                                          to use (obtained with `gecco train`).
-            --hmm <hmm>                   the path to one or more alternative
-                                          HMM file to use (in HMMER format).
-            --hmm-x <hmm>                 the path to one or more exclusive
-                                          HMM file to use (in HMMER format).
         """
 
     def _check(self) -> None:
@@ -157,7 +158,6 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             self.genome = self._check_flag("--genome")
             self.model: Optional[str] = self._check_flag("--model", optional=True)
             self.hmm = self._check_flag("--hmm")
-            self.hmm_x = self._check_flag("--hmm-x")
             self.output_dir = self._check_flag("--output-dir")
             self.antismash_sideload = self._check_flag("--antismash-sideload", bool)
             self.force_tsv = self._check_flag("--force-tsv", bool)
@@ -166,6 +166,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
             self.locus_tag = self._check_flag("--locus-tag")
             self.no_pad = self._check_flag("--no-pad", bool)
             self.merge_gbk = self._check_flag("--merge-gbk", bool)
+            self.disentangle = self._check_flag("--disentangle", bool)
             self.bit_cutoffs: str = self._check_flag(
                 "--bit-cutoffs",
                 str,
@@ -220,8 +221,6 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
         # record if non-standard HMM or model was used
         if self.hmm:
             data["tool"]["configuration"]["hmm"] = list(self.hmm)
-        if self.hmm_x:
-            data["tool"]["configuration"]["hmm_x"] = list(self.hmm_x)
         if self.model:
             data["tool"]["configuration"]["model"] = self.model
         # create a record per sequence
