@@ -28,6 +28,7 @@
         --genome input_tempfile.$file_extension
         --postproc $postproc
         --force-tsv
+        --jobs "\${GALAXY_SLOTS:-4}"
         #if $edge_distance
             --edge-distance $edge_distance
         #end if
