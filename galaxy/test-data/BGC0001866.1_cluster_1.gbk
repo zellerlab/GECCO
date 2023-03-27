@@ -1,4 +1,4 @@
-LOCUS       BGC0001866.1_cluster_1 32633 bp    DNA     linear   UNK 16-JAN-2023
+LOCUS       BGC0001866.1_cluster_1 32633 bp    DNA     linear   UNK 27-MAR-2023
 DEFINITION  BGC0001866.1 Byssochlamys spectabilis strain CBS 101075 chromosome
             Unknown C8Q69scaffold_14, whole genome shotgun sequence.
 ACCESSION   BGC0001866.1_cluster_1
@@ -16,7 +16,7 @@ REFERENCE   1
   REMARK    doi:10.1101/2021.05.03.442509
 COMMENT     ##GECCO-Data-START##
             version                :: GECCO v0.9.6
-            creation_date          :: 2023-01-16T17:20:45.175113
+            creation_date          :: 2023-03-27T15:09:19.052491
             cluster_type           :: Polyketide
             alkaloid_probability   :: 0.010
             nrp_probability        :: 0.140
@@ -27,7 +27,7 @@ COMMENT     ##GECCO-Data-START##
             ##GECCO-Data-END##
 FEATURES             Location/Qualifiers
      CDS             complement(1..1143)
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_1"
                      /translation="MWIYEVDGHYIEPRRADTFLIWAGERYSAMIRLDKKPMDYSIRVP
@@ -61,7 +61,7 @@ FEATURES             Location/Qualifiers
                      /function="Multicopper oxidase, C-terminal"
                      /standard_name="PF07731"
      CDS             1179..1670
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_2"
                      /translation="MSSLRSSSHSPSGLPGQPRLPLLDRSREHSLPGDRAGWRTRSRLR
@@ -73,7 +73,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             complement(2167..2376)
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_3"
                      /translation="MPAYLLLLACNVLLVLGAHVQRELVLTWEEGAPNGQSRQMIKTNG
@@ -83,7 +83,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             2559..3032
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_4"
                      /translation="MLFNSEVGVEEHVVLWSFQETTSITMAEEIKLTPLETFAQAISAS
@@ -94,7 +94,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             3007..3576
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_5"
                      /translation="MQGTRTYYELATEAKVPLHQLQSIARMAITGSFLREPEPNIVAHS
@@ -106,7 +106,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             3600..4043
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_6"
                      /translation="MVTSTSKDNREKTPLPETVASRISFESHDFFKPQPVQNADVYLLR
@@ -126,7 +126,7 @@ FEATURES             Location/Qualifiers
                      /function="O-methyltransferase domain"
                      /standard_name="PF00891"
      CDS             4337..4792
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_7"
                      /translation="MTQIVFGIAPTLLKTFSHLTALDLWRPSAPYVFDPVTSSTYLGTI
@@ -145,7 +145,7 @@ FEATURES             Location/Qualifiers
                      /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             5038..5466
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_8"
                      /translation="MQDQRLGIEWIKNHISAFGGDPDNITLFGEDEGATYIALHILSNH
@@ -164,7 +164,7 @@ FEATURES             Location/Qualifiers
                      /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             5477..6253
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_9"
                      /translation="MPAVDGYMIPDEPSNLLSRGQVPANISILAGWTRDESSMSVPTSI
@@ -185,7 +185,7 @@ FEATURES             Location/Qualifiers
                      /function="Carboxylesterase, type B"
                      /standard_name="PF00135"
      CDS             7412..8683
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_10"
                      /translation="MTGARFDESDHKWTVEGINGSHGTIRIRCRWYILALGFASKPYIP
@@ -222,7 +222,7 @@ FEATURES             Location/Qualifiers
                      /function="Flavin monooxygenase-like"
                      /standard_name="PF00743"
      CDS             9454..10038
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_11"
                      /translation="MCRGRLTRTVDERGIVSTESAHAAQRHHLASHVLDARFAGSIARL
@@ -234,7 +234,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             10763..11191
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_12"
                      /translation="MRAGQLVPLVSTPTPSCLALQIVFCCCSTFLSDPLVLQNHRKMAD
@@ -245,7 +245,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             11204..12316
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_13"
                      /translation="MLVVAIPQITDHFNSIDDIGWYGSAYLLTFCAFQLLFGKIYSFYN
@@ -280,7 +280,7 @@ FEATURES             Location/Qualifiers
                      /function="Major facilitator transporter Str1/Tri12-like"
                      /standard_name="PF06609"
      CDS             12335..12781
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_14"
                      /translation="MQQASLAAQTVLPKPDAPIGISLIFFSQSLGGSVFLAVDDSIYSN
@@ -291,7 +291,7 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_fwdcolor="#808080"
                      /ApEinfo_revcolor="#808080"
      CDS             14574..15566
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_15"
                      /translation="MTFEEMLSRPSPPPFAGPSHNSNRPTNMASTNQDQYYHDKGKHGE
@@ -317,7 +317,7 @@ FEATURES             Location/Qualifiers
                      /function="Aflatoxin regulatory protein"
                      /standard_name="PF08493"
      CDS             16827..18797
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_16"
                      /translation="MAICGIAVRLPGGISNDAQLWDFLLAKRDARSQVPGSRYNISGYH
@@ -369,7 +369,7 @@ FEATURES             Location/Qualifiers
                      /function="Acyl transferase"
                      /standard_name="PF00698"
      CDS             18806..22078
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_17"
                      /translation="MVVACENSPSSVTISGDIDQVQYVMQEISLAHPEILCRQIKSDTA
@@ -451,7 +451,7 @@ FEATURES             Location/Qualifiers
                      /function="Methyltransferase type 11"
                      /standard_name="PF08241"
      CDS             22416..22889
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_18"
                      /translation="MQTVLINSASDGVGLAAIQISKMIGATIYATVIGEDKVEYLTASH
@@ -470,7 +470,7 @@ FEATURES             Location/Qualifiers
                      /function="Alcohol dehydrogenase-like, C-terminal"
                      /standard_name="PF00107"
      CDS             22922..24277
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_19"
                      /translation="MELYKQGHIQPITPVKTFTATDIRQCFDYMQSGQHIGQLRLSLKS
@@ -510,7 +510,7 @@ FEATURES             Location/Qualifiers
                      /function="Phosphopantetheine binding ACP domain"
                      /standard_name="PF00550"
      CDS             25423..25710
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_20"
                      /translation="MAQKLRFYLFGDQTYDYDEQLRALLTSHDPVVRSFLERAYYTLRA
@@ -528,7 +528,7 @@ FEATURES             Location/Qualifiers
                      /function="Starter unit:ACP transacylase"
                      /standard_name="PF16073"
      CDS             26198..29653
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_21"
                      /translation="MSRPYISAYASGGVTISGPPSVLAELRNTPGLSKLRAKDIPIHAP
@@ -596,7 +596,7 @@ FEATURES             Location/Qualifiers
                      /function="Acyl transferase"
                      /standard_name="PF00698"
      CDS             29804..30544
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_22"
                      /translation="MVIEKALMPLNAGPQLLRVTASLIWSEKEASVRFYSVDVRRPSSK
@@ -617,7 +617,7 @@ FEATURES             Location/Qualifiers
                      /function="Polyketide synthase, dehydratase domain"
                      /standard_name="PF14765"
      CDS             30591..32633
-                     /inference="ab initio prediction:Pyrodigal:2.0.4"
+                     /inference="ab initio prediction:Pyrodigal:2.1.0"
                      /transl_table=11
                      /locus_tag="BGC0001866.1_23"
                      /translation="MLTTFQIQGVPRRVLRYILQSSAKTTQTATSSVPAPSQAPVMVPQ
