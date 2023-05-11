@@ -3,6 +3,7 @@
 
 import contextlib
 import copy
+import csv
 import errno
 import functools
 import itertools
@@ -14,6 +15,7 @@ import random
 import re
 import signal
 import typing
+import urllib.parse
 from typing import Any, Dict, Union, Optional, List, TextIO, Mapping, Set
 
 from ... import __version__
@@ -32,6 +34,7 @@ class Convert(Command):  # noqa: D101
 
         Usage:
             gecco convert gbk -i <input> -f <format> [options]
+            gecco convert clusters -i <input> -f <format> [options]
 
         Arguments:
             -i <input>, --input-dir <input> the path to the input directory
@@ -63,9 +66,14 @@ class Convert(Command):  # noqa: D101
             sequences of all the proteins in a cluster. Output files are
             named ``*.faa``.
 
+        ``gecco convert clusters --format=gff``
+            Convert the clusters tables to GFF3 containing the position
+            and metadata for all the predicted clusters. Output file is 
+            named ``*.clusters.gff``.
+
         """
 
-    _CLUSTERS_FORMATS: Set[str] = set()
+    _CLUSTERS_FORMATS: Set[str] = {"gff"}
     _GBK_FORMATS = {"bigslice", "faa", "fna"}
 
     def _check(self) -> None:
@@ -193,6 +201,61 @@ class Convert(Command):  # noqa: D101
             done += 1
         self.success("Converted", f"{done} GenBank {unit} to protein FASTA format", level=0)
 
+    def _convert_clusters_gff(self, ctx: contextlib.ExitStack) -> None:
+        import Bio.SeqIO
+        from ...model import ClusterTable
+
+        # collect `*_clusters_{N}.gbk` files
+        tsv_files = glob.glob(os.path.join(self.input_dir, "*.clusters.tsv"))
+        unit = "file" if len(tsv_files) == 1 else "files"
+        task = self.progress.add_task("Converting", total=len(tsv_files), unit=unit, precision="")
+        done = 0
+        # rewrite GenBank files
+        for tsv_file in self.progress.track(tsv_files, task_id=task, total=len(tsv_files)):
+            table = ClusterTable.load(tsv_file)
+            gff_file = re.sub(r"\.tsv$", ".gff", tsv_file)
+            with open(gff_file, "w") as dst:
+                writer = csv.writer(dst, dialect="excel-tab")
+                writer.writerow(["##gff-version 3"])
+                for row in table.data.rows(named=True):
+                    # load the GenBank files of the cluster to extract the GECCO version
+                    gbk_file = os.path.join(self.input_dir, f"{row['cluster_id']}.gbk")
+                    cluster = Bio.SeqIO.read(gbk_file, "genbank")
+                    annotations = cluster.annotations['structured_comment']['GECCO-Data']
+                    # make sure to have a BGC type to write down
+                    bgc_types = ["Unknown"] if not row["type"] else row["type"].split(";")
+                    # extract type probabilities
+                    type_probas = []
+                    for key, value in row.items():
+                        if key.endswith("_probability"):
+                            ty = key.split("_")[0].capitalize()
+                            if ty == "Nrp":
+                                ty = "NRP"
+                            type_probas.append(f"Type{ty}={value}")
+                    # write the GFF row
+                    writer.writerow([
+                        row["sequence_id"],
+                        annotations["version"],
+                        "BGC",
+                        str(row["start"]),
+                        str(row["end"]),
+                        str(row["average_p"]),
+                        ".",
+                        ".",
+                        ";".join([
+                            f"ID={row['cluster_id']}",
+                            f"Name={ '/'.join(sorted(bgc_types)) } cluster",
+                            f"Type={ ','.join(sorted(bgc_types)) }",
+                            f"ProbabilityAverage={row['average_p']}",
+                            f"ProbabilityMax={row['max_p']}",
+                            *type_probas,
+                            f"Genes={row['proteins'].count(';') + 1}",
+                            f"Domains={row['domains'].count(';') + 1}",
+                        ])
+                    ])
+            done += 1
+        self.success("Converted", f"{done} TSV {unit} to GFF format", level=0)
+
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
         try:
             # check the CLI arguments were fine and enter context
@@ -207,6 +270,9 @@ class Convert(Command):  # noqa: D101
                     self._convert_gbk_fna(ctx)
                 elif self.args["--format"] == "faa":
                     self._convert_gbk_faa(ctx)
+            elif self.args["clusters"]:
+                if self.args["--format"] == "gff":
+                    self._convert_clusters_gff(ctx)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:
