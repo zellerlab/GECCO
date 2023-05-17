@@ -552,15 +552,22 @@ class Cluster:
         cluster.annotations.setdefault("references", []).append(ref)
 
         # add GECCO-specific annotations as a structured comment
-        probabilities = {
-            f"{key.lower()}_probability":f"{value:.3f}"
-            for key, value in self.type_probabilities.items()
-        }
+        if self.type is not None:
+            cluster_type = {
+                "cluster_type": ";".join(sorted(self.type.names)) or "Unknown"
+            }
+            probabilities = {
+                f"{key.lower()}_probability":f"{value:.3f}"
+                for key, value in self.type_probabilities.items()
+            }
+        else:
+            cluster_type = probabilities = {}
+
         structured_comment = cluster.annotations.setdefault("structured_comment", OrderedDict())
         structured_comment['GECCO-Data'] = {
             "version": f"GECCO v{__version__}",
             "creation_date": now.isoformat(),
-            "cluster_type": ";".join(sorted(self.type.names)) or "Unknown",
+            **cluster_type,
             **probabilities,
         }
 
