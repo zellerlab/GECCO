@@ -304,15 +304,16 @@ class AnnotatorMixin(DomainFilterMixin):
 
         # Run all HMMs over ORFs to annotate with protein domains
         hmms = list(self._custom_hmms() if self.hmm else embedded_hmms())
-        task = self.progress.add_task(description=f"Annotating domains", unit="HMMs", total=len(hmms), precision="")
-        for hmm in self.progress.track(hmms, task_id=task, total=len(hmms)):
-            total = hmm.size if whitelist is None else len(whitelist)
-            task = self.progress.add_task(description=f"  {hmm.id} v{hmm.version}", total=total, unit="domains", precision="")
-            callback = lambda h, t: self.progress.update(task, advance=1)
+        total = None if whitelist is None else len(whitelist)
+        task_hmms = self.progress.add_task(description=f"Annotating domains", unit="HMMs", total=len(hmms), precision="")
+        task_domains = self.progress.add_task(description="", total=total, unit="domains", precision="")
+        for hmm in self.progress.track(hmms, task_id=task_hmms, total=len(hmms)):
+            self.progress.update(task_domains, description=f" {hmm.id} v{hmm.version}")
+            callback = lambda h, t: self.progress.update(task_domains, advance=1)
             self.info("Starting", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
             genes = PyHMMER(hmm, self.jobs, whitelist).run(genes, progress=callback, bit_cutoffs=self.bit_cutoffs)
             self.success("Finished", f"annotation with [bold blue]{hmm.id} v{hmm.version}[/]", level=2)
-            self.progress.update(task_id=task, visible=False)
+        self.progress.update(task_id=task_domains, visible=False)
 
         # Count number of annotated domains
         count = sum(1 for gene in genes for domain in gene.protein.domains)
