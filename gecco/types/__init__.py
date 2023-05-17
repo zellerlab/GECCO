@@ -107,7 +107,8 @@ class TypeClassifier(object):
 
         classifier = cls(classes=sorted(unique_types), random_state=0)
         types_bin = classifier.binarizer.transform(types)
-        classifier.model.fit(compositions, y=types_bin)
+        if len(classifier.classes_) > 1:
+            classifier.model.fit(compositions, y=types_bin)
         classifier.model.attributes_ = domains
         return classifier
 
