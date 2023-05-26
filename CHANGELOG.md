@@ -5,7 +5,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.6...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.7...master
+
+
+## [v0.9.7] - 2023-05-26
+[v0.9.7]: https://github.com/zellerlab/GECCO/compare/v0.9.6...v0.9.7
+
+### Added
+- Command line option to annotate proteins using bitscore cutoffs from HMMs.
+- Command line option to disentangle overlapping domains after HMM annotation.
+
+### Changed
+- Bump `pyhmmer` dependency to `v0.8.0`.
+- Bump `pyrodigal` dependency to `v2.1.0`.
+- Rewrite `gecco.model` to use `polars` for managing tabular data.
+- Replace `pandas` dependencies with `polars`
+- Update `gecco run` to skip type classification for tasks without an assigned cluster type.
+
+### Fixed
+- `Cluster.to_seq_record` crashing when called on a cluster with `types` attribute unset.
+- Progress bar resetting when performing domain annotation with multiple HMMs.
+
+### Removed
+- Support for Python 3.7.
 
 
 ## [v0.9.6] - 2023-01-11
