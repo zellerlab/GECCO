@@ -30,7 +30,7 @@ from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 from .interpro import GOTerm
-from ._base import Dumpable, Table
+from ._base import Dumpable, Table, _POLARS_VERSION
 from ._meta import patch_locale
 
 if typing.TYPE_CHECKING:
@@ -758,8 +758,10 @@ class ClusterTable(Table):
         for column_name in data.columns:
             if data[column_name].dtype in (polars.Float64, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_nan(None))
-        data.write_csv(fh, sep="\t")
-
+        if _POLARS_VERSION < (0, 16, 14):
+            data.write_csv(fh, sep="\t")
+        else:
+            data.write_csv(fh, separator="\t")
 
 class GeneTable(Table):
     """A table storing gene coordinates and optional cluster probabilities.

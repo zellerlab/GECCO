@@ -28,6 +28,11 @@ from typing import (
 
 import polars
 
+try:
+    _POLARS_VERSION = tuple(map(int, polars.__version__.split('.')))
+except ValueError:
+    _POLARS_VERSION = (0, 0, 0)
+
 if typing.TYPE_CHECKING:
     _SELF = typing.TypeVar("_SELF")
     _TABLE = typing.TypeVar("_TABLE", bound="Table")
@@ -115,11 +120,11 @@ class Table(Dumpable, Loadable):
         fh: Union[BinaryIO, str, os.PathLike], 
     ) -> "_TABLE":
         columns = cls._get_columns()
-        data = polars.read_csv(
-            fh,
-            sep="\t",
-            dtypes={ column.name: column.dtype for column in columns }
-        )
+        dtypes = { column.name: column.dtype for column in columns }
+        if _POLARS_VERSION < (0, 16, 14):
+            data = polars.read_csv(fh, sep="\t", dtypes=dtypes)
+        else:
+            data = polars.read_csv(fh, separator="\t", dtypes=dtypes)
         for column_name in data.columns:
             if data[column_name].dtype in (polars.Float32, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_null(math.nan))
@@ -141,6 +146,8 @@ class Table(Dumpable, Loadable):
         for column_name in view.columns:
             if view[column_name].dtype in (polars.Float32, polars.Float64):
                 view = view.with_columns(polars.col(column_name).fill_nan(None))
-        view.write_csv(fh, sep="\t")
-
+        if _POLARS_VERSION < (0, 16, 14):
+            view.write_csv(fh, sep="\t")
+        else:
+            view.write_csv(fh, separator="\t")
     
