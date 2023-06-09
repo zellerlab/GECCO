@@ -64,23 +64,40 @@ known BGCs using `antiSMASH <https://antismash.secondarymetabolites.org/>`_.
 
 
 
-Feature tables
---------------
+Gene and Feature tables
+-----------------------
 
-GECCO does not train on sequences directly, but on feature tables. You can build
-the feature table yourself (see below for the expected format), but the easiest
-way to obtain a feature table from the sequences is the ``gecco annotate`` subcommand.
-To build a table from a collection of nucleotide sequences in ``sequences.fna``
-and HMMs in ``Pfam35.hmm.gz``, use:
+GECCO does not train on sequences directly, but on gene and feature tables. 
+You can build the tables yourself (see below for the expected format), but the 
+easiest way to obtain a gene table and a feature table from any sequence is the 
+``gecco annotate`` subcommand. To build a table from a collection of nucleotide 
+sequences in ``sequences.fna`` and HMMs in ``Pfam35.hmm.gz``, use:
 
 .. code-block:: console
 
-  $ gecco annotate --genome sequences.fna --hmm Pfam35.hmm.gz -o features.tsv
+  $ gecco annotate --genome sequences.fna --hmm Pfam35.hmm.gz -o .
+
+This will output two files in the local folder, ``sequences.genes.tsv`` and 
+``sequences.features.tsv`` containing the gene table and the feature table for 
+the input sequences.
 
 .. hint::
 
-    If you have more than one HMM file, you can add additional ``--hmm`` flags
-    so that all of them are used.
+    If this step takes too long, you can also split the file containing your
+    input sequences, process them independently in parallel, and combine the
+    result.
+
+The gene table is a TSV file that looks like this, with one row per gene, per
+sequence:
+
+============  ============== ===== ==== ======
+sequence_id   protein_id     start end  strand
+============  ============== ===== ==== ======
+AFPU01000001  AFPU01000001_1     3 2555  ``+``
+AFPU01000001  AFPU01000001_2  2610 4067  ``-``
+         ...             ...   ...  ...    ...
+============  ============== ===== ==== ======
+
 
 The feature table is a TSV file that looks like this, with one row per domain,
 per protein, per sequence:
@@ -94,17 +111,11 @@ AFPU01000001  AFPU01000001_2  2610 4067  ``-`` PF13719 Pfam35  4.89304 0.000255 
          ...             ...   ...  ...    ...     ...    ...      ...         ...          ...        ...
 ============  ============== ===== ==== ====== ======= ====== ======== =========== ============ ==========
 
-.. hint::
-
-    If this step takes too long, you can also split the file containing your
-    input sequences, process them independently in parallel, and combine the
-    result.
-
 
 Cluster tables
 --------------
 
-The cluster table is used to additional information to GECCO: the location of
+The cluster table is used to pass additional information to GECCO: the location of
 each positive region in the input data, and the type of each region (if it makes
 sense). You need to build this table manually, but it should be quite straightforward.
 
@@ -117,7 +128,7 @@ sense). You need to build this table manually, but it should be quite straightfo
 The cluster table is a TSV file that looks like this, with one row per region:
 
 ============ ============ ====== ====== ==========
-sequence_id  bgc_id       start  end    type
+sequence_id  cluster_id   start  end    type
 ============ ============ ====== ====== ==========
 AFPU01000001   BGC0000001 806243 865563 Polyketide
 MTON01000024   BGC0001910 129748 142173    Terpene
@@ -128,7 +139,9 @@ MTON01000024   BGC0001910 129748 142173    Terpene
 
     If the concept of "type" makes no sense for the regions you are trying to
     detect, you can omit the ``type`` column entirely. This will effectively
-    mark all the regions from the training sequences as "Unknown".
+    mark all the regions from the training sequences as "Unknown". Later on,
+    GECCO will skip training the cluster type classifier if it detects that 
+    all the clusters are of the same type.
 
 
 Fitting the model
@@ -139,10 +152,10 @@ following method to fit the CRF model and the type classifier:
 
 .. code-block:: console
 
-  $ gecco -vv train --features features.tsv --clusters clusters.tsv -o model
+  $ gecco -vv train --genes genes.tsv --features features.tsv --clusters clusters.tsv -o model
 
 GECCO will create a directory named ``model`` containing all the required files
-to make predictions later on.
+to make predictions later on. 
 
 
 L1/L2 regularisation
