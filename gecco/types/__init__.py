@@ -87,9 +87,9 @@ class TypeClassifier(object):
             typs_file: ContextManager[TextIO] = open(os.path.join(model_path, "types.tsv"))
             comp_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "compositions.npz"), "rb")
         else:
-            doms_file = importlib_resources.open_text(__name__, "domains.tsv")
-            typs_file = importlib_resources.open_text(__name__, "types.tsv")
-            comp_file = importlib_resources.open_binary(__name__, "compositions.npz")
+            doms_file = importlib_resources.files(__name__).joinpath("domains.tsv").open()
+            typs_file = importlib_resources.files(__name__).joinpath("types.tsv").open()
+            comp_file = importlib_resources.files(__name__).joinpath("compositions.npz").open("rb")
 
         with comp_file as comp_src:
             compositions = scipy.sparse.load_npz(comp_src)

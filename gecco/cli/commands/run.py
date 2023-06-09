@@ -183,7 +183,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
         try:
             if self.model is None:
                 self.info("Loading", "feature list from internal model", level=2)
-                domains_file = importlib_resources.open_text("gecco.types", "domains.tsv")
+                domains_file = importlib_resources.files("gecco.types").joinpath("domains.tsv").open()
             else:
                 self.info("Loading", "feature list from", repr(self.model), level=2)
                 domains_file = open(os.path.join(self.model, "domains.tsv"))

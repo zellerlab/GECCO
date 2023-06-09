@@ -83,8 +83,8 @@ class ClusterCRF(object):
             pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, cls._FILENAME), "rb")
             md5_file: ContextManager[TextIO] = open(os.path.join(model_path, f"{cls._FILENAME}.md5"))
         else:
-            pkl_file = importlib_resources.open_binary(__name__, "model.pkl")
-            md5_file = importlib_resources.open_text(__name__, f"{cls._FILENAME}.md5")
+            pkl_file = importlib_resources.files(__name__).joinpath(cls._FILENAME).open("rb")
+            md5_file = importlib_resources.files(__name__).joinpath(f"{cls._FILENAME}.md5").open()
         with md5_file as sig:
             signature = sig.read().strip()
 

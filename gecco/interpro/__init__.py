@@ -65,7 +65,7 @@ class InterPro:
 
     @classmethod
     def load(cls) -> "InterPro":
-        with importlib_resources.open_binary(__name__, "interpro.json") as f:
+        with importlib_resources.files(__name__).joinpath("interpro.json").open() as f:
             data = json.load(f)
             entries = []
             for raw_entry in data:
