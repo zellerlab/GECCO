@@ -97,11 +97,22 @@ GECCO will create the following files:
 - `{genome}_cluster_{N}.gbk`: If any were found, a GenBank file per cluster,
   containing the cluster sequence annotated with its member proteins and domains.
 
+GECCO can also convert results to other formats that may be more convenient
+depending on the downstream usage. GECCO can convert results into:
+
+- GFF3 format so they can be loaded into a genomic viewer 
+  (`gecco convert clusters --format gff`).
+- GenBank files with antiSMASH-style features so they can be loaded into 
+  [BiG-SLiCE](https://github.com/medema-group/bigslice) for further analysis
+  (`gecco convert gbk --format bigslice`).
+- FASTA files with the sequences of all the predicted BGCs (`gecco convert gbk --format fna`)
+  or with the sequences of all their proteins (`gecco convert gbk --format faa`).
+
 To get a more visual way of exploring of the predictions, you
 can open the GenBank files in a genome editing software like [UGENE](http://ugene.net/).
 You can otherwise load the results into an AntiSMASH report: check the
 [Integrations](https://gecco.embl.de/integrations.html#antismash) page of the
-documentation for a step-by-step guide.
+documentation for a step-by-step guide. 
 
 
 ## 🔖 Reference

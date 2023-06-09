@@ -5,6 +5,34 @@ The files written by GECCO are standard TSV and GenBank files, so they should
 be easy to use in downstream analyses. However, some common use-cases are
 already covered to reduce the need for custom scripts.
 
+Genome Feature
+^^^^^^^^^^^^^^
+
+GECCO outputs tables containing the location of BGCs in TSV format to retain
+as much metadata as possible for each predicted BGC. These tables are easy to
+manipulate with a library such as `pandas <https://pandas.pydata.org/>` 
+or `polars <https://www.pola.rs/>`. However, most biology visualization 
+tools can load arbitrary features in `GFF format <https://en.wikipedia.org/wiki/General_feature_format>`_,
+which may be used to visualize predicted BGCs across an entire genome.
+Since `v0.9.7` GECCO offers the option to generate a GFF file from its output:
+
+.. code-block:: console
+
+    $ gecco run -g KY646191.1.gbk -o output_dir
+    $ gecco convert clusters -i output_dir --format gff
+
+The output folder will contain an additional GFF file with each cluster as a 
+single feature:
+
+.. code-block:: console
+
+    $ tree output_dir
+    output_dir
+    ├── KC188778.1_cluster_1.gbk
+    ├── KC188778.1.clusters.gff
+    ├── KC188778.1.clusters.tsv
+    └── KC188778.1.features.tsv
+
 
 Feature Coloring
 ^^^^^^^^^^^^^^^^
