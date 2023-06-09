@@ -65,8 +65,8 @@ variables:
 docs:
   image: python:3.9
   stage: pages
-  dependencies:
-    - test:python3.9
+  # dependencies:
+  #   - test:python3.9
   before_script:
     - python setup.py list_requirements -s
     - pip install -U -r docs/requirements.txt -r requirements.txt

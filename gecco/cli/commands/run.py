@@ -26,9 +26,9 @@ from ._mixins import SequenceLoaderMixin, OutputWriterMixin, PredictorMixin
 from .._utils import patch_showwarnings
 
 try:
-    import importlib.resources as importlib_resources
+    from importlib.resources import files
 except ImportError:
-    import importlib_resources  # type: ignore
+    from importlib_resources import files # type: ignore
 
 if typing.TYPE_CHECKING:
     from ...types import TypeClassifier
@@ -183,7 +183,7 @@ class Run(Annotate, SequenceLoaderMixin, OutputWriterMixin, PredictorMixin):  # 
         try:
             if self.model is None:
                 self.info("Loading", "feature list from internal model", level=2)
-                domains_file = importlib_resources.files("gecco.types").joinpath("domains.tsv").open()
+                domains_file = files("gecco.types").joinpath("domains.tsv").open()
             else:
                 self.info("Loading", "feature list from", repr(self.model), level=2)
                 domains_file = open(os.path.join(self.model, "domains.tsv"))

@@ -48,9 +48,9 @@ from .cv import LeaveOneGroupOut
 from .select import fisher_significance
 
 try:
-    import importlib.resources as importlib_resources
+    from importlib.resources import files
 except ImportError:
-    import importlib_resources  # type: ignore
+    from importlib_resources import files  # type: ignore
 
 __all__ = ["ClusterCRF"]
 
@@ -83,8 +83,8 @@ class ClusterCRF(object):
             pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, cls._FILENAME), "rb")
             md5_file: ContextManager[TextIO] = open(os.path.join(model_path, f"{cls._FILENAME}.md5"))
         else:
-            pkl_file = importlib_resources.files(__name__).joinpath(cls._FILENAME).open("rb")
-            md5_file = importlib_resources.files(__name__).joinpath(f"{cls._FILENAME}.md5").open()
+            pkl_file = files(__name__).joinpath(cls._FILENAME).open("rb")
+            md5_file = files(__name__).joinpath(f"{cls._FILENAME}.md5").open()
         with md5_file as sig:
             signature = sig.read().strip()
 

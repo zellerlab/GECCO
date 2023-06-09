@@ -26,9 +26,9 @@ from ..model import Gene, Domain
 from ..interpro import InterPro
 
 try:
-    import importlib.resources as importlib_resources
+    from importlib.resources import files, as_file
 except ImportError:
-    import importlib_resources  # type: ignore
+    from importlib_resources import files, as_file  # type: ignore
 
 __all__ = ["DomainAnnotator", "HMM", "PyHMMER", "embedded_hmms"]
 
@@ -201,12 +201,9 @@ class PyHMMER(DomainAnnotator):
 def embedded_hmms() -> Iterator[HMM]:
     """Iterate over the embedded HMMs that are shipped with GECCO.
     """
-    for filename in importlib_resources.contents(__name__):
+    for filename in files(__name__).glob("*.ini"):
 
-        if not filename.endswith(".ini"):
-            continue
-
-        ini_ctx = importlib_resources.path(__name__, filename)
+        ini_ctx = as_file(filename)
         ini_path = ini_ctx.__enter__()
         atexit.register(ini_ctx.__exit__, None, None, None)
 
@@ -215,7 +212,7 @@ def embedded_hmms() -> Iterator[HMM]:
         args: Dict[str, Any] = dict(cfg.items("hmm"))
         size = int(args.pop("size", 0))
 
-        hmm_ctx = importlib_resources.path(__name__, filename.replace(".ini", ".h3m"))
+        hmm_ctx = as_file(filename.with_suffix(".h3m"))
         hmm_path = hmm_ctx.__enter__()
         atexit.register(hmm_ctx.__exit__, None, None, None)
 

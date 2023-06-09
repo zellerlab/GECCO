@@ -29,9 +29,9 @@ import sklearn.preprocessing
 from ..model import ClusterType, Cluster
 
 try:
-    import importlib.resources as importlib_resources
+    from importlib.resources import files
 except ImportError:
-    import importlib_resources  # type: ignore
+    from importlib_resources import files  # type: ignore
 
 if typing.TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -87,9 +87,9 @@ class TypeClassifier(object):
             typs_file: ContextManager[TextIO] = open(os.path.join(model_path, "types.tsv"))
             comp_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "compositions.npz"), "rb")
         else:
-            doms_file = importlib_resources.files(__name__).joinpath("domains.tsv").open()
-            typs_file = importlib_resources.files(__name__).joinpath("types.tsv").open()
-            comp_file = importlib_resources.files(__name__).joinpath("compositions.npz").open("rb")
+            doms_file = files(__name__).joinpath("domains.tsv").open()
+            typs_file = files(__name__).joinpath("types.tsv").open()
+            comp_file = files(__name__).joinpath("compositions.npz").open("rb")
 
         with comp_file as comp_src:
             compositions = scipy.sparse.load_npz(comp_src)

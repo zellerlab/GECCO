@@ -7,9 +7,9 @@ from dataclasses import dataclass, field, fields
 from typing import Dict, List, Optional
 
 try:
-    import importlib.resources as importlib_resources
+    from importlib.resources import files
 except ImportError:
-    import importlib_resources  # type: ignore
+    from importlib_resources import files  # type: ignore
 
 
 __all__ = ["InterProEntry", "InterPro", "GeneOntologyTerm"]
@@ -65,7 +65,7 @@ class InterPro:
 
     @classmethod
     def load(cls) -> "InterPro":
-        with importlib_resources.files(__name__).joinpath("interpro.json").open() as f:
+        with files(__name__).joinpath("interpro.json").open() as f:
             data = json.load(f)
             entries = []
             for raw_entry in data:
