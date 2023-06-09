@@ -729,7 +729,7 @@ class ClusterTable(Table):
         data = collections.defaultdict(list)
         for cluster in clusters:
             data["sequence_id"].append(cluster.source.id)
-            data["bgc_id"].append(cluster.id)
+            data["cluster_id"].append(cluster.id)
             data["start"].append(cluster.start)
             data["end"].append(cluster.end)
             if cluster.average_probability is not None:
