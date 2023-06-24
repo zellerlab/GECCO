@@ -19,6 +19,7 @@ from typing import (
     Union
 )
 
+from ..._meta import zopen
 from .._utils import ProgressReader, guess_sequences_format
 from ._base import Command, CommandExit, InvalidArgument
 
@@ -55,10 +56,11 @@ class SequenceLoaderMixin(Command):
             # load sequences
             n = 0
             self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
-            with ProgressReader(open(self.genome, "rb"), self.progress, task, scale) as f:
-                for record in SeqIO.parse(io.TextIOWrapper(f), format):  # type: ignore
-                    yield record
-                    n += 1
+            with zopen(self.genome) as file:
+                with ProgressReader(file, self.progress, task, scale) as reader:
+                    for record in SeqIO.parse(io.TextIOWrapper(reader), format):  # type: ignore
+                        yield record
+                        n += 1
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
             raise CommandExit(err.errno) from err
@@ -107,8 +109,9 @@ class TableLoaderMixin(Command):
                 task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
-                with typing.cast(BinaryIO, ProgressReader(open(filename, "rb"), self.progress, task, scale)) as in_:
-                    features += FeatureTable.load(in_)
+                with zopen(filename) as file:
+                    with ProgressReader(file, self.progress, task, scale) as in_:
+                        features += FeatureTable.load(in_)
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
@@ -283,10 +286,9 @@ class AnnotatorMixin(DomainFilterMixin):
 
         for path in typing.cast(List[str], self.hmm):
             base = os.path.basename(path)
-            file: BinaryIO = open(path, "rb")
-            if base.endswith(".gz"):
+            file: BinaryIO = zopen(path)
+            if base.endswith((".gz", ".lz4", ".xz", ".bz2")):
                 base, _ = os.path.splitext(base)
-                file = gzip.GzipFile(fileobj=file, mode="rb")   # type: ignore
             base, _ = os.path.splitext(base)
             yield HMM(
                 id=base,
@@ -432,8 +434,9 @@ class ClusterLoaderMixin(Command):
             task = self.progress.add_task("Loading clusters", total=total, unit=unit, precision=".1f")
             # load clusters
             self.info("Loading", "clusters table from file", repr(self.clusters))
-            with ProgressReader(open(self.clusters, "rb"), self.progress, task, scale) as in_:
-                return ClusterTable.load(in_)   # type: ignore
+            with zopen(self.clusters) as file:
+                with ProgressReader(file, self.progress, task, scale) as in_:
+                    return ClusterTable.load(in_)   # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err

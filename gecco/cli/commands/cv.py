@@ -15,6 +15,7 @@ from typing import Any, Dict, Union, Optional, Iterable, List, TextIO, Mapping, 
 
 import docopt
 
+from ..._meta import zopen
 from .._utils import patch_showwarnings
 from ._base import Command, CommandExit, InvalidArgument
 from .annotate import Annotate
@@ -129,7 +130,7 @@ class Cv(Train):  # noqa: D101
         from ...model import ClusterTable, ClusterType
 
         self.info("Loading", "the clusters table")
-        with open(self.clusters) as in_:
+        with zopen(self.clusters) as in_:
             table = ClusterTable.load(in_)
             index = { row.sequence_id: row.type for row in table }
             if len(index) != len(table):

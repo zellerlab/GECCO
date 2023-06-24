@@ -4,7 +4,6 @@
 import contextlib
 import errno
 import glob
-import gzip
 import itertools
 import io
 import logging

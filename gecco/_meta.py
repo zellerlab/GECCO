@@ -6,10 +6,33 @@ import contextlib
 import functools
 import importlib
 import locale
+import lzma
 import operator
 import typing
 from multiprocessing.pool import Pool
-from typing import Any, Callable, Iterable, Iterator, List, Tuple, Union, Optional, Type
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Tuple,
+    Union,
+    Optional,
+    Type
+)
+
+try:
+    from isal import igzip as gzip
+except ImportError:
+    import gzip
+
+try:
+    import lz4.frame
+except ImportError as err:
+    lz4 = err
+
 
 if typing.TYPE_CHECKING:
     from types import TracebackType, ModuleType
@@ -19,6 +42,11 @@ if typing.TYPE_CHECKING:
     _A = typing.TypeVar("_A")
     _R = typing.TypeVar("_R")
     _F = typing.TypeVar("_F", bound=Callable[..., Any])
+
+_BZ2_MAGIC = b"BZh"
+_GZIP_MAGIC = b"\x1f\x8b"
+_XZ_MAGIC = b"\xfd7zXZ"
+_LZ4_MAGIC = b"\x04\x22\x4d\x18"
 
 
 class classproperty(property):
@@ -111,3 +139,21 @@ def patch_locale(name: str) -> Iterator[None]:
         yield
     finally:
         locale.setlocale(locale.LC_TIME, lc)
+
+
+@contextlib.contextmanager
+def zopen(path: str) -> Iterator[BinaryIO]:
+    with contextlib.ExitStack() as ctx:
+        file = ctx.enter_context(open(path, "rb"))
+        peek = file.peek()
+        if peek.startswith(_GZIP_MAGIC):
+            file = ctx.enter_context(gzip.open(file, mode="rb"))
+        elif peek.startswith(_BZ2_MAGIC):
+            file = ctx.enter_context(bz2.open(file, mode="rb"))
+        elif peek.startswith(_XZ_MAGIC):
+            file = ctx.enter_context(lzma.open(file, mode="rb"))
+        elif peek.startswith(_LZ4_MAGIC):
+            if isinstance(lz4, ImportError):
+                raise RuntimeError("File compression is LZ4 but python-lz4 is not installed") from lz4
+            file = ctx.enter_context(lz4.frame.open(file))
+        yield file

@@ -21,7 +21,7 @@ import pyhmmer
 from Bio import SeqIO
 from pyhmmer.hmmer import hmmsearch
 
-from .._meta import requires, UniversalContainer
+from .._meta import requires, UniversalContainer, zopen
 from ..model import Gene, Domain
 from ..interpro import InterPro
 
@@ -118,9 +118,7 @@ class PyHMMER(DomainAnnotator):
 
         with contextlib.ExitStack() as ctx:
             # decompress the input if needed
-            file: BinaryIO = ctx.enter_context(open(self.hmm.path, "rb"))
-            if self.hmm.path.endswith(".gz"):
-                file = ctx.enter_context(gzip.GzipFile(fileobj=file, mode="rb"))  # type: ignore
+            file: BinaryIO = ctx.enter_context(zopen(self.hmm.path))
             # Only retain the HMMs which are in the whitelist
             hmm_file = ctx.enter_context(pyhmmer.plan7.HMMFile(file))
             profiles = (

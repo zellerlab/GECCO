@@ -10,7 +10,7 @@ import warnings
 from types import ModuleType, TracebackType
 from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, List, Optional, Type, TextIO, Union, Tuple
 
-from .._meta import classproperty
+from .._meta import classproperty, zopen
 
 if typing.TYPE_CHECKING:
     from rich.progress import Progress, TaskID
@@ -141,19 +141,20 @@ def guess_sequences_format(path: str) -> Optional[str]:
     Supports the following formats:
         * GenBank
         * FASTA
+        * EMBL
 
     """
     head = ""
-    with open(path, "r") as file:
-        for head in iter(lambda: file.read(256), ""):
+    with zopen(path) as file:
+        for head in iter(lambda: file.read(256), b""):
             head = head.strip()
             if head:
                 break
-    if head.startswith(">"):
+    if head.startswith(b">"):
         return "fasta"
-    elif head.startswith("LOCUS"):
+    elif head.startswith(b"LOCUS"):
         return "genbank"
-    elif head.startswith("ID "):
+    elif head.startswith(b"ID "):
         return "embl"
     else:
         return None
