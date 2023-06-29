@@ -2,6 +2,7 @@
 """
 
 import abc
+import bz2
 import contextlib
 import functools
 import importlib
