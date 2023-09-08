@@ -174,11 +174,28 @@ class Cv(Train):  # noqa: D101
         crf = self._fit_model(train_data)
         return crf.predict_probabilities(test_data)
 
-    def _write_fold(self, fold: int, genes: List["Gene"], append: bool = False) -> None:
+    def _write_fold(
+        self, 
+        fold: int, 
+        truth: List["Genes"], 
+        predicted: List["Gene"], 
+        append: bool = False,
+    ) -> None:
         import polars
         from ...model import GeneTable
 
-        frame = GeneTable.from_genes(genes).data.with_columns(polars.lit(fold).alias("fold"))
+        frame = (
+            GeneTable
+                .from_genes(predicted)
+                .data
+                .with_columns(polars.lit(fold).alias("fold"))
+                .with_columns(
+                    GeneTable
+                        .from_genes(truth)
+                        .data
+                        .select(is_cluster=polars.col("average_p") > 0.5)
+                )
+        )
         with open(self.output, "ab" if append else "wb") as out:
             frame.write_csv(out, has_header=not append, separator="\t")
 
@@ -213,8 +230,9 @@ class Cv(Train):  # noqa: D101
             for i, (train_indices, test_indices) in enumerate(self.progress.track(splits, task_id=task)):
                 train_data = self._get_train_data(train_indices, seqs)
                 test_data = self._get_test_data(test_indices, seqs)
+                old_genes = self._get_train_data(test_indices, seqs)
                 new_genes = self._fit_predict(train_data, test_data)
-                self._write_fold(i+1, new_genes, append=i>0)
+                self._write_fold(i+1, old_genes, new_genes, append=i>0)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:
