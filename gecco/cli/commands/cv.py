@@ -199,6 +199,24 @@ class Cv(Train):  # noqa: D101
         with open(self.output, "ab" if append else "wb") as out:
             frame.write_csv(out, has_header=not append, separator="\t")
 
+    def _report_fold(
+        self,
+        fold: typing.Optional[int],
+        truth: List["Genes"],
+        predicted: List["Genes"],
+    ) -> None:
+        from sklearn.metrics import average_precision_score, roc_auc_score
+
+        probas = [ gene.average_probability for gene in predicted ]
+        labels = [ gene.average_probability > 0.5 for gene in truth ]
+
+        aupr = average_precision_score(labels, probas)
+        auroc = roc_auc_score(labels, probas)
+        if fold:
+            self.info(f"Finished training fold {fold} (AUROC={auroc:.3f}, AUPR={aupr:.3f})")
+        else:
+            self.info(f"Finished cross validation (AUROC={auroc:.3f}, AUPR={aupr:.3f})")
+
     # --
 
     def execute(self, ctx: contextlib.ExitStack) -> int:  # noqa: D102
@@ -227,12 +245,16 @@ class Cv(Train):  # noqa: D101
             unit = "fold" if len(splits) == 1 else "folds"
             task = self.progress.add_task(description="Cross-validating", total=len(splits), unit=unit, precision="")
             self.info("Performing cross-validation")
+            predicted = []
             for i, (train_indices, test_indices) in enumerate(self.progress.track(splits, task_id=task)):
                 train_data = self._get_train_data(train_indices, seqs)
                 test_data = self._get_test_data(test_indices, seqs)
                 old_genes = self._get_train_data(test_indices, seqs)
                 new_genes = self._fit_predict(train_data, test_data)
                 self._write_fold(i+1, old_genes, new_genes, append=i>0)
+                self._report_fold(i+1, old_genes, new_genes)
+                predicted.extend(new_genes)
+            self._report_fold(None, genes, predicted)
         except CommandExit as cexit:
             return cexit.code
         except KeyboardInterrupt:

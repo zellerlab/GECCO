@@ -174,10 +174,10 @@ class Train(TableLoaderMixin, DomainFilterMixin, OutputWriterMixin, ClusterLoade
         from ...crf import ClusterCRF
 
         self.info("Creating", f"the CRF in [bold blue]{self.feature_type}[/] mode", level=1)
-        self.info("Using", f"hyperparameters C1={self.c1}, C2={self.c2}", level=1)
+        self.info("Using", f"provided hyperparameters (C1={self.c1}, C2={self.c2})", level=1)
         if self.select is not None:
-            self.info("Selecting", f"features with Fisher Exact Test threshold of {self.select}", level=1)
-        self.info("Iterating", f"over features with a sliding window of size {self.window_size} and step {self.window_step}", level=1)
+            self.info("Selecting", f"features with Fisher Exact Test (threshold={self.select})", level=1)
+        self.info("Iterating", f"over features with a sliding window (W={self.window_size}, step={self.window_step})", level=1)
         crf = ClusterCRF(
             self.feature_type,
             algorithm="lbfgs",
