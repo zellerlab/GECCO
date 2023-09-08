@@ -763,6 +763,7 @@ class ClusterTable(Table):
         else:
             data.write_csv(fh, separator="\t")
 
+
 class GeneTable(Table):
     """A table storing gene coordinates and optional cluster probabilities.
     """

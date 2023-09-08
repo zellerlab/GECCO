@@ -175,11 +175,12 @@ class Cv(Train):  # noqa: D101
         return crf.predict_probabilities(test_data)
 
     def _write_fold(self, fold: int, genes: List["Gene"], append: bool = False) -> None:
+        import polars
         from ...model import FeatureTable
 
-        frame = FeatureTable.from_genes(genes).to_dataframe()
-        with open(self.output, "a" if append else "w") as out:
-            frame.assign(fold=fold).to_csv(out, header=not append, sep="\t", index=False)
+        frame = FeatureTable.from_genes(genes).data
+        with open(self.output, "ab" if append else "wb") as out:
+            frame.with_columns(polars.lit(fold).alias("fold")).write_csv(out, has_header=not append, separator="\t")
 
     # --
 
