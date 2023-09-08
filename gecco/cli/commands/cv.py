@@ -49,7 +49,7 @@ class Cv(Train):  # noqa: D101
             -c <data>, --clusters <table>   a cluster annotation table, used
                                             to stratify clusters by type in
                                             LOTO mode.
-            -g <file>, --genes <file>       a GFF file containing the
+            -g <file>, --genes <file>       a gene table containing the
                                             coordinates of the genes inside
                                             the training sequence.
 
@@ -176,11 +176,11 @@ class Cv(Train):  # noqa: D101
 
     def _write_fold(self, fold: int, genes: List["Gene"], append: bool = False) -> None:
         import polars
-        from ...model import FeatureTable
+        from ...model import GeneTable
 
-        frame = FeatureTable.from_genes(genes).data
+        frame = GeneTable.from_genes(genes).data.with_columns(polars.lit(fold).alias("fold"))
         with open(self.output, "ab" if append else "wb") as out:
-            frame.with_columns(polars.lit(fold).alias("fold")).write_csv(out, has_header=not append, separator="\t")
+            frame.write_csv(out, has_header=not append, separator="\t")
 
     # --
 
