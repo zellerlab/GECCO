@@ -69,7 +69,7 @@ class PyrodigalFinder(ORFFinder):
         self.metagenome = metagenome
         self.mask = mask
         self.cpus = cpus
-        self.orf_finder =  pyrodigal.OrfFinder(meta=metagenome, mask=mask)
+        self.orf_finder =  pyrodigal.GeneFinder(meta=metagenome, mask=mask)
 
     def _train(self, records: Iterable[SeqRecord]) -> pyrodigal.TrainingInfo:
         sequences = []
