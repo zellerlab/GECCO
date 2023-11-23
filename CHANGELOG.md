@@ -5,7 +5,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.8...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.9...master
+
+
+## [v0.9.9] - 2023-11-23
+[v0.9.9]: https://github.com/zellerlab/GECCO/compare/v0.9.8...v0.9.9
+
+### Added
+- Support for `gzip`, `bzip2`, `lz4` and `xz`-compressed input files.
+
+### Fixed
+- Outdated use of `pandas` API in `gecco cv` command.
+
+### Changed
+- Bump `pyhmmer` dependency to `v0.10.0`.
+- Bump `pyrodigal` dependency to `v3.0.0`.
+- Make `gecco cv` output a gene table with a ground truth column.
 
 
 ## [v0.9.8] - 2023-06-09
