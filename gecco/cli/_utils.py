@@ -86,6 +86,11 @@ class ProgressReader(io.RawIOBase):
         self._update(len(block))
         return block
 
+    def readinto(self, buffer):
+        n = self.handle.readinto(buffer)
+        self._update(n)
+        return n
+
     def close(self) -> None:
         self.handle.close()
 

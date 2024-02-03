@@ -6,6 +6,7 @@ import bz2
 import contextlib
 import functools
 import importlib
+import io
 import locale
 import lzma
 import operator
@@ -143,9 +144,12 @@ def patch_locale(name: str) -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def zopen(path: str) -> Iterator[BinaryIO]:
+def zopen(path: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
     with contextlib.ExitStack() as ctx:
-        file = ctx.enter_context(open(path, "rb"))
+        if hasattr(path, "read"):
+            file = io.BufferedReader(path)
+        else:
+            file = ctx.enter_context(open(path, "rb"))
         peek = file.peek()
         if peek.startswith(_GZIP_MAGIC):
             file = ctx.enter_context(gzip.open(file, mode="rb"))

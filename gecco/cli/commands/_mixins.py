@@ -56,11 +56,12 @@ class SequenceLoaderMixin(Command):
             # load sequences
             n = 0
             self.info("Loading", "sequences from genomic file", repr(self.genome), level=1)
-            with zopen(self.genome) as file:
+            with open(self.genome, "rb") as file:
                 with ProgressReader(file, self.progress, task, scale) as reader:
-                    for record in SeqIO.parse(io.TextIOWrapper(reader), format):  # type: ignore
-                        yield record
-                        n += 1
+                    with zopen(reader) as decompressed:
+                        for record in SeqIO.parse(io.TextIOWrapper(decompressed), format):  # type: ignore
+                            yield record
+                            n += 1
         except FileNotFoundError as err:
             self.error("Could not find input file:", repr(self.genome))
             raise CommandExit(err.errno) from err
@@ -86,8 +87,10 @@ class TableLoaderMixin(Command):
             task = self.progress.add_task("Loading genetable", total=total, unit=unit, precision=".1f")
             # load gene table
             self.info("Loading", "genes table from file", repr(self.genes))
-            with typing.cast(BinaryIO, ProgressReader(open(self.genes, "rb"), self.progress, task, scale)) as in_:
-                table = GeneTable.load(in_)
+            with open(self.genes, "rb") as file:
+                with ProgressReader(file, self.progress, task, scale) as reader:
+                    with zopen(reader) as decompressed:
+                        table = GeneTable.load(decompressed)
             # count genes and yield gene objects
             n_genes = len(set(table.protein_id))
             unit = "gene" if n_genes == 1 else "genes"
@@ -109,9 +112,10 @@ class TableLoaderMixin(Command):
                 task = self.progress.add_task("Loading features", total=total, unit=unit, precision=".1f")
                 # load features
                 self.info("Loading", "features table from file", repr(filename))
-                with zopen(filename) as file:
-                    with ProgressReader(file, self.progress, task, scale) as in_:
-                        features += FeatureTable.load(in_)
+                with open(filename, "rb") as file:
+                    with ProgressReader(file, self.progress, task, scale) as reader:
+                        with zopen(reader) as decompressed:
+                            features += FeatureTable.load(decompressed)
             except FileNotFoundError as err:
                 self.error("Could not find feature file:", repr(filename))
                 raise CommandExit(err.errno) from err
@@ -434,9 +438,10 @@ class ClusterLoaderMixin(Command):
             task = self.progress.add_task("Loading clusters", total=total, unit=unit, precision=".1f")
             # load clusters
             self.info("Loading", "clusters table from file", repr(self.clusters))
-            with zopen(self.clusters) as file:
-                with ProgressReader(file, self.progress, task, scale) as in_:
-                    return ClusterTable.load(in_)   # type: ignore
+            with open(self.clusters, "rb") as file:
+                with ProgressReader(file, self.progress, task, scale) as reader:
+                    with zopen(reader) as decompressed:
+                        return ClusterTable.load(in_)   # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
