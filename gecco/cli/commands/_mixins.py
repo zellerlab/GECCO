@@ -441,7 +441,7 @@ class ClusterLoaderMixin(Command):
             with open(self.clusters, "rb") as file:
                 with ProgressReader(file, self.progress, task, scale) as reader:
                     with zopen(reader) as decompressed:
-                        return ClusterTable.load(in_)   # type: ignore
+                        return ClusterTable.load(decompressed)   # type: ignore
         except FileNotFoundError as err:
             self.error("Could not find clusters file:", repr(self.clusters))
             raise CommandExit(err.errno) from err
