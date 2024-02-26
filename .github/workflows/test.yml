@@ -8,7 +8,7 @@ jobs:
 
   test_linux:
     name: Test (Linux)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment: Codecov
     env:
       OS: Linux
@@ -30,13 +30,16 @@ jobs:
         - python-version: "3.11"
           python-release: v3.11
           python-impl: CPython
+        - python-version: "3.12"
+          python-release: v3.12
+          python-impl: CPython
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
@@ -52,11 +55,11 @@ jobs:
     - name: Combine coverage reports
       run: python -m coverage combine
     - name: Upload statistics to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4
       with:
         flags: ${{ matrix.python-impl }},${{ matrix.python-release }},${{ env.OS }}
         name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
   test_osx:
@@ -84,13 +87,16 @@ jobs:
         - python-version: "3.11"
           python-release: v3.11
           python-impl: CPython
+        - python-version: "3.12"
+          python-release: v3.12
+          python-impl: CPython
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
@@ -108,9 +114,9 @@ jobs:
     - name: Combine coverage reports
       run: python -m coverage combine
     - name: Upload statistics to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4
       with:
         flags: ${{ matrix.python-impl }},${{ matrix.python-release }},${{ env.OS }}
         name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
