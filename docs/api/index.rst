@@ -21,7 +21,7 @@ Data Model
 .. autosummary::
    :nosignatures:
 
-   ProductType
+   ClusterType
    Strand
    Domain
    Protein
