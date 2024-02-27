@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.9...master
 
 
+## [v0.9.10] - 2024-02-27
+[v0.9.10]: https://github.com/zellerlab/GECCO/compare/v0.9.9...v0.9.10
+
+### Fixed
+- Progress reading display when reading from compressed files.
+- Change labeling routine to use broad overlaps when annotating genes with cluster tables ([#15](https://github.com/zellerlab/GECCO/pull/15)).
+
+### Changed
+- Bump supported `polars` dependency to `v0.20`.
+- Bump supported `statsmodels` dependency to `v0.14`.
+- Report identifier of sequences with uni-valued labels when training.
+
+
 ## [v0.9.9] - 2023-11-23
 [v0.9.9]: https://github.com/zellerlab/GECCO/compare/v0.9.8...v0.9.9
 

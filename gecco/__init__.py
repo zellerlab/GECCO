@@ -10,4 +10,4 @@ See Also:
 
 __author__ = "Martin Larralde"
 __license__ = "GPLv3"
-__version__ = "0.9.9"
+__version__ = "0.9.10"
