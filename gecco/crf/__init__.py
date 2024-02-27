@@ -355,6 +355,11 @@ class ClusterCRF(object):
             # extract features and labels
             feats: List[Dict[str, bool]] = extract_features(sequence)
             labels: List[str] = extract_labels(sequence)
+            if all(label == "0" for label in labels):
+                raise ValueError(f"only negative labels found in sequence {sequence[0].source.id!r}")
+            elif all(label == "1" for label in labels):
+                raise ValueError(f"only positive labels found in sequence {sequence[0].source.id!r}")
+
             # check we have as many observations as we have labels
             if len(feats) != len(labels):
                 raise ValueError("different number of features and labels found, something is wrong")
@@ -365,12 +370,6 @@ class ClusterCRF(object):
             for win in sliding_window(len(feats), self.window_size, self.window_step):
                 training_features.append(feats[win])
                 training_labels.append(labels[win])
-
-        # check labels
-        if all(label == "1" for y in training_labels for label in y):
-            raise ValueError("only positives labels found, something is wrong.")
-        elif all(label == "0" for y in training_labels for label in y):
-            raise ValueError("only negative labels found, something is wrong.")
 
         # fit the model
         self.model = model = sklearn_crfsuite.CRF(**self._options)
