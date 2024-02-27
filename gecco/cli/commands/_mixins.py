@@ -460,7 +460,7 @@ class ClusterLoaderMixin(Command):
         for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
                 if any(
-                    cluster_start <= gene.start and gene.end <= cluster_end
+                    cluster_start <= gene.end and gene.start <= cluster_end
                     for (cluster_start, cluster_end) in cluster_by_seq[seq_id]
                 ):
                     gene = gene.with_probability(1)
@@ -496,7 +496,7 @@ class ClusterLoaderMixin(Command):
         for seq_id, seq_genes in itertools.groupby(genes, key=operator.attrgetter("source.id")):
             for gene in seq_genes:
                 for cluster_start, cluster_end, cluster_id in cluster_by_seq[seq_id]:
-                    if cluster_start <= gene.start and gene.end <= cluster_end:
+                    if cluster_start <= gene.end and gene.start <= cluster_end:
                         genes_by_cluster[cluster_id].append(gene)
 
         return [
