@@ -3,3 +3,4 @@ sphinx ~=7.0
 sphinx-bootstrap-theme ~=0.7
 recommonmark ~=0.6
 pygments-style-monokailight ~=0.4
+sphinxcontrib-jquery ~=4.1
