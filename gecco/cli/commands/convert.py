@@ -92,10 +92,6 @@ class Convert(Command):  # noqa: D101
         from Bio.SeqFeature import SeqFeature, FeatureLocation
         from ...model import ClusterTable
 
-        # locate original folder
-        if not os.path.exists(self.input_dir):
-            self.error("Could not find input folder:", repr(self.input_dir))
-            raise CommandExit(errno.ENOENT)
         # collect `*.clusters.tsv` files
         cluster_files = glob.glob(os.path.join(self.input_dir, "*.clusters.tsv"))
         unit = "table" if len(cluster_files) == 1 else "tables"
@@ -262,6 +258,13 @@ class Convert(Command):  # noqa: D101
             self._check()
             ctx.enter_context(self.progress)
             ctx.enter_context(patch_showwarnings(self._showwarnings))  # type: ignore
+            # check the input is a folder
+            if not os.path.exists(self.input_dir):
+                self.error("Could not find input folder:", repr(self.input_dir))
+                raise CommandExit(errno.ENOENT)
+            elif not os.path.isdir(self.input_dir):
+                self.error("Input is not a folder:", repr(self.input_dir))
+                raise CommandExit(errno.ENOTDIR)
             # run the appropriate method
             if self.args["gbk"]:
                 if self.args["--format"] == "bigslice":
