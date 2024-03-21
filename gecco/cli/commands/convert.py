@@ -133,7 +133,7 @@ class Convert(Command):  # noqa: D101
             record.features.append(subregion_feature)
             # rename the {id}_cluster_{N}.gbk file to {id}.region{N}.gbk
             gbk_name = os.path.basename(gbk_file)
-            contig_id, cluster_n = re.search("^(.*)_cluster_(\d+).gbk", gbk_file).groups()  # type: ignore
+            contig_id, cluster_n = re.search("^(.*)_cluster_(\d+).gbk", gbk_name).groups()  # type: ignore
             new_name = os.path.join(self.input_dir, "{}.region{:03}.gbk".format(contig_id, int(cluster_n)))
             self.info(f"Rewriting {gbk_file!r} to {new_name!r}")
             Bio.SeqIO.write(record, new_name, "genbank")
