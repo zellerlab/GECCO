@@ -36,7 +36,6 @@ from typing import (
 )
 
 import numpy
-import tqdm
 import sklearn_crfsuite
 import sklearn.model_selection
 import sklearn.preprocessing
