@@ -15,9 +15,6 @@ jobs:
     strategy:
       matrix:
         include:
-        - python-version: "3.7"
-          python-release: v3.7
-          python-impl: CPython
         - python-version: "3.8"
           python-release: v3.8
           python-impl: CPython
@@ -33,6 +30,9 @@ jobs:
         - python-version: "3.12"
           python-release: v3.12
           python-impl: CPython
+        - python-version: "3.13"
+          python-release: v3.13
+          python-impl: CPython
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -43,11 +43,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
-      run: python -m pip install -U pip coverage wheel numpy setuptools
-    - name: List project dependencies
-      run: python .github/workflows/list_requirements.py -i setup.cfg -o requirements.txt
-    - name: Install project dependencies
-      run: python -m pip install -r requirements.txt --prefer-binary
+      run: python -m pip install -U -r .github/workflows/requirements.txt --prefer-binary
     - name: Build required data files
       run: python setup.py egg_info build_data --inplace
     - name: Test with coverage
@@ -72,9 +68,6 @@ jobs:
     strategy:
       matrix:
         include:
-        - python-version: "3.7"
-          python-release: v3.7
-          python-impl: CPython
         - python-version: "3.8"
           python-release: v3.8
           python-impl: CPython
@@ -90,6 +83,9 @@ jobs:
         - python-version: "3.12"
           python-release: v3.12
           python-impl: CPython
+        - python-version: "3.13"
+          python-release: v3.13
+          python-impl: CPython
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -100,13 +96,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update CI dependencies
-      run: python -m pip install -U pip coverage wheel setuptools
-    - name: Install numpy
-      run: python -m pip install numpy --prefer-binary
-    - name: List project dependencies
-      run: python .github/workflows/list_requirements.py -i setup.cfg -o requirements.txt
-    - name: Install project dependencies
-      run: python -m pip install -r requirements.txt --prefer-binary
+      run: python -m pip install -U -r .github/workflows/requirements.txt --prefer-binary
     - name: Build required data files
       run: python setup.py egg_info build_data --inplace
     - name: Test with coverage
