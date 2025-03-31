@@ -18,5 +18,4 @@ scikit-learn ~=1.0
 scipy ~=1.4
 sklearn-crfsuite ~=0.3.6
 
-fisher ~=0.1.10
 statsmodels >=0.13,<0.15

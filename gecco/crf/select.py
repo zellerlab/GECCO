@@ -11,7 +11,7 @@ from ..model import Domain, Protein
 from .._meta import requires
 
 if typing.TYPE_CHECKING:
-    import fisher
+    import scipy.stats
     from statsmodels.stats import multitest
 
 _CORRECTION_METHODS = {
@@ -54,7 +54,7 @@ def significance_correction(
     return dict(zip(features, corrected))
 
 
-@requires("fisher")
+@requires("scipy.stats")
 def fisher_significance(
     proteins: Iterable[Protein],
     correction_method: Optional[str] = "fdr_bh",
@@ -121,7 +121,7 @@ def fisher_significance(
         ...     Protein("prot7", _, [Domain("C", _, _, _, _, _, probability=0)]),
         ... ]
         >>> sorted((k,float(v)) for k,v in fisher_significance(data).items())
-        [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]
+        [('A', 0.071...), ('B', 1.0...), ('C', 0.071...)]
 
         Since *A* and *C* only appear in gene cluster and non gene cluster 
         proteins respectively, the p-value for a two-tailed Fisher Exact Test 
@@ -133,7 +133,7 @@ def fisher_significance(
         instead of a correction method:
 
         >>> sorted((k,float(v)) for k,v in fisher_significance(data, correction_method=None).items())
-        [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
+        [('A', 0.047...), ('B', 1.0...), ('C', 0.047...)]
 
     """
     # set of all proteins, +proteins grouped by features
@@ -152,13 +152,13 @@ def fisher_significance(
     # make the contigency table for each feature
     significance = {}
     for feature in set(features_[False]).union(features_[True]):
-        pvalue = fisher.pvalue(
-            len(features_[True][feature]),  # with feature, in cluster
-            len(proteins_[True]) - len(features_[True][feature]),  # without feature, in cluster
-            len(features_[False][feature]),  # with feature, not in cluster
-            len(proteins_[False]) - len(features_[False][feature]),  # without feature, not in cluster
-        )
-        significance[feature] = pvalue.two_tail
+        pvalue = stats.fisher_exact([
+            [len(features_[True][feature]),  # with feature, in cluster
+            len(proteins_[True]) - len(features_[True][feature])],  # without feature, in cluster
+            [len(features_[False][feature]),  # with feature, not in cluster
+            len(proteins_[False]) - len(features_[False][feature])],  # without feature, not in cluster
+        ], alternative='two-sided')
+        significance[feature] = pvalue.pvalue #two_tail
 
     # perform multiple test correction if needed
     if correction_method is not None:

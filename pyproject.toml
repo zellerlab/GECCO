@@ -54,7 +54,6 @@ dependencies = [
 
 [project.optional-dependencies]
 train = [
-    "fisher ~=0.1.10",
     "statsmodels >=0.13,<0.15",
 ]
 
