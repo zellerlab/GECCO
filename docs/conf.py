@@ -6,7 +6,6 @@
 
 # -- Imports -----------------------------------------------------------------
 
-import configparser
 import datetime
 import os
 import re
@@ -50,13 +49,14 @@ version = "v{v.major}.{v.minor}.{v.patch}".format(v=semver)
 release = str(semver)
 
 # Project URLs
-_parser = configparser.ConfigParser()
-_parser.read(os.path.join(project_dir, "setup.cfg"))
-project_urls = dict(
-    map(str.strip, line.split(" = ", 1))
-    for line in _parser.get("metadata", "project_urls", fallback="").splitlines()
-    if line.strip()
-)
+project_urls = {
+    "Repository": "https://github.com/zellerlab/GECCO",
+    "Bug Tracker": "https://github.com/zellerlab/GECCO/issues",
+    "Changelog": "https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md",
+    "Coverage": "https://codecov.io/gh/zellerlab/GECCO/",
+    "Builds": "https://git.embl.de/grp-zeller/GECCO/-/pipelines",
+    "Preprint": "https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1",
+}
 
 # -- General configuration ---------------------------------------------------
 

@@ -43,23 +43,6 @@ except ImportError as err:
     pronto = err
 
 
-class sdist(_sdist):
-    """An extension to the `sdist` command that generates a `pyproject.toml`.
-    """
-
-    def run(self):
-        # build `pyproject.toml` from `setup.cfg`
-        c = configparser.ConfigParser()
-        c.add_section("build-system")
-        c.set("build-system", "requires", str(self.distribution.setup_requires))
-        c.set("build-system", "build-backend", '"setuptools.build_meta"')
-        with open("pyproject.toml", "w") as pyproject:
-            c.write(pyproject)
-
-        # run the rest of the packaging
-        _sdist.run(self)
-
-
 class list_requirements(setuptools.Command):
     """A custom command to write the project requirements.
     """
@@ -452,7 +435,6 @@ if __name__ == "__main__":
             "build_data": build_data,
             "clean": clean,
             "list_requirements": list_requirements,
-            "sdist": sdist,
             "update_model": update_model,
             "update_interpro": update_interpro,
         },
