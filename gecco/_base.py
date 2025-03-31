@@ -124,7 +124,7 @@ class Table(Dumpable, Loadable):
         if _POLARS_VERSION < (0, 16, 14):
             data = polars.read_csv(fh, sep="\t", dtypes=dtypes)
         else:
-            data = polars.read_csv(fh, separator="\t", dtypes=dtypes)
+            data = polars.read_csv(fh, separator="\t", schema_overrides=dtypes)
         for column_name in data.columns:
             if data[column_name].dtype in (polars.Float32, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_null(math.nan))
