@@ -30,7 +30,7 @@ from setuptools.command.sdist import sdist as _sdist
 try:
     import rich.progress
 except ImportError as err:
-    rich = None
+    rich = err
 
 try:
     from pyhmmer.plan7 import HMMFile
