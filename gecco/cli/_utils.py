@@ -122,7 +122,7 @@ def numpy_error_context(
     Example:
         >>> import numpy
         >>> with numpy_error_context(numpy, divide="ignore"):
-        ...     numpy.log10(0)
+        ...     float(numpy.log10(0))
         -inf
         >>> with numpy_error_context(numpy, divide="raise"):
         ...     numpy.log10(0)

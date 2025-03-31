@@ -44,7 +44,7 @@ def significance_correction(
 
     Example:
         >>> s = {"A": 0.6, "B": 0.05, "C": 1, "D": 0}
-        >>> sorted(significance_correction(s, method="fdr_bh").items())
+        >>> sorted((k, float(v)) for k,v in significance_correction(s, method="fdr_bh").items())
         [('A', 0.7999999999999999), ('B', 0.1), ('C', 1.0), ('D', 0.0)]
 
     """
@@ -120,7 +120,7 @@ def fisher_significance(
         ...     ]),
         ...     Protein("prot7", _, [Domain("C", _, _, _, _, _, probability=0)]),
         ... ]
-        >>> sorted(fisher_significance(data).items())
+        >>> sorted((k,float(v)) for k,v in fisher_significance(data).items())
         [('A', 0.071...), ('B', 0.999...), ('C', 0.071...)]
 
         Since *A* and *C* only appear in gene cluster and non gene cluster 
@@ -132,7 +132,7 @@ def fisher_significance(
         It's also possible to get the uncorrected values by giving `None`
         instead of a correction method:
 
-        >>> sorted(fisher_significance(data, correction_method=None).items())
+        >>> sorted((k,float(v)) for k,v in fisher_significance(data, correction_method=None).items())
         [('A', 0.047...), ('B', 0.999...), ('C', 0.047...)]
 
     """
