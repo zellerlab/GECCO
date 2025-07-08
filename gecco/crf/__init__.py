@@ -11,6 +11,7 @@ import math
 import numbers
 import operator
 import os
+import pathlib
 import pickle
 import random
 import textwrap
@@ -48,8 +49,10 @@ from .select import fisher_significance
 
 try:
     from importlib.resources import files
+    from importlib.resources.abc import Traversable
 except ImportError:
     from importlib_resources import files  # type: ignore
+    from importlib_resources.abc import Traversable
 
 __all__ = ["ClusterCRF"]
 
@@ -61,7 +64,7 @@ class ClusterCRF(object):
     _FILENAME = "model.pkl"
 
     @classmethod
-    def trained(cls, model_path: Optional[str] = None) -> "ClusterCRF":
+    def trained(cls, model_path: Union[Traversable, str, None] = None) -> "ClusterCRF":
         """Create a new pre-trained `ClusterCRF` instance from a model path.
 
         Arguments:
@@ -79,8 +82,11 @@ class ClusterCRF(object):
         """
         # get the path to the pickled model and read its signature file
         if model_path is not None:
-            pkl_file: ContextManager[BinaryIO] = open(os.path.join(model_path, cls._FILENAME), "rb")
-            md5_file: ContextManager[TextIO] = open(os.path.join(model_path, f"{cls._FILENAME}.md5"))
+            # transform string paths to pathlib.Path if needed
+            if not isinstance(model_path, Traversable):
+                model_path = pathlib.Path(model_path)
+            pkl_file: ContextManager[BinaryIO] = model_path.joinpath(cls._FILENAME).open("rb")
+            md5_file: ContextManager[TextIO] = model_path.joinpath(f"{cls._FILENAME}.md5").open()
         else:
             pkl_file = files(__name__).joinpath(cls._FILENAME).open("rb")
             md5_file = files(__name__).joinpath(f"{cls._FILENAME}.md5").open()
