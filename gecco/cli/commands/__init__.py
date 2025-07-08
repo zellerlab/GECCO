@@ -43,46 +43,7 @@ def configure_parser(
     program: str,
     version: str,
 ) -> argparse.ArgumentParser:
-    parser.add_argument(
-        "-h",
-        "--help",
-        action=ConsoleHelpAction,
-        help="Show this help message and exit.",
-        console=console,
-    )
-    parser.add_argument(
-        "-V",
-        "--version",
-        action="version",
-        version=f"{program} {version}",
-        help="Show the program version number and exit.",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        help="Increase the console output",
-        default=0,
-    )
-    parser.add_argument(
-        "-q",
-        "--quiet",
-        action="count",
-        help="Reduce or disable the console output",
-        default=0,
-    )
-    parser.add_argument(
-        "--no-color",
-        dest="color",
-        action="store_false",
-        help="Disable the console color",
-    )
-    parser.add_argument(
-        "--no-markup",
-        dest="markup",
-        action="store_false",
-        help="Disable the console markup",
-    )
+    _parser.configure_common(parser, console, program, version)
 
     commands = parser.add_subparsers(required=True, metavar="COMMAND")
     annotate.configure_parser(
@@ -93,6 +54,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
     run.configure_parser(
         commands.add_parser(
@@ -102,6 +65,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
     predict.configure_parser(
         commands.add_parser(
@@ -111,6 +76,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
     train.configure_parser(
         commands.add_parser(
@@ -120,6 +87,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
     cv.configure_parser(
         commands.add_parser(
@@ -129,6 +98,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
     convert.configure_parser(
         commands.add_parser(
@@ -138,6 +109,8 @@ def configure_parser(
             add_help=False,
         ),
         console,
+        program,
+        version,
     )
 
     return parser

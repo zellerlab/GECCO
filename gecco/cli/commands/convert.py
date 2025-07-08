@@ -18,14 +18,13 @@ from .._log import ConsoleLogger
 from . import _parser
 
 
-def configure_parser(parser: argparse.ArgumentParser, console: Console):
-    parser.add_argument(
-        "-h",
-        "--help",
-        action=_parser.ConsoleHelpAction,
-        help="Show this help message and exit.",
-        console=console,
-    )
+def configure_parser(
+    parser: argparse.ArgumentParser, 
+    console: Console,
+    program: str,
+    version: str
+):
+    _parser.configure_common(parser, console, program, version)
 
     commands = parser.add_subparsers(required=True, metavar="INPUT")
 

@@ -1,6 +1,8 @@
 import argparse
 import pathlib
 
+from rich.console import Console
+
 
 class HelpExit(SystemExit):
     pass
@@ -33,6 +35,64 @@ class ConsoleHelpAction(argparse.Action):
         else:
             self.console.print(parser.format_help())
         raise HelpExit(0)
+
+
+def configure_common(
+    parser: argparse.ArgumentParser,
+    console: Console,
+    program: str,
+    version: str,
+) -> None:
+    parser.add_argument(
+        "-h",
+        "--help",
+        action=ConsoleHelpAction,
+        help="Show this help message and exit.",
+        console=console,
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"{program} {version}",
+        help="Show the program version number and exit.",
+    )
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=0,
+        help=(
+            "The number of jobs to use for multithreading. Use 0 to use all "
+            "available CPUs."
+        ),
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        help="Increase the console output",
+        default=0,
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="count",
+        help="Reduce or disable the console output",
+        default=0,
+    )
+    parser.add_argument(
+        "--no-color",
+        dest="color",
+        action="store_false",
+        help="Disable the console color",
+    )
+    parser.add_argument(
+        "--no-markup",
+        dest="markup",
+        action="store_false",
+        help="Disable the console markup",
+    )
 
 
 def configure_group_gene_calling(
@@ -118,6 +178,31 @@ def configure_group_domain_annotation(
         #     "Disentangle overlapping domains in each gene by keeping only "
         #     "the domains with the lowest E-value over a given position."
         # ),
+    )
+    return group
+
+
+def configure_group_domain_filter(
+    parser: argparse.ArgumentParser,
+) -> "argparse.ArgumentGroup":
+    group = parser.add_argument_group("Domain Annotation")
+    group.add_argument(
+        "-e",
+        "--e-filter",
+        type=float,
+        default=None,
+        help=(
+            "The e-value cutoff for protein domains to be included. This is "
+            "not stable across versions, so consider using a p-value filter "
+            "instead."
+        ),
+    )
+    group.add_argument(
+        "-p",
+        "--p-filter",
+        type=float,
+        default=1e-9,
+        help=("The p-value cutoff for protein domains to be included."),
     )
     return group
 
@@ -293,6 +378,7 @@ def configure_group_training_parameters(
 
 def configure_group_input_tables(
     parser: argparse.ArgumentParser,
+    clusters: bool = True,
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Input Tables",
@@ -315,14 +401,43 @@ def configure_group_input_tables(
             "inside the training sequence."
         ),
     )
+    if clusters:
+        group.add_argument(
+            "-c",
+            "--clusters",
+            type=pathlib.Path,
+            required=True,
+            help=(
+                "The path to a cluster annotation table, used to extract the "
+                "domain composition for the type classifier."
+            ),
+        )
+    return group
+
+
+def configure_group_input_sequences(
+    parser: argparse.ArgumentParser,
+    short: bool = True,
+) -> "argparse.ArgumentGroup":
+    group = parser.add_argument_group(
+        "Input Sequences",
+    )
     group.add_argument(
-        "-c",
-        "--clusters",
-        type=pathlib.Path,
+        *["-g"][not short:],
+        "--genome",
         required=True,
         help=(
-            "The path to a cluster annotation table, used to extract the "
-            "domain composition for the type classifier."
+            "A genomic file containing one or more sequences to use as input. "
+            "Must be in one of the sequence formats supported by Biopython"
+        ),
+    )
+    group.add_argument(
+        *["-f"][not short:],
+        "--format",
+        help=(
+            "The format of the input file, as a Biopython format string. "
+            "FASTA, EMBL and GenBank files are recognized automatically "
+            "if this is not given."
         ),
     )
     return group

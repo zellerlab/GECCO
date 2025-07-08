@@ -13,53 +13,18 @@ from . import _parser, _common
 from .._log import ConsoleLogger
 
 
-def configure_parser(parser: argparse.ArgumentParser, console: Console):
-    parser.add_argument(
-        "-h",
-        "--help",
-        action=_parser.ConsoleHelpAction,
-        help="Show this help message and exit.",
-        console=console,
-    )
+def configure_parser(
+    parser: argparse.ArgumentParser, 
+    console: Console,
+    program: str,
+    version: str
+):
+    _parser.configure_common(parser, console, program, version)
 
-    params_arguments = _parser.configure_group_input_tables(parser)
-
-    params_parameters = parser.add_argument_group(
-        "Parameters",
-    )
-    params_parameters.add_argument(
-        "-j",
-        "--jobs",
-        type=int,
-        default=0,
-        help=(
-            "The number of jobs to use for multithreading. Use 0 to use all "
-            "available CPUs."
-        ),
-    )
-
-    group = parser.add_argument_group("Domain Annotation")
-    group.add_argument(
-        "-e",
-        "--e-filter",
-        type=float,
-        default=None,
-        help=(
-            "The e-value cutoff for protein domains to be included. This is "
-            "not stable across versions, so consider using a p-value filter "
-            "instead."
-        ),
-    )
-    group.add_argument(
-        "-p",
-        "--p-filter",
-        type=float,
-        default=1e-9,
-        help=("The p-value cutoff for protein domains to be included."),
-    )
-
-    group = _parser.configure_group_training_data(parser)
-    group = _parser.configure_group_training_parameters(parser)
+    _parser.configure_group_input_tables(parser)  
+    _parser.configure_group_domain_filter(parser)
+    _parser.configure_group_training_data(parser)
+    _parser.configure_group_training_parameters(parser)
 
     group = parser.add_argument_group(
         "Output",

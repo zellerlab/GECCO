@@ -13,54 +13,18 @@ from .._log import ConsoleLogger
 from . import _parser, _common
 
 
-def configure_parser(parser: argparse.ArgumentParser, console: Console):
-    parser.add_argument(
-        "-h",
-        "--help",
-        action=_parser.ConsoleHelpAction,
-        help="Show this help message and exit.",
-        console=console,
-    )
+def configure_parser(
+    parser: argparse.ArgumentParser, 
+    console: Console,
+    program: str,
+    version: str,
+):
+    _parser.configure_common(parser, console, program, version)
 
-    params_arguments = parser.add_argument_group(
-        "Arguments",
-    )
-    params_arguments.add_argument(
-        "-g",
-        "--genome",
-        required=True,
-        help=(
-            "A genomic file containing one or more sequences to use as input. "
-            "Must be in one of the sequence formats supported by Biopython"
-        ),
-    )
-
-    params_parameters = parser.add_argument_group(
-        "Parameters",
-    )
-    params_parameters.add_argument(
-        "-f",
-        "--format",
-        help=(
-            "The format of the input file, as a Biopython format string. "
-            "GECCO is able to recognize FASTA and GenBank files automatically "
-            "if this is not given."
-        ),
-    )
-    params_parameters.add_argument(
-        "-j",
-        "--jobs",
-        type=int,
-        default=0,
-        help=(
-            "The number of jobs to use for multithreading. Use 0 to use all "
-            "available CPUs."
-        ),
-    )
-
-    params_gene_calling = _parser.configure_group_gene_calling(parser)
-    params_domain_annotation = _parser.configure_group_domain_annotation(parser)
-    params_cluster_detection = _parser.configure_group_cluster_detection(parser)
+    _parser.configure_group_input_sequences(parser)
+    _parser.configure_group_gene_calling(parser)
+    _parser.configure_group_domain_annotation(parser)
+    _parser.configure_group_cluster_detection(parser)
 
     params_output = _parser.configure_group_table_output(parser)
     params_output.add_argument(
