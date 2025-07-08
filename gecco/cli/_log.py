@@ -108,6 +108,7 @@ class FullConsoleLogger(ConsoleLogger):
             transient=True,
         )
 
+
 class ConciseConsoleLogger(ConsoleLogger):
 
     def error(self, message: str, *args: Any, level: int = 0) -> None:

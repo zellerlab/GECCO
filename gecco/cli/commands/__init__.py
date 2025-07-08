@@ -215,6 +215,12 @@ def main(
                 classifier_type=classifier_type,
                 default_hmms=default_hmms,
             )
+        except KeyboardInterrupt:
+            logger.error("Interrupted")
+            return -signal.SIGINT
+        except OSError as e:
+            logger.error(f"{e.strerror}: {e.filename!r}")
+            return e.errno
         except Exception as err:
             console.print_exception()
             return getattr(err, "code", 1)
