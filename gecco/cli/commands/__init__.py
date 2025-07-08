@@ -21,7 +21,7 @@ except ImportError:
 
 from ... import __version__, __package__ as _program
 from .._utils import patch_showwarnings
-from .._log import _showwarnings, ConsoleLogger
+from .._log import showwarnings, make_logger, ConsoleLogger
 from ._common import default_hmms
 from ._parser import ConsoleHelpAction
 from . import annotate, run, predict, train, cv, convert
@@ -197,17 +197,21 @@ def main(
             safe_box=not args.markup,
         )
 
+    logger = make_logger(
+        console,
+        quiet=args.quiet,
+        verbose=args.verbose,
+        program=program,
+    )
+
     with patch_showwarnings(
         functools.partial(
-            _showwarnings, console, verbose=args.verbose, quiet=args.quiet
+            showwarnings, 
+            logger, 
+            verbose=args.verbose, 
+            quiet=args.quiet
         )
     ):
-        logger = ConsoleLogger(
-            console,
-            quiet=args.quiet,
-            verbose=args.verbose,
-            program=program,
-        )
         try:
             return args.run(
                 args,
