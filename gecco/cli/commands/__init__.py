@@ -25,6 +25,8 @@ from . import annotate, run, predict, train, cv, convert
 
 def configure_parser(
     parser: argparse.ArgumentParser,
+    program: str,
+    version: str,
 ) -> argparse.ArgumentParser:
     parser.add_argument(
         "-h",
@@ -36,7 +38,7 @@ def configure_parser(
         "-V",
         "--version",
         action="version",
-        version=f"{_module} {__version__}",
+        version=f"{program} {version}",
         help="Show the program version number and exit.",
     )
     parser.add_argument(
@@ -70,7 +72,7 @@ def configure_parser(
     annotate.configure_parser(
         commands.add_parser(
             "annotate",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Annotate protein features of one or several contigs.",
             add_help=False,
         )
@@ -78,7 +80,7 @@ def configure_parser(
     run.configure_parser(
         commands.add_parser(
             "run",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Predict gene clusters from one or several contigs.",
             add_help=False,
         )
@@ -86,7 +88,7 @@ def configure_parser(
     predict.configure_parser(
         commands.add_parser(
             "predict",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Predict gene clusters on contigs that have been annotated.",
             add_help=False,
         )
@@ -94,7 +96,7 @@ def configure_parser(
     train.configure_parser(
         commands.add_parser(
             "train",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Train a new CRF model on pre-generated tables.",
             add_help=False,
         )
@@ -102,7 +104,7 @@ def configure_parser(
     cv.configure_parser(
         commands.add_parser(
             "cv",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Train and evaluate a model using cross-validation.",
             add_help=False,
         )
@@ -110,7 +112,7 @@ def configure_parser(
     convert.configure_parser(
         commands.add_parser(
             "convert",
-            formatter_class=ArgumentDefaultsRichHelpFormatter,
+            formatter_class=DefaultFormatter,
             help="Convert output files to a different format.",
             add_help=False,
         )

@@ -8,6 +8,11 @@ import re
 import rich.progress
 from rich.console import Console
 
+try:
+    from rich_argparse import ArgumentDefaultsRichHelpFormatter as DefaultFormatter
+except ImportError:
+    from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
+
 from .._log import ConsoleLogger
 
 
@@ -18,7 +23,11 @@ def configure_parser(parser: argparse.ArgumentParser):
 
     commands = parser.add_subparsers(required=True, metavar="INPUT")
 
-    gbk_parser = commands.add_parser("gbk")
+    gbk_parser = commands.add_parser(
+        "gbk",
+        formatter_class=DefaultFormatter,
+        help="Convert the GenBank records to a different format."
+    )
     gbk_parser.set_defaults(input="gbk")
     gbk_parser.add_argument(
         "-i",
@@ -35,7 +44,11 @@ def configure_parser(parser: argparse.ArgumentParser):
         help=("The output format to write."),
     )
 
-    clusters_parser = commands.add_parser("clusters")
+    clusters_parser = commands.add_parser(
+        "clusters",
+        formatter_class=DefaultFormatter,
+        help="Convert the clusters table to a different format."
+    )
     clusters_parser.set_defaults(input="clusters")
     clusters_parser.add_argument(
         "-i",
