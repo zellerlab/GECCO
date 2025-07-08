@@ -656,7 +656,7 @@ def predict_types(
     logger.info("Predicting", "gene cluster types", level=1)
     with logger.progress() as progress:
         unit = "cluster" if len(clusters) == 1 else "clusters"
-        task = progress.add_task("Predicting types", total=len(clusters))
+        task = progress.add_task("Predicting types", unit=unit, total=len(clusters))
         clusters_new = []
         for cluster in progress.track(clusters, task_id=task):
             clusters_new.extend(classifier.predict_types([cluster]))
