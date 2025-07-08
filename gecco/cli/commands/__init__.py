@@ -7,7 +7,11 @@ import typing
 from typing import Optional, List, TextIO, Type, Callable, Iterable
 
 from rich.console import Console
-from rich_argparse import ArgumentDefaultsRichHelpFormatter  # as DefaultFormatter
+
+try:
+    from rich_argparse import ArgumentDefaultsRichHelpFormatter
+except ImportError:
+    ArgumentDefaultsRichHelpFormatter = None
 
 try:
     import argcomplete
@@ -24,6 +28,13 @@ from . import annotate, run, predict, train, cv, convert
 if typing.TYPE_CHECKING:
     from ...hmmer import HMM
     from ...crf import ClusterCRF
+
+
+def _formatter_class(console):
+    if ArgumentDefaultsRichHelpFormatter is None:
+        return argparse.ArgumentDefaultsHelpFormatter
+    else:
+        return functools.partial(ArgumentDefaultsRichHelpFormatter, console=console)
 
 
 def configure_parser(
@@ -77,9 +88,7 @@ def configure_parser(
     annotate.configure_parser(
         commands.add_parser(
             "annotate",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Annotate protein features of one or several contigs.",
             add_help=False,
         ),
@@ -88,9 +97,7 @@ def configure_parser(
     run.configure_parser(
         commands.add_parser(
             "run",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Predict gene clusters from one or several contigs.",
             add_help=False,
         ),
@@ -99,9 +106,7 @@ def configure_parser(
     predict.configure_parser(
         commands.add_parser(
             "predict",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Predict gene clusters on contigs that have been annotated.",
             add_help=False,
         ),
@@ -110,9 +115,7 @@ def configure_parser(
     train.configure_parser(
         commands.add_parser(
             "train",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Train a new CRF model on pre-generated tables.",
             add_help=False,
         ),
@@ -121,9 +124,7 @@ def configure_parser(
     cv.configure_parser(
         commands.add_parser(
             "cv",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Train and evaluate a model using cross-validation.",
             add_help=False,
         ),
@@ -132,9 +133,7 @@ def configure_parser(
     convert.configure_parser(
         commands.add_parser(
             "convert",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             help="Convert output files to a different format.",
             add_help=False,
         ),
@@ -157,9 +156,7 @@ def main(
     parser = configure_parser(
         argparse.ArgumentParser(
             prog=program,
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
-                prog, console=console
-            ),
+            formatter_class=_formatter_class(console),
             add_help=False,
         ),
         console,
