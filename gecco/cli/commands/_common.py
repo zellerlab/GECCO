@@ -657,14 +657,13 @@ def load_type_classifier(
     logger: ConsoleLogger,
     *,
     model: Optional[pathlib.Path],
+    classifier_type: Type["TypeClassifier"],
 ) -> "TypeClassifier":
-    from ...types import TypeClassifier
-
     if model is None:
         logger.info("Loading", "type classifier from embedded model", level=2)
     else:
         logger.info("Loading", "type classifier from", repr(str(model)), level=2)
-    return TypeClassifier.trained(model)
+    return classifier_type.trained(model)
 
 
 def predict_types(

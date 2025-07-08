@@ -135,11 +135,14 @@ def main(
     version: str = __version__,
     default_hmms: Callable[[], Iterable["HMM"]] = default_hmms,
     crf_type: Optional[Type["ClusterCRF"]] = None,
+    classifier_type: Optional[Type["TypeClassifier"]] = None,
 ) -> int:
     if crf_type is None:
         from ...crf import ClusterCRF
+        from ...types import TypeClassifier
 
         crf_type = ClusterCRF
+        classifier_type = TypeClassifier
 
     parser = configure_parser(
         argparse.ArgumentParser(
@@ -168,7 +171,13 @@ def main(
         )
     ):
         try:
-            return args.run(args, console, crf_type, default_hmms)
+            return args.run(
+                args,
+                console,
+                crf_type=crf_type,
+                classifier_type=classifier_type,
+                default_hmms=default_hmms,
+            )
         except Exception as err:
             console.print_exception()
             return getattr(err, "code", 1)

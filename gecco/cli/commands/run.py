@@ -83,6 +83,7 @@ def run(
     args: argparse.Namespace,
     console: Console,
     crf_type: Type["ClusterCRF"],
+    classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
@@ -199,7 +200,12 @@ def run(
         return 0
 
     # predict types for putative clusters
-    classifier = _common.load_type_classifier(logger, model=args.model)
+    classifier = _common.load_type_classifier(
+        logger,
+        model=args.model,
+        classifier_type=classifier_type,
+    )
+    print(classifier.classes_)
     if len(classifier.classes_) > 1:
         clusters = _common.predict_types(logger, clusters, classifier=classifier)
 

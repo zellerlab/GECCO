@@ -52,7 +52,7 @@ try:
     from importlib.resources.abc import Traversable
 except ImportError:
     from importlib_resources import files  # type: ignore
-    from importlib_resources.abc import Traversable
+    from importlib_resources.abc import Traversable  # type: ignore
 
 __all__ = ["ClusterCRF"]
 
@@ -80,16 +80,15 @@ class ClusterCRF(object):
             `ValueError`: If the model data does not match its hash.
 
         """
+        # get the model path or use the embedded files
+        if model_path is None:
+            model_path = files(__name__)
+        elif not isinstance(model_path, Traversable):
+            model_path = pathlib.Path(model_path)
+
         # get the path to the pickled model and read its signature file
-        if model_path is not None:
-            # transform string paths to pathlib.Path if needed
-            if not isinstance(model_path, Traversable):
-                model_path = pathlib.Path(model_path)
-            pkl_file: ContextManager[BinaryIO] = model_path.joinpath(cls._FILENAME).open("rb")
-            md5_file: ContextManager[TextIO] = model_path.joinpath(f"{cls._FILENAME}.md5").open()
-        else:
-            pkl_file = files(__name__).joinpath(cls._FILENAME).open("rb")
-            md5_file = files(__name__).joinpath(f"{cls._FILENAME}.md5").open()
+        pkl_file = model_path.joinpath(cls._FILENAME).open("rb")
+        md5_file = model_path.joinpath(f"{cls._FILENAME}.md5").open()
         with md5_file as sig:
             signature = sig.read().strip()
 

@@ -89,6 +89,7 @@ def run(
     args: argparse.Namespace,
     console: Console,
     crf_type: Type["ClusterCRF"],
+    classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:  # noqa: D102
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
