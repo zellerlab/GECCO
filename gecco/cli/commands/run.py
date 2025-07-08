@@ -138,7 +138,11 @@ def run(
         return 0
 
     # generate whitelist from internal feature list of model
-    whitelist = _common.load_model_domains(logger, model=args.model)
+    whitelist = _common.load_model_domains(
+        logger, 
+        model=args.model,
+        crf_type=crf_type,
+    )
 
     # annotate genes with protein domains
     genes = _common.annotate_domains(

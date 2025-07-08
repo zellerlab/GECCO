@@ -508,7 +508,7 @@ def annotate_domains(
     logger.info("Running", "HMMER domain annotation", level=1)
 
     # Run all HMMs over ORFs to annotate with protein domains
-    hmms = list(_custom_hmms(hmm_paths) if hmm_paths else default_hmms)
+    hmms = list(custom_hmms(hmm_paths) if hmm_paths else default_hmms)
     total = None if whitelist is None else len(whitelist)
 
     with rich.progress.Progress(console=logger.console) as progress:
@@ -572,23 +572,22 @@ def load_model_domains(
     logger: ConsoleLogger,
     *,
     model: Optional[pathlib.Path],
+    crf_type: Type["ClusterCRF"],
 ) -> typing.Set[str]:
-    try:
-        if model is None:
-            logger.info("Loading", "feature list from internal model", level=2)
-            domains_file = resource_files("gecco.types").joinpath("domains.tsv").open()
-        else:
-            logger.info("Loading", "feature list from", repr(str(model)), level=2)
-            domains_file = open(os.path.join(model, "domains.tsv"))
-        with domains_file as f:
-            domains = set(filter(None, map(str.strip, f)))
-    except FileNotFoundError as err:
-        if model is not None:
-            logger.error("Could not find domains list :", repr(str(model)))
-        raise CommandExit(err.errno) from err
+    if model is None:
+        logger.info("Loading", "embedded CRF pre-trained model", level=1)
     else:
-        logger.success("Found", len(domains), "selected features", level=2)
-        return domains
+        logger.info("Loading", "CRF pre-trained model from", repr(str(model)), level=1)
+    model = crf_type.trained(model)
+
+    # extract domain list from model features
+    if model.significant_features:
+        domains = model.significant_features
+    else:
+        domains = { domain for (domain, label) in crf.model.state_features_.keys() }
+
+    logger.success("Found", len(domains), "selected features", level=2)
+    return domains
 
 
 def predict_probabilities(

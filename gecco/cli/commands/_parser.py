@@ -73,13 +73,18 @@ def configure_group_domain_annotation(
         choices=("noise", "gathering", "trusted"),
         help=("Use HMM-specific bitscore cutoffs to filter domain annotations."),
     )
+    # --disentangle creates issues wrt. HMM annotation because it may lead to
+    # different domains being selected and applied to a domain depending on
+    # whether we annotate with the full HMM or domains from a whitelist only
+    # so we disable and hide it by default.
     group.add_argument(
         "--disentangle",
         action="store_true",
-        help=(
-            "Disentangle overlapping domains in each gene by keeping only "
-            "the domains with the lowest E-value over a given position."
-        ),
+        help=argparse.SUPPRESS,
+        # help=(
+        #     "Disentangle overlapping domains in each gene by keeping only "
+        #     "the domains with the lowest E-value over a given position."
+        # ),
     )
     return group
 
