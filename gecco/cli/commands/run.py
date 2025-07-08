@@ -73,7 +73,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     params_output.add_argument(
         "--antismash-sideload",
         action="store_true",
-        help=("Write an AntiSMASH v6 sideload JSON file next to the output " "files."),
+        help=("Write an AntiSMASH v6 sideload JSON file next to the output files."),
     )
 
     parser.set_defaults(run=run)
@@ -137,11 +137,17 @@ def run(
         logger.warn("No genes were found")
         return 0
 
+    # load type classifier (to access compositional data)
+    classifier = _common.load_type_classifier(
+        logger,
+        model=args.model,
+        classifier_type=classifier_type,
+    )
+
     # generate whitelist from internal feature list of model
     whitelist = _common.load_model_domains(
-        logger, 
-        model=args.model,
-        crf_type=crf_type,
+        logger,
+        classifier,
     )
 
     # annotate genes with protein domains
@@ -203,13 +209,8 @@ def run(
             )
         return 0
 
-    # predict types for putative clusters
-    classifier = _common.load_type_classifier(
-        logger,
-        model=args.model,
-        classifier_type=classifier_type,
-    )
-    print(classifier.classes_)
+    # predict types for putative clusters if the type classifier has more
+    # than one class to predict from
     if len(classifier.classes_) > 1:
         clusters = _common.predict_types(logger, clusters, classifier=classifier)
 

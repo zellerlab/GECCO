@@ -570,22 +570,9 @@ def annotate_domains(
 
 def load_model_domains(
     logger: ConsoleLogger,
-    *,
-    model: Optional[pathlib.Path],
-    crf_type: Type["ClusterCRF"],
+    classifier: "TypeClassifier",
 ) -> typing.Set[str]:
-    if model is None:
-        logger.info("Loading", "embedded CRF pre-trained model", level=1)
-    else:
-        logger.info("Loading", "CRF pre-trained model from", repr(str(model)), level=1)
-    model = crf_type.trained(model)
-
-    # extract domain list from model features
-    if model.significant_features:
-        domains = model.significant_features
-    else:
-        domains = { domain for (domain, label) in crf.model.state_features_.keys() }
-
+    domains = set(classifier.model.attributes_)
     logger.success("Found", len(domains), "selected features", level=2)
     return domains
 
