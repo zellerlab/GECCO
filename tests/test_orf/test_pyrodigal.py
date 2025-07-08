@@ -19,8 +19,10 @@ class TestPyrodigalFinder(unittest.TestCase):
         # - BGC0001737.faa obtained by running Prodigal CLI in metagenome mode
         #   on BGC0001737.fna
         folder = os.path.dirname(os.path.abspath(__file__))
-        cls.genome = Bio.SeqIO.read(os.path.join(folder, "data", "BGC0001737.fna"), "fasta")
-        cls.proteins = list(Bio.SeqIO.parse(os.path.join(folder, "data", "BGC0001737.faa"), "fasta"))
+        with open(os.path.join(folder, "data", "BGC0001737.faa")) as f:
+            cls.proteins = list(Bio.SeqIO.parse(f, "fasta"))
+        with open(os.path.join(folder, "data", "BGC0001737.fna")) as f:
+            cls.genome = Bio.SeqIO.read(f, "fasta")
 
     def test_stop_codon(self):
         """Test emitted genes always end with a '*' symbol representing the STOP codon.

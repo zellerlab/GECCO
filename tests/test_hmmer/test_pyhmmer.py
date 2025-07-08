@@ -24,10 +24,8 @@ class TestPyHMMER(unittest.TestCase):
             size=10,
             relabel_with=r"s/(PF\d+).\d+/\1/",
         )
-        cls.records = list(
-            Bio.SeqIO.parse(os.path.join(folder, "data", "proteins.faa"),
-            "fasta",
-        ))
+        with open(os.path.join(folder, "data", "proteins.faa")) as f:
+            cls.records = list(Bio.SeqIO.parse(f, "fasta"))
         cls.proteins = [
             Protein(record.id, record.seq)
             for record in cls.records
@@ -36,7 +34,6 @@ class TestPyHMMER(unittest.TestCase):
             Gene(record, 1, len(prot.seq)*3+1, Strand.Coding, prot)
             for record, prot in zip(cls.records, cls.proteins)
         ]
-
 
     def test_whitelist(self):
         # run normally, we should find 3 genes with domains
