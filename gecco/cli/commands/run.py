@@ -232,7 +232,7 @@ def run(
     if args.antismash_sideload:
         _common.write_sideload_json(clusters)
     unit = "cluster" if len(clusters) == 1 else "clusters"
-    logger.success("Found", len(clusters), "biosynthetic gene", unit, level=0)
+    logger.success("Found", len(clusters), "gene", unit, level=0)
 
     # exit successfully
     return 0
