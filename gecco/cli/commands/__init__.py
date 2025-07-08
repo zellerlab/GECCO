@@ -3,7 +3,8 @@
 import argparse
 import functools
 import signal
-from typing import Optional, List, TextIO, Type
+import typing
+from typing import Optional, List, TextIO, Type, Callable, Iterable
 
 from rich.console import Console
 
@@ -20,7 +21,12 @@ except ImportError:
 from ... import __version__, __package__ as _program
 from .._utils import patch_showwarnings
 from .._log import _showwarnings
+from ._common import default_hmms
 from . import annotate, run, predict, train, cv, convert
+
+if typing.TYPE_CHECKING:
+    from ...hmmer import HMM
+    from ...crf import ClusterCRF
 
 
 def configure_parser(
@@ -122,13 +128,18 @@ def configure_parser(
 
 
 def main(
-    argv: Optional[List[str]] = None, 
+    argv: Optional[List[str]] = None,
     console: Optional[Console] = None,
+    *,
     program: str = _program,
     version: str = __version__,
+    default_hmms: Callable[[], Iterable["HMM"]] = default_hmms,
+    crf_type: Optional[Type["ClusterCRF"]] = None,
 ) -> int:
-    if program is None:
-        program = _program
+    if crf_type is None:
+        from ...crf import ClusterCRF
+
+        crf_type = ClusterCRF
 
     parser = configure_parser(
         argparse.ArgumentParser(
@@ -157,7 +168,7 @@ def main(
         )
     ):
         try:
-            return args.run(args, console)
+            return args.run(args, console, crf_type, default_hmms)
         except Exception as err:
             console.print_exception()
             return getattr(err, "code", 1)

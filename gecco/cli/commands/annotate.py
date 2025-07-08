@@ -16,6 +16,9 @@ from typing import (
     List,
     TextIO,
     Mapping,
+    Callable,
+    Iterable,
+    Type,
 )
 
 from rich.console import Console
@@ -82,7 +85,12 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.set_defaults(run=run)
 
 
-def run(args: argparse.Namespace, console: Console) -> int:  # noqa: D102
+def run(
+    args: argparse.Namespace,
+    console: Console,
+    crf_type: Type["ClusterCRF"],
+    default_hmms: Callable[[], Iterable["HMM"]],
+) -> int:  # noqa: D102
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
 
     # attempt to create the output directory, checking it doesn't
@@ -127,6 +135,7 @@ def run(args: argparse.Namespace, console: Console) -> int:  # noqa: D102
         logger,
         genes,
         hmm_paths=args.hmms,
+        default_hmms=default_hmms(),
         disentangle=args.disentangle,
         jobs=args.jobs,
         bit_cutoffs=args.bit_cutoffs,

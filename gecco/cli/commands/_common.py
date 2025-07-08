@@ -6,7 +6,7 @@ import operator
 import pathlib
 import typing
 import random
-from typing import List, Optional, Iterator, Iterable, Collection
+from typing import List, Optional, Iterator, Iterable, Collection, Type, Callable
 
 import rich.progress
 import numpy
@@ -22,8 +22,9 @@ except ImportError:
 
 if typing.TYPE_CHECKING:
     from Bio.SeqRecord import SeqRecord
-    from ..model import Gene
-    from ..hmmer import HMM
+    from ...model import Gene
+    from ...hmmer import HMM
+    from ...crf import ClusterCRF
 
 
 # --- Output files -------------------------------------------------------------
@@ -404,6 +405,12 @@ def extract_genes(
 # --- Annotate genes -----------------------------------------------------------
 
 
+def default_hmms() -> Iterator["HMM"]:
+    from ...hmmer import embedded_hmms
+
+    return embedded_hmms()
+
+
 def custom_hmms(hmm_paths: List[pathlib.Path]) -> Iterable["HMM"]:
     from ...hmmer import HMM
 
@@ -487,7 +494,8 @@ def annotate_domains(
     logger: ConsoleLogger,
     genes: List["Gene"],
     *,
-    hmm_paths: List[str],
+    hmm_paths: List[pathlib.Path],
+    default_hmms: Iterable["HMM"],
     whitelist: Optional[Collection[str]] = None,
     disentangle: bool = False,
     jobs: int = 0,
@@ -495,12 +503,12 @@ def annotate_domains(
     e_filter: Optional[float] = None,
     p_filter: Optional[float] = None,
 ) -> List["Gene"]:
-    from ...hmmer import PyHMMER, embedded_hmms
+    from ...hmmer import PyHMMER
 
     logger.info("Running", "HMMER domain annotation", level=1)
 
     # Run all HMMs over ORFs to annotate with protein domains
-    hmms = list(_custom_hmms(hmm_paths) if hmm_paths else embedded_hmms())
+    hmms = list(_custom_hmms(hmm_paths) if hmm_paths else default_hmms)
     total = None if whitelist is None else len(whitelist)
 
     with rich.progress.Progress(console=logger.console) as progress:
@@ -589,14 +597,13 @@ def predict_probabilities(
     *,
     model: Optional[pathlib.Path],
     pad: bool,
+    crf_type: Type["ClusterCRF"],
 ) -> List["Gene"]:
-    from ...crf import ClusterCRF
-
     if model is None:
         logger.info("Loading", "embedded CRF pre-trained model", level=1)
     else:
         logger.info("Loading", "CRF pre-trained model from", repr(str(model)), level=1)
-    model = ClusterCRF.trained(model)
+    model = crf_type.trained(model)
 
     logger.info("Predicting", "cluster probabilitites with the model", level=1)
 
@@ -711,6 +718,7 @@ def fit_model(
     select: Optional[float],
     correction: Optional[str],
     jobs: int = 0,
+    crf_type: Type["ClusterCRF"],
 ) -> "ClusterCRF":
     from ...crf import ClusterCRF
 
@@ -727,7 +735,7 @@ def fit_model(
         f"over features with a sliding window (W={window_size}, step={window_step})",
         level=1,
     )
-    crf = ClusterCRF(
+    crf = crf_type(
         feature_type,
         algorithm="lbfgs",
         window_size=window_size,

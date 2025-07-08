@@ -5,7 +5,7 @@ import itertools
 import os
 import operator
 import pathlib
-from typing import List, Optional
+from typing import List, Optional, Type, Callable, Iterable
 
 from rich.console import Console
 
@@ -182,7 +182,12 @@ def _save_domain_compositions(
     scipy.sparse.save_npz(comp_out, scipy.sparse.coo_matrix(comp))
 
 
-def run(args: argparse.Namespace, console: Console) -> int:
+def run(
+    args: argparse.Namespace,
+    console: Console,
+    crf_type: Type["ClusterCRF"],
+    default_hmms: Callable[[], Iterable["HMM"]],
+) -> int:
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
 
     # seed RNG
@@ -233,6 +238,7 @@ def run(args: argparse.Namespace, console: Console) -> int:
         select=args.select,
         correction=args.correction,
         jobs=args.jobs,
+        crf_type=crf_type,
     )
 
     # save model

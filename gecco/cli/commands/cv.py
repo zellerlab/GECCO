@@ -7,7 +7,7 @@ import operator
 import pathlib
 import random
 import typing
-from typing import List, Optional, Tuple, Iterable
+from typing import List, Optional, Tuple, Iterable, Callable, Type
 
 import rich.progress
 from rich.console import Console
@@ -246,7 +246,12 @@ def _report_fold(
         logger.info(f"Finished cross validation (AUROC={auroc:.3f}, AUPR={aupr:.3f})")
 
 
-def run(args: argparse.Namespace, console: Console) -> int:
+def run(
+    args: argparse.Namespace,
+    console: Console,
+    crf_type: Type["ClusterCRF"],
+    default_hmms: Callable[[], Iterable["HMM"]],
+) -> int:
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
 
     # seed RNG
@@ -300,6 +305,7 @@ def run(args: argparse.Namespace, console: Console) -> int:
                 select=args.select,
                 correction=args.correction,
                 jobs=args.jobs,
+                crf_type=crf_type,
             )
             _write_fold(
                 logger, i + 1, old_genes, new_genes, output=args.output, append=i > 0

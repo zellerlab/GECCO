@@ -4,6 +4,7 @@ import glob
 import os
 import pathlib
 import re
+from typing import Type, Callable, Iterable
 
 import rich.progress
 from rich.console import Console
@@ -26,7 +27,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     gbk_parser = commands.add_parser(
         "gbk",
         formatter_class=DefaultFormatter,
-        help="Convert the GenBank records to a different format."
+        help="Convert the GenBank records to a different format.",
     )
     gbk_parser.set_defaults(input="gbk")
     gbk_parser.add_argument(
@@ -47,7 +48,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     clusters_parser = commands.add_parser(
         "clusters",
         formatter_class=DefaultFormatter,
-        help="Convert the clusters table to a different format."
+        help="Convert the clusters table to a different format.",
     )
     clusters_parser.set_defaults(input="clusters")
     clusters_parser.add_argument(
@@ -292,7 +293,12 @@ def _convert_clusters_gff(
 # --- Run command --------------------------------------------------------------
 
 
-def run(args: argparse.Namespace, console: Console) -> int:
+def run(
+    args: argparse.Namespace,
+    console: Console,
+    crf_type: Type["ClusterCRF"],
+    default_hmms: Callable[[], Iterable["HMM"]],
+) -> int:
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
 
     with rich.progress.Progress(console=logger.console) as progress:

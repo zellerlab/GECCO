@@ -1,6 +1,7 @@
 import argparse
 import os
 import operator
+from typing import Type, Callable, Iterable
 
 from rich.console import Console
 
@@ -107,7 +108,12 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.set_defaults(run=run)
 
 
-def run(args: argparse.Namespace, console: Console) -> int:
+def run(
+    args: argparse.Namespace,
+    console: Console,
+    crf_type: Type["ClusterCRF"],
+    default_hmms: Callable[[], Iterable["HMM"]],
+) -> int:
     logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
 
     # attempt to create the output directory, checking it doesn't
@@ -149,7 +155,9 @@ def run(args: argparse.Namespace, console: Console) -> int:
     )
 
     # predict probabilities with CRF model
-    genes = _common.predict_probabilities(logger, genes, model=args.model, pad=args.pad)
+    genes = _common.predict_probabilities(
+        logger, genes, model=args.model, pad=args.pad, crf_type=crf_type
+    )
     _common.write_genes_table(
         logger, genes, genome=args.genome, output_dir=args.output_dir
     )
