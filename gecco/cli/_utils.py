@@ -8,6 +8,10 @@ import warnings
 from types import ModuleType, TracebackType
 from typing import Callable, Union, Iterator, TextIO, Type, Optional
 
+import rich.progress
+from rich.progress import Column
+from rich.text import Text
+
 from .._meta import classproperty, zopen
 
 if typing.TYPE_CHECKING:
@@ -15,6 +19,18 @@ if typing.TYPE_CHECKING:
         [Union[Warning, str], Type[Warning], str, int, Optional[TextIO], Optional[str]],
         None,
     ]
+
+
+class MofNCompleteUnitColumn(rich.progress.MofNCompleteColumn):
+
+    def render(self, task: "Task") -> Text:
+        completed = int(task.completed)
+        total = int(task.total) if task.total is not None else "?"
+        total_width = len(str(total))
+        return Text(
+            f"{completed:{total_width}d}{self.separator}{total} {task.fields['unit']}",
+            style="progress.download",
+        )
 
 
 @contextlib.contextmanager

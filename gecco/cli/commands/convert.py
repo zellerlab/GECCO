@@ -305,7 +305,7 @@ def run(
     classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         if args.input == "gbk":
             if args.format == "bigslice":
                 _convert_gbk_bigslice(logger, args.input_dir, progress)

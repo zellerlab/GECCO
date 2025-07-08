@@ -12,7 +12,7 @@ import rich.progress
 import numpy
 
 from .._log import ConsoleLogger
-from .._utils import guess_sequences_format
+from .._utils import guess_sequences_format, MofNCompleteUnitColumn
 from ..._meta import zopen
 
 try:
@@ -156,11 +156,11 @@ def load_sequences(
         logger.success("Detected", "format of input as", repr(format), level=2)
 
     # load file
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress(download=True) as progress:
         # load sequences
         n = 0
         logger.info("Loading", "sequences from genomic file", repr(genome), level=1)
-        with progress.open(genome, "rb", description="Loading") as file:
+        with progress.open(genome, "rb", description="Loading input") as file:
             # with ProgressReader(file, self.progress, task, scale) as reader:
             with zopen(file) as decompressed:
                 for record in SeqIO.parse(io.TextIOWrapper(decompressed), format):  # type: ignore
@@ -186,7 +186,7 @@ def load_genes(
 ) -> Iterator["Gene"]:
     from ...model import GeneTable
 
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress(download=True) as progress:
         # try:
         # load gene table
         logger.info("Loading", "genes table from file", repr(str(table_path)))
@@ -210,7 +210,7 @@ def load_features(
     from ...model import FeatureTable
 
     features = FeatureTable()
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress(download=True) as progress:
         for filename in progress.track(table_paths):
             # try:
             # load features
@@ -237,7 +237,7 @@ def annotate_genes(
         raise ValueError("Duplicate gene names in input genes")
 
     # add domains from the feature table
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         unit = "row" if len(features) == 1 else "rows"
         task = progress.add_task("Annotating genes", total=len(features))
         for i in progress.track(range(len(features)), task_id=task):
@@ -321,7 +321,7 @@ def load_clusters(
     # load clusters
     logger.info("Loading", "clusters table from file", repr(str(clusters)))
 
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress(download=True) as progress:
         with progress.open(clusters, "rb") as file:
             # with zopen(reader) as decompressed:
             return ClusterTable.load(file)  # type: ignore
@@ -340,7 +340,7 @@ def label_genes(
             (clusters.start[i], clusters.end[i])
         )
 
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         gene_count = len(genes)
         unit = "gene" if gene_count == 1 else "genes"
         task = progress.add_task(
@@ -390,7 +390,7 @@ def extract_genes(
 
     unit = "contigs" if len(sequences) > 1 else "contig"
 
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         task = progress.add_task(
             description="Finding ORFs", total=len(sequences), unit=unit, precision=""
         )
@@ -399,7 +399,7 @@ def extract_genes(
             logger.success("Found", found, "genes in record", repr(record.id), level=2)
             progress.update(task, advance=1)
 
-        return orf_finder.find_genes(sequences, progress=callback)
+        return list(orf_finder.find_genes(sequences, progress=callback))
 
 
 # --- Annotate genes -----------------------------------------------------------
@@ -511,16 +511,15 @@ def annotate_domains(
     hmms = list(custom_hmms(hmm_paths) if hmm_paths else default_hmms)
     total = None if whitelist is None else len(whitelist)
 
-    with rich.progress.Progress(console=logger.console) as progress:
-
+    with logger.progress() as progress:
         task_hmms = progress.add_task(
-            description=f"Annotating domains",
-            unit="HMMs",
+            description=f"Annotating HMMs",
+            unit="file" if len(hmms) == 1 else "files",
             total=len(hmms),
             precision="",
         )
         task_domains = progress.add_task(
-            description="", total=total, unit="domains", precision=""
+            description="", total=total, unit="HMMs", precision=""
         )
         for hmm in progress.track(hmms, task_id=task_hmms, total=len(hmms)):
             progress.update(task_domains, description=f" {hmm.id} v{hmm.version}")
@@ -593,10 +592,9 @@ def predict_probabilities(
 
     logger.info("Predicting", "cluster probabilitites with the model", level=1)
 
-    with rich.progress.Progress(console=logger.console) as progress:
-
+    with logger.progress() as progress:
         unit = "batches" if len(genes) > 1 else "batch"
-        task = progress.add_task("Predicting marginals")
+        task = progress.add_task("Predicting", unit=unit)
 
         def progress_callback(i: int, total: int) -> None:
             progress.update(task_id=task, completed=i, total=total)
@@ -624,10 +622,10 @@ def extract_clusters(
         threshold=threshold, criterion=postproc, n_cds=cds, edge_distance=edge_distance
     )
 
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         total = len({gene.source.id for gene in genes})
-        # unit = "contigs" if total > 1 else "contig"
-        task = progress.add_task("Extracting clusters", total=total)
+        unit = "contigs" if total > 1 else "contig"
+        task = progress.add_task("Segmenting", total=total, unit=unit)
         clusters: List["Cluster"] = []
         gene_groups = itertools.groupby(genes, lambda g: g.source.id)
         for _, gene_group in progress.track(gene_groups, task_id=task, total=total):
@@ -656,7 +654,7 @@ def predict_types(
     logger: ConsoleLogger, clusters: List["Cluster"], *, classifier: "TypeClassifier"
 ) -> List["Cluster"]:
     logger.info("Predicting", "gene cluster types", level=1)
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         unit = "cluster" if len(clusters) == 1 else "clusters"
         task = progress.add_task("Predicting types", total=len(clusters))
         clusters_new = []

@@ -282,7 +282,7 @@ def run(
         splits = _kfold_splits(logger, seqs, splits=args.splits)
 
     # run CV
-    with rich.progress.Progress(console=logger.console) as progress:
+    with logger.progress() as progress:
         unit = "fold" if len(splits) == 1 else "folds"
         task = progress.add_task(
             description="Cross-validating", total=len(splits), unit=unit, precision=""

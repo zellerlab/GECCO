@@ -205,12 +205,7 @@ def main(
     )
 
     with patch_showwarnings(
-        functools.partial(
-            showwarnings, 
-            logger, 
-            verbose=args.verbose, 
-            quiet=args.quiet
-        )
+        functools.partial(showwarnings, logger, verbose=args.verbose, quiet=args.quiet)
     ):
         try:
             return args.run(

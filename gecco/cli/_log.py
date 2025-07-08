@@ -4,8 +4,12 @@ import os
 import socket
 from typing import Any, List, Type, Optional, TextIO
 
-from .. import __name__ as PROGRAM
+import rich.progress
 from rich.console import Console
+from rich.progress import Progress, DownloadColumn
+
+from .. import __name__ as PROGRAM
+from ._utils import MofNCompleteUnitColumn
 
 
 class ConsoleLogger(abc.ABC):
@@ -38,10 +42,14 @@ class ConsoleLogger(abc.ABC):
 
     @abc.abstractmethod
     def success(self, verb: str, *args: Any, level: int = 1) -> None:
-        pass 
+        pass
 
     @abc.abstractmethod
     def warn(self, verb: str, *args: Any, level: int = 0) -> None:
+        pass
+
+    @abc.abstractmethod
+    def progress(self, *args, **kwargs) -> Progress:
         pass
 
 
@@ -49,11 +57,11 @@ class FullConsoleLogger(ConsoleLogger):
 
     def _logprefix(self) -> List[str]:
         return [
-            f"[dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]",
-            f"[dim purple]{self._hostname}[/]",
-            f"[dim]{self._program}[[default dim]{self._pid}[/]][/]",
+            f"[bold dim cyan]{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]",
+            f"[bold dim purple]{self._hostname}[/]",
+            f"[bold dim]{self._program}[[default dim]{self._pid}[/]][/]",
         ]
-    
+
     def error(self, message: str, *args: Any, level: int = 0) -> None:
         if self.quiet <= 2 and level <= self.verbose:
             self.console.print(
@@ -83,13 +91,22 @@ class FullConsoleLogger(ConsoleLogger):
 
     def warn(self, verb: str, *args: Any, level: int = 0) -> None:
         if self.quiet <= 1 and level <= self.verbose:
-            self.console.print(
-                *self._logprefix(), 
-                "[bold yellow]WARN[/]", 
-                verb, 
-                *args
-            )
+            self.console.print(*self._logprefix(), "[bold yellow]WARN[/]", verb, *args)
 
+    def progress(self, download: bool = False) -> Progress:
+        column = DownloadColumn() if download else MofNCompleteUnitColumn()
+        return Progress(
+            *self._logprefix(),
+            f"[bold purple]WORK[/]",
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.BarColumn(),
+            rich.progress.TaskProgressColumn(),
+            rich.progress.TimeElapsedColumn(),
+            # *args,
+            # **kwargs,
+            console=self.console,
+            transient=True,
+        )
 
 class ConciseConsoleLogger(ConsoleLogger):
 
@@ -108,7 +125,7 @@ class ConciseConsoleLogger(ConsoleLogger):
                 verb,
                 *args,
             )
-           
+
     def success(self, verb: str, *args: Any, level: int = 1) -> None:
         if self.quiet == 0 and level <= self.verbose:
             self.console.print(
@@ -124,7 +141,21 @@ class ConciseConsoleLogger(ConsoleLogger):
                 verb,
                 *args,
             )
-           
+
+    def progress(self, download: bool = False) -> Progress:
+        column = DownloadColumn() if download else MofNCompleteUnitColumn()
+        return Progress(
+            rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
+            rich.progress.TextColumn("[progress.description]{task.description:<15}"),
+            rich.progress.BarColumn(),
+            rich.progress.TaskProgressColumn(),
+            rich.progress.TimeElapsedColumn(),
+            # *args,
+            # **kwargs,
+            column,
+            console=self.console,
+        )
+
 
 def make_logger(
     console: Console,
