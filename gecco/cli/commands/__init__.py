@@ -7,12 +7,7 @@ import typing
 from typing import Optional, List, TextIO, Type, Callable, Iterable
 
 from rich.console import Console
-
-# try:
 from rich_argparse import ArgumentDefaultsRichHelpFormatter  # as DefaultFormatter
-
-# except ImportError:
-# from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
 
 try:
     import argcomplete
@@ -159,16 +154,6 @@ def main(
     crf_type: Optional[Type["ClusterCRF"]] = None,
     classifier_type: Optional[Type["TypeClassifier"]] = None,
 ) -> int:
-    if crf_type is None:
-        from ...crf import ClusterCRF
-
-        crf_type = ClusterCRF
-
-    if classifier_type is None:
-        from ...types import TypeClassifier
-
-        classifier_type = TypeClassifier
-
     parser = configure_parser(
         argparse.ArgumentParser(
             prog=program,
@@ -188,6 +173,16 @@ def main(
         args = parser.parse_args(argv)
     except _parser.HelpExit:
         return 0
+
+    if crf_type is None:
+        from ...crf import ClusterCRF
+
+        crf_type = ClusterCRF
+
+    if classifier_type is None:
+        from ...types import TypeClassifier
+
+        classifier_type = TypeClassifier
 
     if console is None:
         console = Console(
