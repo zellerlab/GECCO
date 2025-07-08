@@ -6,26 +6,26 @@ import signal
 from typing import Optional, List, TextIO, Type
 
 from rich.console import Console
-from rich_argparse import ArgumentDefaultsRichHelpFormatter
+
+try:
+    from rich_argparse import ArgumentDefaultsRichHelpFormatter as DefaultFormatter
+except ImportError:
+    from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
 
 try:
     import argcomplete
 except ImportError:
     argcomplete = None
 
-from ... import __version__, __package__ as _module
+from ... import __version__, __package__ as _program
 from .._utils import patch_showwarnings
 from .._log import _showwarnings
 from . import annotate, run, predict, train, cv, convert
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog=_module,
-        formatter_class=ArgumentDefaultsRichHelpFormatter,
-        add_help=False,
-    )
-
+def configure_parser(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     parser.add_argument(
         "-h",
         "--help",
@@ -119,8 +119,24 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None, console: Optional[Console] = None) -> int:
-    parser = build_parser()
+def main(
+    argv: Optional[List[str]] = None, 
+    console: Optional[Console] = None,
+    program: str = _program,
+    version: str = __version__,
+) -> int:
+    if program is None:
+        program = _program
+
+    parser = configure_parser(
+        argparse.ArgumentParser(
+            prog=program,
+            formatter_class=DefaultFormatter,
+            add_help=False,
+        ),
+        program,
+        version,
+    )
     if argcomplete is not None:
         argcomplete.autocomplete(parser)
     args = parser.parse_args(argv)
