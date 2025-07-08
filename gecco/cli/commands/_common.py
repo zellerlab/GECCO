@@ -196,7 +196,7 @@ def load_genes(
         # count genes and yield gene objects
         n_genes = len(set(table.protein_id))
         unit = "gene" if n_genes == 1 else "genes"
-        task = progress.add_task("Building genes", total=n_genes)
+        task = progress.add_task("Building genes", unit=unit, total=n_genes)
         yield from progress.track(table.to_genes(), task_id=task)
         # except OSError as err:
         # self.error("Fail to parse genes coordinates: {}", err)
@@ -239,7 +239,7 @@ def annotate_genes(
     # add domains from the feature table
     with logger.progress() as progress:
         unit = "row" if len(features) == 1 else "rows"
-        task = progress.add_task("Annotating genes", total=len(features))
+        task = progress.add_task("Annotating genes", unit=unit, total=len(features))
         for i in progress.track(range(len(features)), task_id=task):
             # get gene by ID and check consistency
             length = features.end[i] - features.start[i]
