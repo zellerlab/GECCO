@@ -88,13 +88,11 @@ def configure_parser(parser: argparse.ArgumentParser, console: Console):
 
 def run(
     args: argparse.Namespace,
-    console: Console,
+    logger: ConsoleLogger,
     crf_type: Type["ClusterCRF"],
     classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:  # noqa: D102
-    logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
-
     # attempt to create the output directory, checking it doesn't
     # already contain output files (or raise a warning)
     base, _ = os.path.splitext(os.path.basename(args.genome))

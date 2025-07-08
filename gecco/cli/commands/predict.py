@@ -11,8 +11,8 @@ from .._log import ConsoleLogger
 
 def configure_parser(parser: argparse.ArgumentParser, console: Console):
     parser.add_argument(
-        "-h", 
-        "--help", 
+        "-h",
+        "--help",
         action=_parser.ConsoleHelpAction,
         help="Show this help message and exit.",
         console=console,
@@ -114,13 +114,11 @@ def configure_parser(parser: argparse.ArgumentParser, console: Console):
 
 def run(
     args: argparse.Namespace,
-    console: Console,
+    logger: ConsoleLogger,
     crf_type: Type["ClusterCRF"],
     classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:
-    logger = ConsoleLogger(console, quiet=args.quiet, verbose=args.verbose)
-
     # attempt to create the output directory, checking it doesn't
     # already contain output files (or raise a warning)
     base, _ = os.path.splitext(os.path.basename(args.genome))

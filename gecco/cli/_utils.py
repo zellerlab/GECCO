@@ -1,5 +1,4 @@
-"""A module containing some utilities only relevant to the CLI.
-"""
+"""A module containing some utilities only relevant to the CLI."""
 
 import contextlib
 import io
@@ -14,14 +13,13 @@ from .._meta import classproperty, zopen
 if typing.TYPE_CHECKING:
     ShowWarning = Callable[
         [Union[Warning, str], Type[Warning], str, int, Optional[TextIO], Optional[str]],
-        None
+        None,
     ]
 
 
 @contextlib.contextmanager
 def patch_showwarnings(new_showwarning: "ShowWarning") -> Iterator[None]:
-    """Make a context patching `warnings.showwarning` with the given function.
-    """
+    """Make a context patching `warnings.showwarning` with the given function."""
     old_showwarning: ShowWarning = warnings.showwarning
     try:
         warnings.showwarning = new_showwarning  # type: ignore

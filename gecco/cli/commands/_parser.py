@@ -23,7 +23,7 @@ class ConsoleHelpAction(argparse.Action):
             default=default,
             nargs=0,
             help=help,
-            deprecated=deprecated
+            deprecated=deprecated,
         )
         self.console = console
 
@@ -33,7 +33,6 @@ class ConsoleHelpAction(argparse.Action):
         else:
             self.console.print(parser.format_help())
         raise HelpExit(0)
-
 
 
 def configure_group_gene_calling(

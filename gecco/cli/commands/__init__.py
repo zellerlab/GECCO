@@ -9,7 +9,8 @@ from typing import Optional, List, TextIO, Type, Callable, Iterable
 from rich.console import Console
 
 # try:
-from rich_argparse import ArgumentDefaultsRichHelpFormatter #as DefaultFormatter
+from rich_argparse import ArgumentDefaultsRichHelpFormatter  # as DefaultFormatter
+
 # except ImportError:
 # from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
 
@@ -20,7 +21,7 @@ except ImportError:
 
 from ... import __version__, __package__ as _program
 from .._utils import patch_showwarnings
-from .._log import _showwarnings
+from .._log import _showwarnings, ConsoleLogger
 from ._common import default_hmms
 from ._parser import ConsoleHelpAction
 from . import annotate, run, predict, train, cv, convert
@@ -81,56 +82,68 @@ def configure_parser(
     annotate.configure_parser(
         commands.add_parser(
             "annotate",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Annotate protein features of one or several contigs.",
             add_help=False,
         ),
-        console
+        console,
     )
     run.configure_parser(
         commands.add_parser(
             "run",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Predict gene clusters from one or several contigs.",
             add_help=False,
         ),
-        console
+        console,
     )
     predict.configure_parser(
         commands.add_parser(
             "predict",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Predict gene clusters on contigs that have been annotated.",
             add_help=False,
         ),
-        console
+        console,
     )
     train.configure_parser(
         commands.add_parser(
             "train",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Train a new CRF model on pre-generated tables.",
             add_help=False,
         ),
-        console
+        console,
     )
     cv.configure_parser(
         commands.add_parser(
             "cv",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Train and evaluate a model using cross-validation.",
             add_help=False,
         ),
-        console
+        console,
     )
     convert.configure_parser(
         commands.add_parser(
             "convert",
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             help="Convert output files to a different format.",
             add_help=False,
         ),
-        console
+        console,
     )
 
     return parser
@@ -148,16 +161,20 @@ def main(
 ) -> int:
     if crf_type is None:
         from ...crf import ClusterCRF
+
         crf_type = ClusterCRF
-    
+
     if classifier_type is None:
         from ...types import TypeClassifier
+
         classifier_type = TypeClassifier
 
     parser = configure_parser(
         argparse.ArgumentParser(
             prog=program,
-            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(
+                prog, console=console
+            ),
             add_help=False,
         ),
         console,
@@ -185,10 +202,16 @@ def main(
             _showwarnings, console, verbose=args.verbose, quiet=args.quiet
         )
     ):
+        logger = ConsoleLogger(
+            console,
+            quiet=args.quiet,
+            verbose=args.verbose,
+            program=program,
+        )
         try:
             return args.run(
                 args,
-                console,
+                logger,
                 crf_type=crf_type,
                 classifier_type=classifier_type,
                 default_hmms=default_hmms,
