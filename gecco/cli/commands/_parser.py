@@ -2,6 +2,40 @@ import argparse
 import pathlib
 
 
+class HelpExit(SystemExit):
+    pass
+
+
+class ConsoleHelpAction(argparse.Action):
+
+    def __init__(
+        self,
+        option_strings,
+        dest=argparse.SUPPRESS,
+        default=argparse.SUPPRESS,
+        help=None,
+        deprecated=False,
+        console=None,
+    ):
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=help,
+            deprecated=deprecated
+        )
+        self.console = console
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if self.console is None:
+            parser.print_help()
+        else:
+            self.console.print(parser.format_help())
+        raise HelpExit(0)
+
+
+
 def configure_group_gene_calling(
     parser: argparse.ArgumentParser,
 ) -> "argparse.ArgumentGroup":

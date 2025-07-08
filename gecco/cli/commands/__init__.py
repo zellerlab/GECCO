@@ -8,10 +8,10 @@ from typing import Optional, List, TextIO, Type, Callable, Iterable
 
 from rich.console import Console
 
-try:
-    from rich_argparse import ArgumentDefaultsRichHelpFormatter as DefaultFormatter
-except ImportError:
-    from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
+# try:
+from rich_argparse import ArgumentDefaultsRichHelpFormatter #as DefaultFormatter
+# except ImportError:
+# from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
 
 try:
     import argcomplete
@@ -22,6 +22,7 @@ from ... import __version__, __package__ as _program
 from .._utils import patch_showwarnings
 from .._log import _showwarnings
 from ._common import default_hmms
+from ._parser import ConsoleHelpAction
 from . import annotate, run, predict, train, cv, convert
 
 if typing.TYPE_CHECKING:
@@ -31,14 +32,16 @@ if typing.TYPE_CHECKING:
 
 def configure_parser(
     parser: argparse.ArgumentParser,
+    console: Console,
     program: str,
     version: str,
 ) -> argparse.ArgumentParser:
     parser.add_argument(
         "-h",
         "--help",
-        action="help",
+        action=ConsoleHelpAction,
         help="Show this help message and exit.",
+        console=console,
     )
     parser.add_argument(
         "-V",
@@ -78,50 +81,56 @@ def configure_parser(
     annotate.configure_parser(
         commands.add_parser(
             "annotate",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Annotate protein features of one or several contigs.",
             add_help=False,
-        )
+        ),
+        console
     )
     run.configure_parser(
         commands.add_parser(
             "run",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Predict gene clusters from one or several contigs.",
             add_help=False,
-        )
+        ),
+        console
     )
     predict.configure_parser(
         commands.add_parser(
             "predict",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Predict gene clusters on contigs that have been annotated.",
             add_help=False,
-        )
+        ),
+        console
     )
     train.configure_parser(
         commands.add_parser(
             "train",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Train a new CRF model on pre-generated tables.",
             add_help=False,
-        )
+        ),
+        console
     )
     cv.configure_parser(
         commands.add_parser(
             "cv",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Train and evaluate a model using cross-validation.",
             add_help=False,
-        )
+        ),
+        console
     )
     convert.configure_parser(
         commands.add_parser(
             "convert",
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             help="Convert output files to a different format.",
             add_help=False,
-        )
+        ),
+        console
     )
 
     return parser
@@ -139,23 +148,29 @@ def main(
 ) -> int:
     if crf_type is None:
         from ...crf import ClusterCRF
-        from ...types import TypeClassifier
-
         crf_type = ClusterCRF
+    
+    if classifier_type is None:
+        from ...types import TypeClassifier
         classifier_type = TypeClassifier
 
     parser = configure_parser(
         argparse.ArgumentParser(
             prog=program,
-            formatter_class=DefaultFormatter,
+            formatter_class=lambda prog: ArgumentDefaultsRichHelpFormatter(prog, console=console),
             add_help=False,
         ),
+        console,
         program,
         version,
     )
     if argcomplete is not None:
         argcomplete.autocomplete(parser)
-    args = parser.parse_args(argv)
+
+    try:
+        args = parser.parse_args(argv)
+    except _parser.HelpExit:
+        return 0
 
     if console is None:
         console = Console(

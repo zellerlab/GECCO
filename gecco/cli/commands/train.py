@@ -13,9 +13,13 @@ from . import _parser, _common
 from .._log import ConsoleLogger
 
 
-def configure_parser(parser: argparse.ArgumentParser):
+def configure_parser(parser: argparse.ArgumentParser, console: Console):
     parser.add_argument(
-        "-h", "--help", action="help", help="Show this help message and exit."
+        "-h", 
+        "--help", 
+        action=_parser.ConsoleHelpAction,
+        help="Show this help message and exit.",
+        console=console,
     )
 
     params_arguments = _parser.configure_group_input_tables(parser)

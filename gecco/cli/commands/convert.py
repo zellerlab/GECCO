@@ -15,11 +15,16 @@ except ImportError:
     from argparse import ArgumentDefaultsHelpFormatter as DefaultFormatter
 
 from .._log import ConsoleLogger
+from . import _parser
 
 
-def configure_parser(parser: argparse.ArgumentParser):
+def configure_parser(parser: argparse.ArgumentParser, console: Console):
     parser.add_argument(
-        "-h", "--help", action="help", help="Show this help message and exit."
+        "-h", 
+        "--help", 
+        action=_parser.ConsoleHelpAction,
+        help="Show this help message and exit.",
+        console=console,
     )
 
     commands = parser.add_subparsers(required=True, metavar="INPUT")
