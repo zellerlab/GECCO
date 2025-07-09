@@ -26,16 +26,11 @@ from typing import (
     Sequence,
 )
 
-import polars
-
-try:
-    _POLARS_VERSION = tuple(map(int, polars.__version__.split('.')))
-except ValueError:
-    _POLARS_VERSION = (0, 0, 0)
-
 if typing.TYPE_CHECKING:
     _SELF = typing.TypeVar("_SELF")
     _TABLE = typing.TypeVar("_TABLE", bound="Table")
+
+    import polars
 
 
 class Dumpable(metaclass=abc.ABCMeta):
@@ -79,10 +74,12 @@ class Table(Dumpable, Loadable):
     @abc.abstractmethod
     def _get_columns(cls) -> List["Table.Column"]:
         return []
-    
-    data: polars.DataFrame
 
-    def __init__(self, data: Optional[polars.DataFrame] = None) -> None:
+    data: "polars.DataFrame"
+
+    def __init__(self, data: Optional["polars.DataFrame"] = None) -> None:
+        import polars
+
         columns = self._get_columns()
 
         if data is not None:
@@ -101,14 +98,18 @@ class Table(Dumpable, Loadable):
 
     def __len__(self) -> int:
         return len(self.data)
-    
+
     def __getattr__(self, name: str) -> object:
+        import polars
+
         try:
             return self.data[name]
         except polars.exceptions.ColumnNotFoundError as err:
             raise AttributeError(name) from err
 
     def __iadd__(self: "_TABLE", rhs: object) -> "_TABLE":  # noqa: D105
+        import polars
+
         if not isinstance(rhs, type(self)):
             return NotImplemented
         self.data = polars.concat([self.data, rhs.data])
@@ -116,21 +117,22 @@ class Table(Dumpable, Loadable):
 
     @classmethod
     def load(
-        cls: typing.Type["_TABLE"], 
-        fh: Union[BinaryIO, str, os.PathLike], 
+        cls: typing.Type["_TABLE"],
+        fh: Union[BinaryIO, str, os.PathLike],
     ) -> "_TABLE":
+        import polars
+
         columns = cls._get_columns()
         dtypes = { column.name: column.dtype for column in columns }
-        if _POLARS_VERSION < (0, 16, 14):
-            data = polars.read_csv(fh, sep="\t", dtypes=dtypes)
-        else:
-            data = polars.read_csv(fh, separator="\t", schema_overrides=dtypes)
+        data = polars.read_csv(fh, separator="\t", schema_overrides=dtypes)
         for column_name in data.columns:
             if data[column_name].dtype in (polars.Float32, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_null(math.nan))
         return cls(data)
 
     def dump(self, fh: Union[BinaryIO, str, os.PathLike]) -> None:
+        import polars
+
         # remove columns that contain only default values
         columns = [ column for column in self._get_columns() ]
         for column in columns.copy():
@@ -146,8 +148,5 @@ class Table(Dumpable, Loadable):
         for column_name in view.columns:
             if view[column_name].dtype in (polars.Float32, polars.Float64):
                 view = view.with_columns(polars.col(column_name).fill_nan(None))
-        if _POLARS_VERSION < (0, 16, 14):
-            view.write_csv(fh, sep="\t")
-        else:
-            view.write_csv(fh, separator="\t")
-    
+        view.write_csv(fh, separator="\t")
+
