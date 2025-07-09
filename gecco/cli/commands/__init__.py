@@ -186,8 +186,15 @@ def main(
         except OSError as e:
             logger.error(f"{e.strerror}: {e.filename!r}")
             return e.errno
+        except RuntimeError as e:
+            logger.error(f"{e.strerror}: {e.filename!r}")
+            return 1
         except Exception as err:
             console.print_exception()
-            return getattr(err, "code", 1)
+            if hasattr(err, "code"):
+                return err.code
+            elif hasattr(err, "errno"):
+                return err.errno
+            return 1
         else:
             return 0

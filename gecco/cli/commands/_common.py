@@ -35,13 +35,9 @@ def make_output_directory(
 ) -> None:
     # Make output directory
     logger.info("Using", "output folder", repr(str(output_dir)), level=1)
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-    except OSError as err:
-        logger.error("Could not create output directory: {}", err)
-        raise CommandExit(err.errno) from err
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Check if output files already exist
+    # Check if any output file already exist
     for output in outputs:
         if os.path.isfile(os.path.join(output_dir, output)):
             logger.warn("Output folder contains files that will be overwritten")
@@ -142,8 +138,6 @@ def load_sequences(
 ) -> Iterator["SeqRecord"]:
     from Bio import SeqIO
 
-    # try:
-
     # guess format or use the one given in CLI
     if format is not None:
         format: Optional[str] = format.lower()
@@ -155,26 +149,21 @@ def load_sequences(
             raise RuntimeError(f"Failed to detect format of {genome!r}")
         logger.success("Detected", "format of input as", repr(format), level=2)
 
-    # load file
-    with logger.progress(download=True) as progress:
-        # load sequences
-        n = 0
-        logger.info("Loading", "sequences from genomic file", repr(genome), level=1)
-        with progress.open(genome, "rb", description="Loading input") as file:
-            # with ProgressReader(file, self.progress, task, scale) as reader:
-            with zopen(file) as decompressed:
-                for record in SeqIO.parse(io.TextIOWrapper(decompressed), format):  # type: ignore
-                    yield record
-                    n += 1
-
-    # except FileNotFoundError as err:
-    #     self.error("Could not find input file:", repr(self.genome))
-    #     raise CommandExit(err.errno) from err
-    # except ValueError as err:
-    #     self.error("Failed to load sequences:", err)
-    #     raise CommandExit(getattr(err, "errno", 1)) from err
-    # else:
-    #     self.success("Found", n, "sequences", level=1)
+    # load sequences from given file
+    try:
+        with logger.progress(download=True) as progress:
+            n = 0
+            logger.info("Loading", "sequences from genomic file", repr(genome), level=1)
+            with progress.open(genome, "rb", description="Loading input") as file:
+                with zopen(file) as decompressed:
+                    reader = io.TextIOWrapper(decompressed)
+                    for record in SeqIO.parse(reader, format):  # type: ignore
+                        yield record
+                        n += 1
+    except ValueError as err:
+        raise RuntimeError(f"Failed to load sequences: {err}") from err
+    else:
+        logger.success(f"Loaded {n} sequences from {str(genome)!r}", level=1)
 
 
 # --- Load input (tables) ------------------------------------------------------
@@ -186,21 +175,19 @@ def load_genes(
 ) -> Iterator["Gene"]:
     from ...model import GeneTable
 
+    # load gene table
     with logger.progress(download=True) as progress:
-        # try:
-        # load gene table
         logger.info("Loading", "genes table from file", repr(str(table_path)))
         with progress.open(table_path, "rb", description="Loading genes") as file:
-            # with zopen(file) as decompressed:
-            table = GeneTable.load(file)
-        # count genes and yield gene objects
+            with zopen(file) as decompressed:
+                table = GeneTable.load(decompressed)
+
+    # count genes and yield gene objects
+    with logger.progress() as progress:
         n_genes = len(set(table.protein_id))
         unit = "gene" if n_genes == 1 else "genes"
         task = progress.add_task("Building genes", unit=unit, total=n_genes)
         yield from progress.track(table.to_genes(), task_id=task)
-        # except OSError as err:
-        # self.error("Fail to parse genes coordinates: {}", err)
-        # raise CommandExit(err.errno) from err
 
 
 def load_features(
@@ -212,15 +199,10 @@ def load_features(
     features = FeatureTable()
     with logger.progress(download=True) as progress:
         for filename in progress.track(table_paths, description="Loading features"):
-            # try:
-            # load features
             logger.info("Loading", "features table from file", repr(str(filename)))
             with progress.open(filename, "rb", description="Reading") as file:
-                # with zopen(file) as decompressed:
-                features += FeatureTable.load(file)
-        # except FileNotFoundError as err:
-        #     self.error("Could not find feature file:", repr(filename))
-        #     raise CommandExit(err.errno) from err
+                with zopen(file) as decompressed:
+                    features += FeatureTable.load(decompressed)
 
     logger.success("Loaded", "a total of", len(features), "features", level=1)
     return features
@@ -297,18 +279,17 @@ def assign_sources(
         record.id: record for record in sequences if record.id in known_sequences
     }
 
-    # try:
-    logger.info("Assigning", "source sequences to gene objects", level=2)
-    for gene in genes:
-        gene = gene.with_source(sequence_index[gene.source.id])
-        gene_seq = gene.source.seq[gene.start - 1 : gene.end]
-        if gene.strand == Strand.Reverse:
-            gene_seq = gene_seq.reverse_complement()
-        gene = gene.with_protein(gene.protein.with_seq(gene_seq.translate()))
-        yield gene
-    # except KeyError as err:
-    #     logger.error("Sequence {!r} not found in {!r}", gene.source.id, str(genome))
-    #     raise CommandExit(1) from err
+    try:
+        logger.info("Assigning", "source sequences to gene objects", level=2)
+        for gene in genes:
+            gene = gene.with_source(sequence_index[gene.source.id])
+            gene_seq = gene.source.seq[gene.start - 1 : gene.end]
+            if gene.strand == Strand.Reverse:
+                gene_seq = gene_seq.reverse_complement()
+            gene = gene.with_protein(gene.protein.with_seq(gene_seq.translate()))
+            yield gene
+    except KeyError as err:
+        raise RuntimeError("Sequence {!r} not found in {!r}", gene.source.id, str(genome)) from err
 
 
 def load_clusters(
@@ -317,17 +298,11 @@ def load_clusters(
 ) -> "ClusterTable":
     from ...model import ClusterTable
 
-    # try:
-    # load clusters
     logger.info("Loading", "clusters table from file", repr(str(clusters)))
-
     with logger.progress(download=True) as progress:
         with progress.open(clusters, "rb", description="Loading clusters") as file:
-            # with zopen(reader) as decompressed:
-            return ClusterTable.load(file)  # type: ignore
-    # except FileNotFoundError as err:
-    #     logger.error("Could not find clusters file:", repr(self.clusters))
-    #     raise CommandExit(err.errno) from err
+            with zopen(file) as decompressed:
+                return ClusterTable.load(decompressed)  # type: ignore
 
 
 def label_genes(
