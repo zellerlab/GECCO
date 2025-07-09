@@ -10,6 +10,7 @@ import io
 import locale
 import lzma
 import operator
+import os
 import typing
 from multiprocessing.pool import Pool
 from typing import (
@@ -143,13 +144,34 @@ def patch_locale(name: str) -> Iterator[None]:
         locale.setlocale(locale.LC_TIME, lc)
 
 
+
+class _FileObjectProxy:
+    """A proxy for a file-like object hiding its eventual `fileno`.
+
+    Certain functions (namely `polars.read_csv`) will ignore the given
+    file-like object and re-open it if they figure the file descriptor
+    through the `fileno` method. This will no work if we are in the
+    process of decompressing the file ourselves, so we want to be able
+    to hide the descriptor of compressed files.
+
+    """
+
+    def __init__(self, file):
+        self.file = file
+
+    def __getattr__(self, name):
+        if name != "fileno":
+            return getattr(super().__getattribute__("file"), name)
+        raise AttributeError(name)
+
+
 @contextlib.contextmanager
 def zopen(path: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
     with contextlib.ExitStack() as ctx:
         if hasattr(path, "read"):
             file = io.BufferedReader(path)
         else:
-            file = ctx.enter_context(open(path, "rb"))
+            file = open(path, "rb")
         peek = file.peek()
         if peek.startswith(_GZIP_MAGIC):
             file = ctx.enter_context(gzip.open(file, mode="rb"))
@@ -161,4 +183,4 @@ def zopen(path: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
             if isinstance(lz4, ImportError):
                 raise RuntimeError("File compression is LZ4 but python-lz4 is not installed") from lz4
             file = ctx.enter_context(lz4.frame.open(file))
-        yield file
+        yield _FileObjectProxy(file)
