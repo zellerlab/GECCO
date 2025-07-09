@@ -43,7 +43,7 @@ def configure_parser(
     program: str,
     version: str,
 ) -> argparse.ArgumentParser:
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, main=True)
 
     commands = parser.add_subparsers(required=True, metavar="COMMAND")
     annotate.configure_parser(

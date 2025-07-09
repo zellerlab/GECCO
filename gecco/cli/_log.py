@@ -102,8 +102,7 @@ class FullConsoleLogger(ConsoleLogger):
             rich.progress.BarColumn(),
             rich.progress.TaskProgressColumn(),
             rich.progress.TimeElapsedColumn(),
-            # *args,
-            # **kwargs,
+            column,
             console=self.console,
             transient=True,
         )
@@ -151,8 +150,6 @@ class ConciseConsoleLogger(ConsoleLogger):
             rich.progress.BarColumn(),
             rich.progress.TaskProgressColumn(),
             rich.progress.TimeElapsedColumn(),
-            # *args,
-            # **kwargs,
             column,
             console=self.console,
         )

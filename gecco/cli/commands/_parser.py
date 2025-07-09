@@ -42,6 +42,8 @@ def configure_common(
     console: Console,
     program: str,
     version: str,
+    *,
+    main: bool = False,
 ) -> None:
     parser.add_argument(
         "-h",
@@ -61,7 +63,7 @@ def configure_common(
         "-j",
         "--jobs",
         type=int,
-        default=0,
+        default=0 if main else argparse.SUPPRESS,
         help=(
             "The number of jobs to use for multithreading. Use 0 to use all "
             "available CPUs."
@@ -72,14 +74,14 @@ def configure_common(
         "--verbose",
         action="count",
         help="Increase the console output",
-        default=0,
+        default=0 if main else argparse.SUPPRESS,
     )
     parser.add_argument(
         "-q",
         "--quiet",
         action="count",
         help="Reduce or disable the console output",
-        default=0,
+        default=0 if main else argparse.SUPPRESS,
     )
     parser.add_argument(
         "--no-color",
