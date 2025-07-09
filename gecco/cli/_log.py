@@ -146,7 +146,7 @@ class ConciseConsoleLogger(ConsoleLogger):
         column = DownloadColumn() if download else MofNCompleteUnitColumn()
         return Progress(
             rich.progress.SpinnerColumn(finished_text="[green]:heavy_check_mark:[/]"),
-            rich.progress.TextColumn("[progress.description]{task.description:<15}"),
+            rich.progress.TextColumn("[progress.description]{task.description:<18}"),
             rich.progress.BarColumn(),
             rich.progress.TaskProgressColumn(),
             rich.progress.TimeElapsedColumn(),

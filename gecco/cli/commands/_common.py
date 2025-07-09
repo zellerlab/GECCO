@@ -190,7 +190,7 @@ def load_genes(
         # try:
         # load gene table
         logger.info("Loading", "genes table from file", repr(str(table_path)))
-        with progress.open(table_path, "rb") as file:
+        with progress.open(table_path, "rb", description="Loading genes") as file:
             # with zopen(file) as decompressed:
             table = GeneTable.load(file)
         # count genes and yield gene objects
@@ -211,11 +211,11 @@ def load_features(
 
     features = FeatureTable()
     with logger.progress(download=True) as progress:
-        for filename in progress.track(table_paths):
+        for filename in progress.track(table_paths, description="Loading features"):
             # try:
             # load features
             logger.info("Loading", "features table from file", repr(str(filename)))
-            with progress.open(filename, "rb") as file:
+            with progress.open(filename, "rb", description="Reading") as file:
                 # with zopen(file) as decompressed:
                 features += FeatureTable.load(file)
         # except FileNotFoundError as err:
@@ -239,7 +239,7 @@ def annotate_genes(
     # add domains from the feature table
     with logger.progress() as progress:
         unit = "row" if len(features) == 1 else "rows"
-        task = progress.add_task("Annotating genes", unit=unit, total=len(features))
+        task = progress.add_task("Annotating", unit=unit, total=len(features))
         for i in progress.track(range(len(features)), task_id=task):
             # get gene by ID and check consistency
             length = features.end[i] - features.start[i]
@@ -322,7 +322,7 @@ def load_clusters(
     logger.info("Loading", "clusters table from file", repr(str(clusters)))
 
     with logger.progress(download=True) as progress:
-        with progress.open(clusters, "rb") as file:
+        with progress.open(clusters, "rb", description="Loading clusters") as file:
             # with zopen(reader) as decompressed:
             return ClusterTable.load(file)  # type: ignore
     # except FileNotFoundError as err:
@@ -656,7 +656,7 @@ def predict_types(
     logger.info("Predicting", "gene cluster types", level=1)
     with logger.progress() as progress:
         unit = "cluster" if len(clusters) == 1 else "clusters"
-        task = progress.add_task("Predicting types", unit=unit, total=len(clusters))
+        task = progress.add_task("Classifying", unit=unit, total=len(clusters))
         clusters_new = []
         for cluster in progress.track(clusters, task_id=task):
             clusters_new.extend(classifier.predict_types([cluster]))
