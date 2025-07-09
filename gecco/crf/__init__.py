@@ -37,15 +37,10 @@ from typing import (
 )
 
 import numpy
-import sklearn_crfsuite
-import sklearn.model_selection
-import sklearn.preprocessing
 
 from .._meta import sliding_window
 from ..model import Gene
 from . import features
-from .cv import LeaveOneGroupOut
-from .select import fisher_significance
 
 try:
     from importlib.resources import files
@@ -301,6 +296,9 @@ class ClusterCRF(object):
                 Ignored if ``select`` is `False`.
 
         """
+        import sklearn_crfsuite
+        from .select import fisher_significance
+
         _cpus = os.cpu_count() if not cpus else cpus
         # select the feature extraction method
         if self.feature_type == "protein":
