@@ -25,7 +25,6 @@ class ConsoleHelpAction(argparse.Action):
             default=default,
             nargs=0,
             help=help,
-            deprecated=deprecated,
         )
         self.console = console
 
