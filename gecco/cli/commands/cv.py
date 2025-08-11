@@ -142,6 +142,7 @@ def _fit_predict(
     train_data: List["Gene"],
     test_data: List["Gene"],
     *,
+    crf_type: Type["ClusterCRF"] = None,
     feature_type: str,
     c1: float,
     c2: float,
@@ -152,11 +153,10 @@ def _fit_predict(
     correction: Optional[str],
     jobs: int = 0,
 ) -> List["Gene"]:
-    from ...crf import ClusterCRF
-
     crf = _common.fit_model(
         logger,
         train_data,
+        crf_type=crf_type,
         feature_type=feature_type,
         c1=c1,
         c2=c2,
