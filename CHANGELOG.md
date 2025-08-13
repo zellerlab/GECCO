@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.10...master
 
 
+## [v0.10.0-alpha.3] - 2025-08-13
+[v0.10.0-alpha.3]: https://github.com/zellerlab/GECCO/compare/v0.10.0-alpha.2...v0.10.0-alpha.3
+
+### Added
+- Support for changing the CLI argument defaults from a call to the `gecco.cli.main` function.
+
+
 ## [v0.10.0-alpha.2] - 2025-08-13
 [v0.10.0-alpha.2]: https://github.com/zellerlab/GECCO/compare/v0.10.0-alpha.1...v0.10.0-alpha.2
 
