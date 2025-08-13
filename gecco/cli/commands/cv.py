@@ -7,7 +7,7 @@ import operator
 import pathlib
 import random
 import typing
-from typing import List, Optional, Tuple, Iterable, Callable, Type
+from typing import List, Optional, Tuple, Iterable, Callable, Type, Dict
 
 import rich.progress
 from rich.console import Console
@@ -21,13 +21,15 @@ def configure_parser(
     console: Console,
     program: str,
     version: str,
+    *,
+    defaults: Dict[str, object],
 ):
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, defaults=defaults)
 
-    _parser.configure_group_input_tables(parser)
-    _parser.configure_group_domain_filter(parser)
-    _parser.configure_group_training_data(parser)
-    _parser.configure_group_training_parameters(parser)
+    _parser.configure_group_input_tables(parser, defaults=defaults)
+    _parser.configure_group_domain_filter(parser, defaults=defaults)
+    _parser.configure_group_training_data(parser, defaults=defaults)
+    _parser.configure_group_training_parameters(parser, defaults=defaults)
 
     params_cv = parser.add_argument_group("Cross-Validation")
     params_cv.add_argument(
@@ -42,7 +44,7 @@ def configure_parser(
     params_cv.add_argument(
         "--splits",
         type=int,
-        default=10,
+        default=defaults.get("--splits", 10),
         help=("Number of folds for cross-validation (if running K-folds)."),
     )
 
@@ -53,7 +55,7 @@ def configure_parser(
         "-o",
         "--output",
         type=pathlib.Path,
-        default=pathlib.Path("cv.tsv"),
+        default=defaults.get("--output", pathlib.Path("cv.tsv")),
         help=(
             "The name of the output file where the cross-validation table "
             "will be written."

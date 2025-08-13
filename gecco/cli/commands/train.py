@@ -5,7 +5,7 @@ import itertools
 import os
 import operator
 import pathlib
-from typing import List, Optional, Type, Callable, Iterable
+from typing import List, Optional, Type, Callable, Iterable, Dict
 
 from rich.console import Console
 
@@ -17,14 +17,16 @@ def configure_parser(
     parser: argparse.ArgumentParser, 
     console: Console,
     program: str,
-    version: str
+    version: str,
+    *,
+    defaults: Dict[str, object],
 ):
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, defaults=defaults)
 
-    _parser.configure_group_input_tables(parser)  
-    _parser.configure_group_domain_filter(parser)
-    _parser.configure_group_training_data(parser)
-    _parser.configure_group_training_parameters(parser)
+    _parser.configure_group_input_tables(parser, defaults=defaults)  
+    _parser.configure_group_domain_filter(parser, defaults=defaults)
+    _parser.configure_group_training_data(parser, defaults=defaults)
+    _parser.configure_group_training_parameters(parser, defaults=defaults)
 
     group = parser.add_argument_group(
         "Output",
@@ -34,7 +36,7 @@ def configure_parser(
         "--output-dir",
         help="The directory in which to write the output files.",
         type=pathlib.Path,
-        default=".",
+        default=defaults.get("--output-dir", pathlib.Path(".")),
     )
 
     parser.set_defaults(run=run)

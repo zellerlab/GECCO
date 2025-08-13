@@ -39,13 +39,15 @@ def configure_parser(
     console: Console,
     program: str,
     version: str,
+    *,
+    defaults: Dict[str, object],
 ):
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, defaults=defaults)
 
-    _parser.configure_group_input_sequences(parser)
-    _parser.configure_group_gene_calling(parser)
-    _parser.configure_group_domain_annotation(parser)
-    _parser.configure_group_table_output(parser)
+    _parser.configure_group_input_sequences(parser, defaults=defaults)
+    _parser.configure_group_gene_calling(parser, defaults=defaults)
+    _parser.configure_group_domain_annotation(parser, defaults=defaults)
+    _parser.configure_group_table_output(parser, defaults=defaults)
 
     parser.set_defaults(run=run)
 

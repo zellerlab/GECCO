@@ -4,7 +4,7 @@ import glob
 import os
 import pathlib
 import re
-from typing import Type, Callable, Iterable
+from typing import Type, Callable, Iterable, Dict
 
 import rich.progress
 from rich.console import Console
@@ -22,9 +22,11 @@ def configure_parser(
     parser: argparse.ArgumentParser, 
     console: Console,
     program: str,
-    version: str
+    version: str,
+    *,
+    defaults: Dict[str, object],
 ):
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, defaults=defaults)
 
     commands = parser.add_subparsers(required=True, metavar="INPUT")
 

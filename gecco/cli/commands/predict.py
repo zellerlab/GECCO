@@ -1,7 +1,7 @@
 import argparse
 import os
 import operator
-from typing import Type, Callable, Iterable
+from typing import Type, Callable, Iterable, Dict
 
 from rich.console import Console
 
@@ -13,16 +13,18 @@ def configure_parser(
     parser: argparse.ArgumentParser, 
     console: Console,
     program: str,
-    version: str
+    version: str,
+    *,
+    defaults: Dict[str, object],
 ):
-    _parser.configure_common(parser, console, program, version)
+    _parser.configure_common(parser, console, program, version, defaults=defaults)
 
-    _parser.configure_group_input_sequences(parser, short=False)
-    _parser.configure_group_input_tables(parser, clusters=False)
-    _parser.configure_group_domain_filter(parser)
-    _parser.configure_group_cluster_detection(parser)
+    _parser.configure_group_input_sequences(parser, short=False, defaults=defaults)
+    _parser.configure_group_input_tables(parser, clusters=False, defaults=defaults)
+    _parser.configure_group_domain_filter(parser, defaults=defaults)
+    _parser.configure_group_cluster_detection(parser, defaults=defaults)
     
-    params_output = _parser.configure_group_table_output(parser)
+    params_output = _parser.configure_group_table_output(parser, defaults=defaults)
     params_output.add_argument(
         "--merge-gbk",
         action="store_true",

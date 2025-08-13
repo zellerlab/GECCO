@@ -4,7 +4,7 @@ import argparse
 import functools
 import signal
 import typing
-from typing import Optional, List, TextIO, Type, Callable, Iterable
+from typing import Optional, List, TextIO, Type, Callable, Iterable, Dict
 
 from rich.console import Console
 
@@ -42,8 +42,10 @@ def configure_parser(
     console: Console,
     program: str,
     version: str,
+    *,
+    defaults: Dict[str, object],
 ) -> argparse.ArgumentParser:
-    _parser.configure_common(parser, console, program, version, main=True)
+    _parser.configure_common(parser, console, program, version, main=True, defaults=defaults)
 
     commands = parser.add_subparsers(required=True, metavar="COMMAND")
     annotate.configure_parser(
@@ -56,6 +58,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
     run.configure_parser(
         commands.add_parser(
@@ -67,6 +70,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
     predict.configure_parser(
         commands.add_parser(
@@ -78,6 +82,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
     train.configure_parser(
         commands.add_parser(
@@ -89,6 +94,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
     cv.configure_parser(
         commands.add_parser(
@@ -100,6 +106,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
     convert.configure_parser(
         commands.add_parser(
@@ -111,6 +118,7 @@ def configure_parser(
         console,
         program,
         version,
+        defaults=defaults,
     )
 
     return parser
@@ -125,7 +133,11 @@ def main(
     default_hmms: Callable[[], Iterable["HMM"]] = default_hmms,
     crf_type: Optional[Type["ClusterCRF"]] = None,
     classifier_type: Optional[Type["TypeClassifier"]] = None,
+    defaults: Optional[Dict[str, object]] = None,
 ) -> int:
+    if defaults is None:
+        defaults = {}
+
     parser = configure_parser(
         argparse.ArgumentParser(
             prog=program,
@@ -135,6 +147,7 @@ def main(
         console,
         program,
         version,
+        defaults=defaults,
     )
     if argcomplete is not None:
         argcomplete.autocomplete(parser)

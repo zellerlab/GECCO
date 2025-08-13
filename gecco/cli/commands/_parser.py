@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+from typing import Dict
 
 from rich.console import Console
 
@@ -43,6 +44,7 @@ def configure_common(
     version: str,
     *,
     main: bool = False,
+    defaults: Dict[str, object],
 ) -> None:
     parser.add_argument(
         "-h",
@@ -98,6 +100,8 @@ def configure_common(
 
 def configure_group_gene_calling(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Gene Calling",
@@ -122,7 +126,7 @@ def configure_group_gene_calling(
     group.add_argument(
         "--locus-tag",
         type=str,
-        default="locus_tag",
+        default=defaults.get("--locus-tag", "locus_tag"),
         help=(
             "The name of the feature qualifier to use for naming extracted "
             "genes when using the ``--cds-feature`` flag."
@@ -133,6 +137,8 @@ def configure_group_gene_calling(
 
 def configure_group_domain_annotation(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group("Domain Annotation")
     group.add_argument(
@@ -148,7 +154,7 @@ def configure_group_domain_annotation(
         "-e",
         "--e-filter",
         type=float,
-        default=None,
+        default=defaults.get("--e-filter", None),
         help=(
             "The e-value cutoff for protein domains to be included. This is "
             "not stable across versions, so consider using a p-value filter "
@@ -159,12 +165,13 @@ def configure_group_domain_annotation(
         "-p",
         "--p-filter",
         type=float,
-        default=1e-9,
+        default=defaults.get("--p-filter", 1e-9),
         help=("The p-value cutoff for protein domains to be included."),
     )
     group.add_argument(
         "--bit-cutoffs",
         choices=("noise", "gathering", "trusted"),
+        default=defaults.get("--bit-cutoffs", None),
         help=("Use HMM-specific bitscore cutoffs to filter domain annotations."),
     )
     # --disentangle creates issues wrt. HMM annotation because it may lead to
@@ -185,13 +192,15 @@ def configure_group_domain_annotation(
 
 def configure_group_domain_filter(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group("Domain Annotation")
     group.add_argument(
         "-e",
         "--e-filter",
         type=float,
-        default=None,
+        default=defaults.get("--e-filter", None),
         help=(
             "The e-value cutoff for protein domains to be included. This is "
             "not stable across versions, so consider using a p-value filter "
@@ -202,7 +211,7 @@ def configure_group_domain_filter(
         "-p",
         "--p-filter",
         type=float,
-        default=1e-9,
+        default=defaults.get("--p-filter", 1e-9),
         help=("The p-value cutoff for protein domains to be included."),
     )
     return group
@@ -210,6 +219,8 @@ def configure_group_domain_filter(
 
 def configure_group_table_output(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Output",
@@ -219,7 +230,7 @@ def configure_group_table_output(
         "--output-dir",
         help="The directory in which to write the output files.",
         type=pathlib.Path,
-        default=".",
+        default=defaults.get("--output-dir", "."),
     )
     group.add_argument(
         "--force-tsv",
@@ -234,6 +245,8 @@ def configure_group_table_output(
 
 def configure_group_cluster_detection(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Cluster Detection",
@@ -259,7 +272,7 @@ def configure_group_cluster_detection(
         "-c",
         "--cds",
         type=int,
-        default=3,
+        default=defaults.get("--cds", 3),
         help=(
             "The minimum number of coding sequences a valid cluster must "
             "contain to be retained."
@@ -269,13 +282,13 @@ def configure_group_cluster_detection(
         "-m",
         "--threshold",
         type=float,
-        default=0.8,
+        default=defaults.get("--threshold", 0.8),
         help=("The probability threshold for cluster detection."),
     )
     group.add_argument(
         "--postproc",
         choices={"antismash", "gecco"},
-        default="gecco",
+        default=defaults.get("--postproc", "gecco"),
         help=argparse.SUPPRESS,
         # help=(
         #     "The method to use for cluster validation."
@@ -284,7 +297,7 @@ def configure_group_cluster_detection(
     group.add_argument(
         "-E",
         "--edge-distance",
-        default=0,
+        default=defaults.get("--edge-distance", 0),
         type=int,
         help=(
             "The minimum number of annotated genes that must separate a "
@@ -298,6 +311,8 @@ def configure_group_cluster_detection(
 
 def configure_group_training_data(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group("Training Data")
     group.add_argument(
@@ -309,7 +324,7 @@ def configure_group_training_data(
     group.add_argument(
         "--seed",
         type=int,
-        default=42,
+        default=defaults.get("--seed", 42),
         help=(
             "The seed to initialize the random number generator used for "
             "shuffling operations."
@@ -320,37 +335,39 @@ def configure_group_training_data(
 
 def configure_group_training_parameters(
     parser: argparse.ArgumentParser,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group("Training Parameters")
     group.add_argument(
         "-W",
         "--window-size",
         type=int,
-        default=5,
+        default=defaults.get("--window-size", 5),
         help=("The length of the sliding window for CRF predictions."),
     )
     group.add_argument(
         "--window-step",
         type=int,
-        default=1,
+        default=defaults.get("--window-step", 1),
         help=("The step of the sliding window for CRF predictions."),
     )
     group.add_argument(
         "--c1",
         type=float,
-        default=0.15,
+        default=defaults.get("--c1", 0.15),
         help=("The strength of the L1 regularization."),
     )
     group.add_argument(
         "--c2",
         type=float,
-        default=0.15,
+        default=defaults.get("--c2", 0.15),
         help=("The strength of the L2 regularization."),
     )
     group.add_argument(
         "--feature-type",
         choices=("protein", "domain"),
-        default="protein",
+        default=defaults.get("--feature-type", "protein"),
         help=(
             "The level at which the features should be extracted and "
             "given to the CRF."
@@ -359,7 +376,7 @@ def configure_group_training_parameters(
     group.add_argument(
         "--select",
         type=float,
-        default=None,
+        default=defaults.get("--select", None),
         help=(
             "The fraction of most significant features to select from "
             "the training data prior to training the CRF."
@@ -368,7 +385,7 @@ def configure_group_training_parameters(
     group.add_argument(
         "--correction",
         type=str,
-        default=None,
+        default=defaults.get("--correction", None),
         help=(
             "The multiple test correction method to use when computing "
             "significance with multiple testing."
@@ -380,6 +397,8 @@ def configure_group_training_parameters(
 def configure_group_input_tables(
     parser: argparse.ArgumentParser,
     clusters: bool = True,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Input Tables",
@@ -419,6 +438,8 @@ def configure_group_input_tables(
 def configure_group_input_sequences(
     parser: argparse.ArgumentParser,
     short: bool = True,
+    *,
+    defaults: Dict[str, object],
 ) -> "argparse.ArgumentGroup":
     group = parser.add_argument_group(
         "Input Sequences",
