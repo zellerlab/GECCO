@@ -5,7 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.9...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.10...master
+
+
+## [v0.10.0-alpha.2] - 2025-08-13
+[v0.10.0-alpha.2]: https://github.com/zellerlab/GECCO/compare/v0.10.0-alpha.1...v0.10.0-alpha.2
+
+### Fixed
+- `gecco.cli` and `gecco.crf` submodules not being included in wheel distribution.
 
 
 ## [v0.10.0-alpha.1] - 2025-08-13
