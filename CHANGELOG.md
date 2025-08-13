@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.9...master
 
 
+## [v0.10.0-alpha.1] - 2025-08-13
+[v0.10.0-alpha.1]: https://github.com/zellerlab/GECCO/compare/v0.9.10...v0.10.0-alpha.1
+
+### Changed
+- Add an error in `gecco convert` when given input is not a folder.
+- Update `numpy`, `polars`, `pyhmmer` and `psutil` to latest versions.
+- Replace `docopt` with `argparse` parser for CLI argument parsing.
+- Make `embedded_hmms` generic over the module name.
+- Make `ClusterCRF.trained` accept any traversable.
+- Allow changing the default `ClusterCRF` and `TypeClassifier` classes used in `gecco.cli`.
+
+### Fixed
+- `gecco convert` issue when given a relative path.
+- Unused `tqdm` import in `gecco.crf` module.
+- Unused build dependencies from `setup.cfg` and `pyproject.toml`.
+- `rich` optional import logic in `setup.py`.
+
+
 ## [v0.9.10] - 2024-02-27
 [v0.9.10]: https://github.com/zellerlab/GECCO/compare/v0.9.9...v0.9.10
 
