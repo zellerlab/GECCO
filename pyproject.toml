@@ -63,21 +63,12 @@ cli = [
 [project.entry-points.console_scripts]
 gecco = "gecco.cli:main"
 
-[project.entry-points."gecco.cli.commands"]
-annotate = "gecco.cli.commands.annotate:Annotate"
-convert = "gecco.cli.commands.convert:Convert"
-cv = "gecco.cli.commands.cv:Cv [train]"
-run = "gecco.cli.commands.run:Run"
-train = "gecco.cli.commands.train:Train [train]"
-help = "gecco.cli.commands.help:Help"
-predict = "gecco.cli.commands.predict:Predict"
-
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-namespaces = false
-include = ["gecco"]
+namespaces = true
+#include = ["gecco", "gecco.cli", "gecco.cli.commands"]
 exclude = ["docs*", "tests*"]
 
 [tool.setuptools.dynamic]
