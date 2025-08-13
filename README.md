@@ -139,6 +139,15 @@ in a simple, easily reproducible situation.
 Contributions are more than welcome! See [`CONTRIBUTING.md`](https://github.com/zellerlab/GECCO/blob/master/CONTRIBUTING.md)
 for more details.
 
+### 🤝 Acknowledgments
+
+We thank Maarten van Gompel ([@proycon](https://github.com/proycon)), the author of the homonymous
+Gecco package (Generic Environment for Context-Aware Correction of Orthography), for allowing us 
+to take ownership of the PyPI package name. The Gecco releases (up to `0.3.0`) can still 
+be downloaded from the [PyPI project page](https://pypi.org/project/gecco/#history)) of the
+same name.
+
+
 ## ⚖️ License
 
 This software is provided under the [GNU General Public License v3.0 *or later*](https://choosealicense.com/licenses/gpl-3.0/). GECCO is developped by the [Zeller Team](https://www.embl.de/research/units/scb/zeller/index.html)
