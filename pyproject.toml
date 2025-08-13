@@ -8,7 +8,7 @@ requires = [
 ]
 
 [project]
-name = "gecco-tool"
+name = "gecco"
 dynamic = ["version"]
 description = "Gene Cluster prediction with Conditional random fields."
 readme = "README.md"

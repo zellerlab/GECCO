@@ -10,7 +10,7 @@ This can be done with ``pip``:
 
 .. code-block:: console
 
-  $ pip install gecco-tool[train]
+  $ pip install gecco[train]
 
 This will install additional Python packages, such as `pandas <https://pandas.pydata.org/>`_
 which is needed to process the feature tables, or `fisher <https://pypy.org/project/fisher>`_
@@ -20,7 +20,7 @@ which is used to select the most informative domains.
 Domain database
 ---------------
 
-GECCO needs HMM domains to use as features. Installing the ``gecco-tool`` package
+GECCO needs HMM domains to use as features. Installing the ``gecco`` package
 will also install a subset of the Pfam database that can be used for making the
 predictions. However, this subset should not be used for training, since a
 different subset of domains may be selected with different training data.

@@ -21,7 +21,7 @@ variables:
     - python setup.py list_requirements -s
     - python -m pip install -U -r requirements.txt
     - python setup.py build_data --inplace bdist_wheel
-    - python -m pip install --find-links=dist --no-index gecco-tool[train]
+    - python -m pip install --find-links=dist --no-index gecco[train]
     - python -m coverage run -p -m unittest discover -vv
   after_script:
     - python -m coverage combine

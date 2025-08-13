@@ -17,11 +17,11 @@ in genomic and metagenomic data using Conditional Random Fields (CRFs).
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/zellerlab/GECCO/blob/master/CHANGELOG.md)
 [![Issues](https://img.shields.io/github/issues/zellerlab/GECCO.svg?style=flat-square&maxAge=600)](https://github.com/zellerlab/GECCO/issues)
 [![Preprint](https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400)](https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1)
-[![PyPI](https://img.shields.io/pypi/v/gecco-tool.svg?style=flat-square&maxAge=3600)](https://pypi.python.org/pypi/gecco-tool)
+[![PyPI](https://img.shields.io/pypi/v/gecco.svg?style=flat-square&maxAge=3600)](https://pypi.python.org/pypi/gecco)
 [![Bioconda](https://img.shields.io/conda/vn/bioconda/gecco?style=flat-square&maxAge=3600)](https://anaconda.org/bioconda/gecco)
 [![Galaxy](https://img.shields.io/badge/Galaxy-GECCO-darkblue?style=flat-square&maxAge=3600)](https://toolshed.g2.bx.psu.edu/repository?repository_id=c29bc911b3fc5f8c)
-[![Versions](https://img.shields.io/pypi/pyversions/gecco-tool.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-tool/#files)
-[![Wheel](https://img.shields.io/pypi/wheel/gecco-tool?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco-tool/#files)
+[![Versions](https://img.shields.io/pypi/pyversions/gecco.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco/#files)
+[![Wheel](https://img.shields.io/pypi/wheel/gecco?style=flat-square&maxAge=3600)](https://pypi.org/project/gecco/#files)
 
 
 ## 🔧 Installing GECCO
@@ -34,7 +34,7 @@ additional libraries that can be installed directly from
 Use [`pip`](https://pip.pypa.io/en/stable/) to install GECCO on your
 machine:
 ```console
-$ pip install gecco-tool
+$ pip install gecco
 ```
 
 If you'd rather use [Conda](https://conda.io), a package is available
@@ -143,3 +143,4 @@ for more details.
 
 This software is provided under the [GNU General Public License v3.0 *or later*](https://choosealicense.com/licenses/gpl-3.0/). GECCO is developped by the [Zeller Team](https://www.embl.de/research/units/scb/zeller/index.html)
 at the [European Molecular Biology Laboratory](https://www.embl.de/) in Heidelberg.
+

@@ -1,7 +1,7 @@
 # Maintainer: Martin Larralde <martin.larralde@embl.de>
 
 _name=gecco
-_pyname=gecco-tool
+_pyname=gecco
 pkgname=${_name}
 pkgver=%pkgver
 pkgrel=1

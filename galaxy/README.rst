@@ -27,7 +27,7 @@ from `PyPI <https://pypi.org>`__, the Python Package Index.
 Use `pip <https://pip.pypa.io/en/stable/>`__ to install GECCO on
 your machine::
 
-   $ pip install gecco-tool
+   $ pip install gecco
 
 If you’d rather use `Conda <https://conda.io>`__, a package is available
 in the `bioconda <https://bioconda.github.io/>`__ channel. You can
@@ -124,13 +124,13 @@ Heidelberg.
    :target: https://github.com/zellerlab/GECCO/issues
 .. |Preprint| image:: https://img.shields.io/badge/preprint-bioRxiv-darkblue?style=flat-square&maxAge=2678400
    :target: https://www.biorxiv.org/content/10.1101/2021.05.03.442509v1
-.. |PyPI| image:: https://img.shields.io/pypi/v/gecco-tool.svg?style=flat-square&maxAge=3600
-   :target: https://pypi.python.org/pypi/gecco-tool
+.. |PyPI| image:: https://img.shields.io/pypi/v/gecco.svg?style=flat-square&maxAge=3600
+   :target: https://pypi.python.org/pypi/gecco
 .. |Bioconda| image:: https://img.shields.io/conda/vn/bioconda/gecco?style=flat-square&maxAge=3600
    :target: https://anaconda.org/bioconda/gecco
-.. |Versions| image:: https://img.shields.io/pypi/pyversions/gecco-tool.svg?style=flat-square&maxAge=3600
-   :target: https://pypi.org/project/gecco-tool/#files
-.. |Wheel| image:: https://img.shields.io/pypi/wheel/gecco-tool?style=flat-square&maxAge=3600
-   :target: https://pypi.org/project/gecco-tool/#files
+.. |Versions| image:: https://img.shields.io/pypi/pyversions/gecco.svg?style=flat-square&maxAge=3600
+   :target: https://pypi.org/project/gecco/#files
+.. |Wheel| image:: https://img.shields.io/pypi/wheel/gecco?style=flat-square&maxAge=3600
+   :target: https://pypi.org/project/gecco/#files
 .. |Galaxy| image:: https://img.shields.io/badge/Galaxy-GECCO-darkblue?style=flat-square&maxAge=3600
    :target: https://toolshed.g2.bx.psu.edu/repository?repository_id=c29bc911b3fc5f8c

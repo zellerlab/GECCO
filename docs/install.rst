@@ -22,7 +22,7 @@ the easiest way to install it is to download the latest release from
 
 .. code:: console
 
-    $ pip install gecco-tool
+    $ pip install gecco
 
 
 Conda
