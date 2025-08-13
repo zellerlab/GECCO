@@ -5,6 +5,7 @@ import csv
 import functools
 import operator
 import os
+import pathlib
 import typing
 import warnings
 from typing import (
@@ -23,44 +24,21 @@ from typing import (
 
 import numpy
 import scipy.sparse
-import sklearn.ensemble
-import sklearn.preprocessing
 
 from ..model import ClusterType, Cluster
 
 try:
     from importlib.resources import files
+    from importlib.resources.abc import Traversable
 except ImportError:
     from importlib_resources import files  # type: ignore
+    from importlib_resources.abc import Traversable  # type: ignore
 
 if typing.TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-__all__ = ["TypeBinarizer", "TypeClassifier"]
-
-
-class TypeBinarizer(sklearn.preprocessing.MultiLabelBinarizer):
-    """A `MultiLabelBinarizer` working with `ClusterType` instances.
-    """
-
-    def __init__(self, classes: List[str], **kwargs: object):
-        self.classes_ = classes
-        super().__init__(classes=classes, **kwargs)
-
-    def transform(self, y: List[ClusterType]) -> Iterable[Iterable[int]]:
-        matrix = numpy.zeros((len(y), len(self.classes_)))
-        for i, label in enumerate(y):
-            for j, cls in enumerate(self.classes_):
-                matrix[i, j] = cls in label.names
-        return matrix
-
-    def inverse_transform(self, yt: "NDArray[numpy.bool_]") -> Iterable[ClusterType]:
-        classes = []
-        for y in yt:
-            filtered = (cls for i, cls in enumerate(self.classes_) if y[i])
-            classes.append(ClusterType(*filtered))
-        return classes
+__all__ = ["TypeClassifier"]
 
 
 class TypeClassifier(object):
@@ -68,7 +46,7 @@ class TypeClassifier(object):
     """
 
     @classmethod
-    def trained(cls, model_path: Optional[str] = None) -> "TypeClassifier":
+    def trained(cls, model_path: Union[Traversable, str, None] = None) -> "TypeClassifier":
         """Create a new `TypeClassifier` pre-trained with embedded data.
 
         Arguments:
@@ -81,16 +59,16 @@ class TypeClassifier(object):
             used to perform cluster type predictions without training first.
 
         """
+        # get the model path or use the embedded files
+        if model_path is None:
+            model_path = files(__name__)
+        elif not isinstance(model_path, Traversable):
+            model_path = pathlib.Path(model_path)
 
-        if model_path is not None:
-            doms_file: ContextManager[TextIO] = open(os.path.join(model_path, "domains.tsv"))
-            typs_file: ContextManager[TextIO] = open(os.path.join(model_path, "types.tsv"))
-            comp_file: ContextManager[BinaryIO] = open(os.path.join(model_path, "compositions.npz"), "rb")
-        else:
-            doms_file = files(__name__).joinpath("domains.tsv").open()
-            typs_file = files(__name__).joinpath("types.tsv").open()
-            comp_file = files(__name__).joinpath("compositions.npz").open("rb")
-
+        # load the model data
+        doms_file = model_path.joinpath("domains.tsv").open()
+        typs_file = model_path.joinpath("types.tsv").open()
+        comp_file = model_path.joinpath("compositions.npz").open("rb")
         with comp_file as comp_src:
             compositions = scipy.sparse.load_npz(comp_src)
         with doms_file as doms_src:
@@ -105,6 +83,7 @@ class TypeClassifier(object):
                     unique_types.add(ty)
                 types.append(ClusterType(*unpacked))
 
+        # train classifier from given data using a fixed seed
         classifier = cls(classes=sorted(unique_types), random_state=0)
         types_bin = classifier.binarizer.transform(types)
         if len(classifier.classes_) > 1:
@@ -120,6 +99,9 @@ class TypeClassifier(object):
             internal `~sklearn.ensemble.RandomForestClassifier` constructor.
 
         """
+        import sklearn.ensemble
+        from .binarizer import TypeBinarizer
+
         self.model = sklearn.ensemble.RandomForestClassifier(**kwargs)
         self.binarizer = TypeBinarizer(list(classes))
 

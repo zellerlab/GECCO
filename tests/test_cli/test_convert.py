@@ -10,20 +10,19 @@ from unittest import mock
 
 import Bio.SeqIO
 from Bio.Seq import Seq
+from rich.console import Console
 
 import gecco.orf
 import gecco.hmmer
 import gecco.cli.commands.convert
 from gecco.model import Cluster, ClusterType, ClusterTable, FeatureTable
 from gecco.cli import main
-from gecco.cli.commands.run import Run
-from gecco.cli.commands.convert import Convert
 
 from ._base import TestCommand
 
 
 class TestConvert(TestCommand, unittest.TestCase):
-    command_type = Convert
+    name = "convert"
 
     @property
     def folder(self):
@@ -59,7 +58,7 @@ class TestConvert(TestCommand, unittest.TestCase):
         # run the `gecco convert gbk` command
         argv = ["-vv", "convert", "gbk", "--input-dir", self.tmpdir, "--format", "bigslice"]
         with io.StringIO() as stderr:
-            retcode = main(argv, stream=stderr)
+            retcode = main(argv, console=Console(file=stderr))
             self.assertEqual(retcode, 0, stderr.getvalue())
 
         # check that the output folder has a new `regionXXX.gbk`

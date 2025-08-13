@@ -9,18 +9,18 @@ from unittest import mock
 
 import Bio.SeqIO
 from Bio.Seq import Seq
+from rich.console import Console
 
 import gecco.cli.commands.run
 from gecco.model import ClusterTable, FeatureTable
 from gecco.types import TypeClassifier
 from gecco.cli import main
-from gecco.cli.commands.run import Run
 
 from ._base import TestCommand
 
 
 class TestRun(TestCommand, unittest.TestCase):
-    command_type = Run
+    name = "run"
 
     @property
     def folder(self):
@@ -56,7 +56,7 @@ class TestRun(TestCommand, unittest.TestCase):
             # )
             argv = ["-vv", "run", "-E", "0", "--genome", sequence, "--output", self.tmpdir]
             with io.StringIO() as stderr:
-                retcode = main(argv, stream=stderr)
+                retcode = main(argv, console=Console(file=stderr))
                 self.assertEqual(retcode, 0, stderr.getvalue())
 
         # make sure we have generated the files we want

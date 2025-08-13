@@ -23,14 +23,13 @@ from typing import Dict, Iterable, List, Mapping, Optional, Sequence, BinaryIO, 
 
 import Bio
 import numpy
-import polars
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, Reference
 from Bio.SeqRecord import SeqRecord
 
 from . import __version__
 from .interpro import GOTerm
-from ._base import Dumpable, Table, _POLARS_VERSION
+from ._base import Dumpable, Table
 from ._meta import patch_locale
 
 if typing.TYPE_CHECKING:
@@ -125,17 +124,17 @@ class Domain:
         pvalue (`float`): The p-value reported by ``hmmsearch`` that measure
             how likely the domain score is.
         probability (`float`, optional): The probability that this domain
-            is part of a gene cluster, or `None` if no prediction has been 
+            is part of a gene cluster, or `None` if no prediction has been
             made yet.
-        cluster_weight (`float`, optional): The weight for this domain, 
+        cluster_weight (`float`, optional): The weight for this domain,
             measuring its importance as infered from the training clusters
             by the CRF model.
         go_terms (`list` of `GOTerm`): The Gene Ontology terms
             for this particular domain.
-        go_functions (`list` of `GOTerm`): The Gene Ontology term families for 
-            this particular domain. Term families are extracted by taking the 
-            highest superclasses (excluding the root) of each Gene Ontology 
-            term in the ``molecular_function`` namespace associated with this 
+        go_functions (`list` of `GOTerm`): The Gene Ontology term families for
+            this particular domain. Term families are extracted by taking the
+            highest superclasses (excluding the root) of each Gene Ontology
+            term in the ``molecular_function`` namespace associated with this
             domain.
         qualifiers (`dict`): A dictionary of feature qualifiers that
             is added to the `~Bio.SeqFeature.SeqFeature` built from this
@@ -396,8 +395,8 @@ class Cluster:
         id (`str`): The identifier of the gene cluster.
         genes (`list` of `~gecco.model.Gene`): A list of the genes belonging
             to this gene cluster.
-        types (`gecco.model.ClusterType`): The putative types of this gene 
-            cluster, according to similarity in domain composition with 
+        types (`gecco.model.ClusterType`): The putative types of this gene
+            cluster, according to similarity in domain composition with
             curated clusters.
         types_probabilities (`list` of `float`): The probability with which
             each cluster type was identified (same dimension as the ``types``
@@ -625,6 +624,8 @@ class FeatureTable(Table):
 
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
+        import polars
+
         return [
             Table.Column("sequence_id", polars.Utf8),
             Table.Column("protein_id", polars.Utf8),
@@ -644,6 +645,8 @@ class FeatureTable(Table):
     def from_genes(cls, genes: Iterable[Gene]) -> "FeatureTable":
         """Create a new feature table from an iterable of genes.
         """
+        import polars
+
         columns = cls._get_columns()
         data = { column.name: [] for column in columns }
         for gene in genes:
@@ -691,12 +694,12 @@ class FeatureTable(Table):
             gene = Gene(source, self.start[indices[0]], self.end[indices[0]], strand, protein)
             for i in indices:
                 domain = Domain(
-                    self.domain[i], 
-                    self.domain_start[i], 
+                    self.domain[i],
+                    self.domain_start[i],
                     self.domain_end[i],
-                    self.hmm[i], 
-                    self.i_evalue[i], 
-                    self.pvalue[i], 
+                    self.hmm[i],
+                    self.i_evalue[i],
+                    self.pvalue[i],
                     self.cluster_probability[i]
                 )
                 gene.protein.domains.append(domain)
@@ -709,6 +712,8 @@ class ClusterTable(Table):
 
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
+        import polars
+
         return [
             Table.Column("sequence_id", polars.Utf8),
             Table.Column("cluster_id", polars.Utf8),
@@ -726,6 +731,8 @@ class ClusterTable(Table):
     def from_clusters(cls, clusters: Iterable[Cluster]) -> "ClusterTable":
         """Create a new cluster table from an iterable of clusters.
         """
+        import polars
+
         data = collections.defaultdict(list)
         for cluster in clusters:
             data["sequence_id"].append(cluster.source.id)
@@ -743,25 +750,24 @@ class ClusterTable(Table):
             data["proteins"].append(";".join(
                 sorted(gene.protein.id for gene in cluster.genes)
             ))
-            data["domains"].append(";".join(sorted( 
-                domain.name 
-                for gene in cluster.genes 
-                for domain in gene.protein.domains 
+            data["domains"].append(";".join(sorted(
+                domain.name
+                for gene in cluster.genes
+                for domain in gene.protein.domains
             )))
             # TODO: member proteins
             # TODO: member domains
         return cls(polars.DataFrame(data))
 
     def dump(self, fh: Union[BinaryIO, str, os.PathLike]) -> None:
+        import polars
+
         # patch `Table.dump` so that all columns are always written
         data = self.data
         for column_name in data.columns:
             if data[column_name].dtype in (polars.Float64, polars.Float64):
                 data = data.with_columns(polars.col(column_name).fill_nan(None))
-        if _POLARS_VERSION < (0, 16, 14):
-            data.write_csv(fh, sep="\t")
-        else:
-            data.write_csv(fh, separator="\t")
+        data.write_csv(fh, separator="\t")
 
 
 class GeneTable(Table):
@@ -770,6 +776,8 @@ class GeneTable(Table):
 
     @classmethod
     def _get_columns(cls) -> List["Table.Column"]:
+        import polars
+
         return [
             Table.Column("sequence_id", polars.Utf8),
             Table.Column("protein_id", polars.Utf8),
@@ -784,6 +792,8 @@ class GeneTable(Table):
     def from_genes(cls, genes: Iterable[Gene]) -> "GeneTable":
         """Create a new gene table from an iterable of genes.
         """
+        import polars
+
         columns = cls._get_columns()
         data = { column.name: [] for column in columns }
         for gene in genes:
@@ -810,7 +820,7 @@ class GeneTable(Table):
         be converted to a `~Bio.SeqRecord.SeqRecord` if needed.
 
         """
-        # check if a probability column is available 
+        # check if a probability column is available
         has_probas = "average_p" in self.data.columns
         # yield genes in order
         for i, protein_id in enumerate(self.protein_id):

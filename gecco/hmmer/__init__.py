@@ -196,10 +196,15 @@ class PyHMMER(DomainAnnotator):
         return gene_index
 
 
-def embedded_hmms() -> Iterator[HMM]:
-    """Iterate over the embedded HMMs that are shipped with GECCO.
+def embedded_hmms(module: str = __name__) -> Iterator[HMM]:
+    """Iterate over the embedded HMMs that are shipped with the given module.
+
+    Arguments:
+        module (`str`): The name of the module containing the HMM
+            configuration files.
+
     """
-    for filename in files(__name__).glob("*.ini"):
+    for filename in files(module).glob("*.ini"):
 
         ini_ctx = as_file(filename)
         ini_path = ini_ctx.__enter__()

@@ -4,14 +4,15 @@ import unittest
 import tempfile
 import shutil
 
+from rich.console import Console
+
 from gecco.cli import main
-from gecco.cli.commands.train import Train
 
 from ._base import TestCommand
 
 
 class TestTrain(TestCommand, unittest.TestCase):
-    command_type = Train
+    name = "train"
 
     @property
     def folder(self):
@@ -32,7 +33,7 @@ class TestTrain(TestCommand, unittest.TestCase):
             "-g", genes, "--feature-type", "domain"
         ]
         with io.StringIO() as stream:
-            retcode = main(argv, stream=stream)
+            retcode = main(argv, console=Console(file=stream))
             self.assertEqual(retcode, 0, stream.getvalue())
 
         files = os.listdir(self.tmpdir)
@@ -48,7 +49,7 @@ class TestTrain(TestCommand, unittest.TestCase):
             "-g", genes, "--feature-type", "protein"
         ]
         with io.StringIO() as stream:
-            retcode = main(argv, stream=stream)
+            retcode = main(argv, console=Console(file=stream))
             self.assertEqual(retcode, 0, stream.getvalue())
 
         files = os.listdir(self.tmpdir)

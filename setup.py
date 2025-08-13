@@ -10,6 +10,7 @@ import io
 import json
 import math
 import os
+import platform
 import re
 import shutil
 import ssl
@@ -354,8 +355,13 @@ class build_data(setuptools.Command):
         nsource = nwritten = 0
         with contextlib.ExitStack() as ctx:
             dl = ctx.enter_context(pbar)
-            src = ctx.enter_context(gzip.open(dl))
             dst = ctx.enter_context(open(output, "wb"))
+            src = ctx.enter_context(gzip.open(dl))
+            if platform.system() == "Darwin":
+                tmp = io.BytesIO() 
+                shutil.copyfileobj(src, tmp)
+                tmp.seek(0)
+                src = tmp
             for hmm in HMMFile(src):
                 nsource += 1
                 if hmm.accession.split(b".")[0] in domains:
