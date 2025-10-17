@@ -8,24 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.10...master
 
 
-## [v0.10.0-alpha.3] - 2025-08-13
-[v0.10.0-alpha.3]: https://github.com/zellerlab/GECCO/compare/v0.10.0-alpha.2...v0.10.0-alpha.3
+## [v0.10.0] - 2025-10-17
+[v0.10.0]: https://github.com/zellerlab/GECCO/compare/v0.9.10...v0.10.0
 
 ### Added
 - Support for changing the CLI argument defaults from a call to the `gecco.cli.main` function.
 
-
-## [v0.10.0-alpha.2] - 2025-08-13
-[v0.10.0-alpha.2]: https://github.com/zellerlab/GECCO/compare/v0.10.0-alpha.1...v0.10.0-alpha.2
-
-### Fixed
-- `gecco.cli` and `gecco.crf` submodules not being included in wheel distribution.
-
-
-## [v0.10.0-alpha.1] - 2025-08-13
-[v0.10.0-alpha.1]: https://github.com/zellerlab/GECCO/compare/v0.9.10...v0.10.0-alpha.1
-
 ### Changed
+- Allow training with sequences only containing negative samples (with a warning).
 - Add an error in `gecco convert` when given input is not a folder.
 - Update `numpy`, `polars`, `pyhmmer` and `psutil` to latest versions.
 - Replace `docopt` with `argparse` parser for CLI argument parsing.
@@ -34,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Allow changing the default `ClusterCRF` and `TypeClassifier` classes used in `gecco.cli`.
 
 ### Fixed
+- `gecco.cli` and `gecco.crf` submodules not being included in wheel distribution.
 - `gecco convert` issue when given a relative path.
 - Unused `tqdm` import in `gecco.crf` module.
 - Unused build dependencies from `setup.cfg` and `pyproject.toml`.
