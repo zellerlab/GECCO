@@ -358,9 +358,9 @@ class ClusterCRF(object):
             feats: List[Dict[str, bool]] = extract_features(sequence)
             labels: List[str] = extract_labels(sequence)
             if all(label == "0" for label in labels):
-                raise ValueError(f"only negative labels found in sequence {sequence[0].source.id!r}")
+                warnings.warn(f"only negative labels found in sequence {sequence[0].source.id!r}", UserWarning)
             elif all(label == "1" for label in labels):
-                raise ValueError(f"only positive labels found in sequence {sequence[0].source.id!r}")
+                warnings.warn(f"only positive labels found in sequence {sequence[0].source.id!r}", UserWarning)
 
             # check we have as many observations as we have labels
             if len(feats) != len(labels):

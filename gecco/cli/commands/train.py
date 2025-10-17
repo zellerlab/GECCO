@@ -121,7 +121,7 @@ def _assign_clusters(
 
     return [
         Cluster(cluster_id, genes_by_cluster[cluster_id], cluster_types[cluster_id])
-        for cluster_id in sorted(clusters.cluster_id)
+        for cluster_id in sorted(filter(None, clusters.cluster_id))
         if genes_by_cluster[cluster_id]
     ]
 
