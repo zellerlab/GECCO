@@ -44,6 +44,13 @@ def configure_parser(
         help=("The path to the input directory containing files to convert."),
     )
     gbk_parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=pathlib.Path,
+        help=("The path to the directory where to write converted files."),
+        default=None,
+    )
+    gbk_parser.add_argument(
         "-f",
         "--format",
         required=True,
@@ -65,6 +72,13 @@ def configure_parser(
         help=("The path to the input directory containing files to convert."),
     )
     clusters_parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=pathlib.Path,
+        help=("The path to the directory where to write converted files."),
+        default=None,
+    )
+    clusters_parser.add_argument(
         "-f",
         "--format",
         required=True,
@@ -83,6 +97,7 @@ def configure_parser(
 def _convert_gbk_bigslice(
     logger: ConsoleLogger,
     input_dir: pathlib.Path,
+    output_dir: pathlib.Path,
     progress: rich.progress.Progress,
 ) -> None:
     import Bio.SeqIO
@@ -105,7 +120,7 @@ def _convert_gbk_bigslice(
             types[cluster_id] = table.type[i] or "Unknown"
 
     # collect `*_clusters_{N}.gbk` files
-    gbk_files = glob.glob(os.path.join(input_dir, "*_cluster_*.gbk"))
+    gbk_files = list(input_dir.glob("*_cluster_*.gbk"))
     unit = "file" if len(gbk_files) == 1 else "files"
     task = progress.add_task(
         "Converting", total=len(gbk_files), unit=unit, precision=""
@@ -135,12 +150,11 @@ def _convert_gbk_bigslice(
         subregion_feature.qualifiers["label"] = [types[record.id]]
         record.features.append(subregion_feature)
         # rename the {id}_cluster_{N}.gbk file to {id}.region{N}.gbk
-        gbk_name = os.path.basename(gbk_file)
-        contig_id, cluster_n = re.search(r"^(.*)_cluster_(\d+).gbk", gbk_name).groups()  # type: ignore
-        new_name = os.path.join(
-            input_dir, "{}.region{:03}.gbk".format(contig_id, int(cluster_n))
+        contig_id, cluster_n = re.search(r"^(.*)_cluster_(\d+).gbk", gbk_file.name).groups()  # type: ignore
+        new_name = output_dir.joinpath(
+            "{}.region{:03}.gbk".format(contig_id, int(cluster_n))
         )
-        logger.info(f"Rewriting {gbk_file!r} to {new_name!r}")
+        logger.info(f"Rewriting {str(gbk_file)!r} to {str(new_name)!r}")
         Bio.SeqIO.write(record, new_name, "genbank")
         done += 1
     logger.success("Converted", f"{done} GenBank {unit} to BiG-SLiCE format", level=0)
@@ -152,13 +166,14 @@ def _convert_gbk_bigslice(
 def _convert_gbk_fna(
     logger: ConsoleLogger,
     input_dir: pathlib.Path,
+    output_dir: pathlib.Path,
     progress: rich.progress.Progress,
 ) -> None:
     import Bio.SeqIO
     from Bio.SeqFeature import SeqFeature, FeatureLocation
 
     # collect `*_clusters_{N}.gbk` files
-    gbk_files = glob.glob(os.path.join(input_dir, "*_cluster_*.gbk"))
+    gbk_files = list(input_dir.glob("*_cluster_*.gbk"))
     unit = "file" if len(gbk_files) == 1 else "files"
     task = progress.add_task(
         "Converting", total=len(gbk_files), unit=unit, precision=""
@@ -172,8 +187,8 @@ def _convert_gbk_fna(
             logger.warn(f"GenBank file {gbk_file!r} was not obtained by GECCO")
             continue
         # convert to nucleotide FASTA
-        new_name = re.sub(r"\.gbk$", ".fna", gbk_file)
-        logger.info(f"Converting {gbk_file!r} to FASTA file {new_name!r}")
+        new_name = output_dir.joinpath(gbk_file.with_suffix(".fna").name)
+        logger.info(f"Converting {str(gbk_file)!r} to FASTA file {str(new_name)!r}")
         Bio.SeqIO.write(record, new_name, "fasta")
         done += 1
     logger.success(
@@ -187,6 +202,7 @@ def _convert_gbk_fna(
 def _convert_gbk_faa(
     logger: ConsoleLogger,
     input_dir: pathlib.Path,
+    output_dir: pathlib.Path,
     progress: rich.progress.Progress,
 ) -> None:
     import Bio.SeqIO
@@ -195,7 +211,7 @@ def _convert_gbk_faa(
     from Bio.SeqFeature import SeqFeature, FeatureLocation
 
     # collect `*_clusters_{N}.gbk` files
-    gbk_files = glob.glob(os.path.join(input_dir, "*_cluster_*.gbk"))
+    gbk_files = list(input_dir.glob("*_cluster_*.gbk"))
     unit = "file" if len(gbk_files) == 1 else "files"
     task = progress.add_task(
         "Converting", total=len(gbk_files), unit=unit, precision=""
@@ -217,8 +233,8 @@ def _convert_gbk_faa(
             prot = SeqRecord(id=feat.qualifiers["locus_tag"][0], seq=seq)
             proteins.append(prot)
         # write proteins to FASTA
-        new_name = re.sub(r"\.gbk$", ".faa", gbk_file)
-        logger.info(f"Converting {gbk_file!r} proteins to FASTA file {new_name!r}")
+        new_name = output_dir.joinpath(gbk_file.with_suffix(".faa").name)
+        logger.info(f"Converting {str(gbk_file)!r} proteins to FASTA file {str(new_name)!r}")
         Bio.SeqIO.write(proteins, new_name, "fasta")
         done += 1
     logger.success(
@@ -232,13 +248,14 @@ def _convert_gbk_faa(
 def _convert_clusters_gff(
     logger: ConsoleLogger,
     input_dir: pathlib.Path,
+    output_dir: pathlib.Path,
     progress: rich.progress.Progress,
 ) -> None:
     import Bio.SeqIO
     from ...model import ClusterTable
 
     # collect `*_clusters_{N}.gbk` files
-    tsv_files = glob.glob(os.path.join(input_dir, "*.clusters.tsv"))
+    tsv_files = list(input_dir.glob("*.clusters.tsv"))
     unit = "file" if len(tsv_files) == 1 else "files"
     task = progress.add_task(
         "Converting", total=len(tsv_files), unit=unit, precision=""
@@ -248,8 +265,8 @@ def _convert_clusters_gff(
     # rewrite GenBank files
     for tsv_file in progress.track(tsv_files, task_id=task, total=len(tsv_files)):
         table = ClusterTable.load(tsv_file)
-        gff_file = re.sub(r"\.tsv$", ".gff", tsv_file)
-        with open(gff_file, "w") as dst:
+        gff_file = output_dir.joinpath(tsv_file.with_suffix(".gff").name)
+        with gff_file.open("w") as dst:
             writer = csv.writer(dst, dialect="excel-tab")
             writer.writerow(["##gff-version 3"])
             for row in table.data.rows(named=True):
@@ -306,19 +323,24 @@ def run(
     classifier_type: Type["TypeClassifier"],
     default_hmms: Callable[[], Iterable["HMM"]],
 ) -> int:
+
+    input_dir = args.input_dir
+    output_dir = args.output_dir if args.output_dir is not None else input_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     with logger.progress() as progress:
         if args.input == "gbk":
             if args.format == "bigslice":
-                _convert_gbk_bigslice(logger, args.input_dir, progress)
+                _convert_gbk_bigslice(logger, input_dir, output_dir, progress)
             elif args.format == "fna":
-                _convert_gbk_fna(logger, args.input_dir, progress)
+                _convert_gbk_fna(logger, input_dir, output_dir, progress)
             elif args.format == "faa":
-                _convert_gbk_faa(logger, args.input_dir, progress)
+                _convert_gbk_faa(logger, input_dir, output_dir, progress)
             else:
                 raise NotImplementedError
         elif args.input == "clusters":
             if args.format == "gff":
-                _convert_clusters_gff(logger, args.input_dir, progress)
+                _convert_clusters_gff(logger, input_dir, output_dir, progress)
             else:
                 raise NotImplementedError
         else:
