@@ -9,10 +9,9 @@ pkgdesc="Gene Cluster prediction with Conditional random fields."
 url="https://gecco.embl.de"
 arch=('i686' 'pentium4' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64')
 license=("GPL-3.0-only")
-depends=('python' 'python-crfsuite' 'python-sklearn-crfsuite' 'python-pyrodigal' 'python-pyhmmer' 'python-biopython' 'python-docopt' 'python-numpy' 'python-polars' 'python-rich' 'python-scipy' 'python-scikit-learn')
+depends=('python' 'python-biopython' 'python-numpy' 'python-polars' 'python-pyhmmer' 'python-pyrodigal' 'python-rich' 'python-rich-argparse' 'python-scikit-learn' 'python-scipy' 'python-sklearn-crfsuite')
 makedepends=('python-setuptools' 'python-build' 'python-installer')
-optdepends=('python-fisher: variable selection with Fisher exact test'
-            'python-statsmodels: variable selection with Fisher exact test')
+optdepends=('python-statsmodels: variable selection with Fisher exact test')
 source=("https://files.pythonhosted.org/packages/source/${_pyname::1}/${_pyname}/${_pyname}-$pkgver.tar.gz")
 sha256sums=(%sha256sum)
 

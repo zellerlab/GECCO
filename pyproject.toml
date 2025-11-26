@@ -4,7 +4,6 @@ requires = [
     'setuptools >=39.2', 
     'rich >=12.4.0', 
     'pyhmmer ~=0.11.0', 
-    'wheel >=0.30'
 ]
 
 [project]

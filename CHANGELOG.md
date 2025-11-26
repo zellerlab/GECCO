@@ -5,7 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.9.10...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.1...master
+
+## [v0.10.1] - 2025-11-26
+[v0.10.1]: https://github.com/zellerlab/GECCO/compare/v0.10.0...v0.10.1
+
+### Changed
+- Remove unneeded `psutil` package dependency.
+
+### Fixed
+- Missing `--output` flag in `gecco convert` command ([#19](https://github.com/zellerlab/GECCO/issues/19)).
 
 
 ## [v0.10.0] - 2025-10-17

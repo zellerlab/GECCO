@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tool id="gecco" name="GECCO" version="0.10.0" python_template_version="3.5">
+<tool id="gecco" name="GECCO" version="0.10.1" python_template_version="3.5">
     <description>is a fast and scalable method for identifying putative novel Biosynthetic Gene Clusters (BGCs) in genomic and metagenomic data using Conditional Random Fields (CRFs).</description>
     <creator>
-        <organization name="Zeller Team" url="https://www.embl.org/groups/zeller/"/>
+        <organization name="Zeller Lab" url="https://zellerlab.org/"/>
     </creator>
     <edam_topics>
         <edam_topic>topic_0080</edam_topic>
@@ -11,7 +11,7 @@
         <edam_operation>operation_0415</edam_operation>
     </edam_operations>
     <requirements>
-        <requirement type="package" version="0.10.0">gecco</requirement>
+        <requirement type="package" version="0.10.1">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
