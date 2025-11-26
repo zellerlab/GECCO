@@ -64,3 +64,35 @@ class TestConvert(TestCommand, unittest.TestCase):
         # check that the output folder has a new `regionXXX.gbk`
         regions = list(map(os.path.basename, glob.glob(os.path.join(self.tmpdir, "*region*.gbk"))))
         self.assertEqual(regions, ["BGC0001866.1.region001.gbk"])
+
+    def test_convert_genes_gff(self):
+        # load the input sequence and pre-compute feature table
+        sequence = os.path.join(self.folder, "data", "BGC0001866.fna")
+        source = Bio.SeqIO.read(sequence, "fasta")
+        path = os.path.join(self.folder, "data", "BGC0001866.features.tsv")
+        features = FeatureTable.load(path)
+        genes = [gene.with_source(source) for gene in features.to_genes()]
+
+        # create a cluster containing the whole sequence and write it down as
+        # a GenBank file to the mock "output" folder
+        cluster = Cluster("BGC0001866.1_cluster_1", genes, type=ClusterType("Polyketide"))
+        record = cluster.to_seq_record()
+        with open(os.path.join(self.tmpdir, "{}.gbk".format(cluster.id)), "w") as f:
+            Bio.SeqIO.write(record, f, "genbank")
+        
+        # copy the `.clusters.tsv` and `.features.tsv` files
+        for tsv in ["clusters.tsv", "features.tsv"]:
+            shutil.copy(
+                os.path.join(self.folder, "data", "BGC0001866.{}".format(tsv)),
+                os.path.join(self.tmpdir, "BGC0001866.1.{}".format(tsv))
+            )
+
+        # run the `gecco convert clusters` command
+        outdir = os.path.join(self.tmpdir, "out")
+        argv = ["-vv", "convert", "clusters", "--input-dir", self.tmpdir, "--format", "gff", "--output-dir", outdir]
+        with io.StringIO() as stderr:
+            retcode = main(argv, console=Console(file=stderr))
+            self.assertEqual(retcode, 0, stderr.getvalue())
+
+        # check that the output folder has a new `clusters.gff`
+        self.assertTrue(os.path.exists(os.path.join(outdir, "BGC0001866.1.clusters.gff")))
