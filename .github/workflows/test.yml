@@ -33,6 +33,9 @@ jobs:
         - python-version: "3.13"
           python-release: v3.13
           python-impl: CPython
+        - python-version: "3.14"
+          python-release: v3.14
+          python-impl: CPython
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -85,6 +88,9 @@ jobs:
           python-impl: CPython
         - python-version: "3.13"
           python-release: v3.13
+          python-impl: CPython
+        - python-version: "3.14"
+          python-release: v3.14
           python-impl: CPython
     steps:
     - name: Checkout code
