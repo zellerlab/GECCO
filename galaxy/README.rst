@@ -40,10 +40,11 @@ predictions. This requires around 100MB of data to be downloaded, so it
 could take some time depending on your Internet connection. Once done,
 you will have a ``gecco`` command available in your $PATH.
 
-*Note that GECCO uses* `HMMER3 <http://hmmer.org/>`__, *which can
-only run on PowerPC and recent x86-64 machines running a POSIX operating
-system. Therefore, Linux and OSX are supported platforms, but GECCO will
-not be able to run on Windows.*
+*Since release* ``v0.10.2``, *GECCO can now run on Windows! This uses
+the PyHMMER* ``v0.12.0`` *experimental* `MinGW-w64 <https://www.mingw-w64.org/>`_
+*build which supports Windows 10 and later. See the PyHMMER
+documentation for more information about*
+`Windows support <https://pyhmmer.readthedocs.io/en/stable/guide/windows.html>`_.
 
 🧬 Running GECCO
 -----------------
