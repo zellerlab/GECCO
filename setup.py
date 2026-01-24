@@ -274,7 +274,7 @@ class build_data(setuptools.Command):
         # Load domain whitelist from the type classifier data
         domains_file = os.path.join("gecco", "types", "domains.tsv")
         self.info(f"loading domain accesssions from {domains_file}")
-        with open(domains_file, "rb") as f:
+        with open(domains_file, "r") as f:
             domains = [line.strip() for line in f]
 
         # Download and binarize required HMMs
@@ -358,13 +358,13 @@ class build_data(setuptools.Command):
             dst = ctx.enter_context(open(output, "wb"))
             src = ctx.enter_context(gzip.open(dl))
             if platform.system() == "Darwin":
-                tmp = io.BytesIO() 
+                tmp = io.BytesIO()
                 shutil.copyfileobj(src, tmp)
                 tmp.seek(0)
                 src = tmp
             for hmm in HMMFile(src):
                 nsource += 1
-                if hmm.accession.split(b".")[0] in domains:
+                if hmm.accession.split(".")[0] in domains:
                     nwritten += 1
                     hmm.write(dst, binary=True)
         # log number of HMMs kept in final files
