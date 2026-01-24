@@ -3,7 +3,7 @@ build-backend = "setuptools.build_meta"
 requires = [
     'setuptools >=39.2', 
     'rich >=12.4.0', 
-    'pyhmmer ~=0.11.0', 
+    'pyhmmer ~=0.12.0', 
 ]
 
 [project]
@@ -33,7 +33,7 @@ dependencies = [
     "importlib-resources >=5.7     ; python_version < '3.11'",
     "numpy >=1.0,<3.0",
     "polars ~=1.0",
-    "pyhmmer ~=0.11.0",
+    "pyhmmer ~=0.12.0",
     "pyrodigal ~=3.0",
     "rich >=12.4.0",
     "rich-argparse ~=1.0",

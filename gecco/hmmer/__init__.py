@@ -110,7 +110,7 @@ class PyHMMER(DomainAnnotator):
         esl_abc = pyhmmer.easel.Alphabet.amino()
         esl_sqs = [
             pyhmmer.easel.TextSequence(
-                name=str(i).encode(),
+                name=str(i),
                 sequence=str(gene.protein.seq)
             ).digitize(esl_abc)
             for i, gene in enumerate(gene_index)
@@ -125,7 +125,7 @@ class PyHMMER(DomainAnnotator):
                 hmm
                 for hmm in hmm_file
                 if hmm.accession is None
-                or self.hmm.relabel(hmm.accession.decode()) in self.whitelist
+                or self.hmm.relabel(hmm.accession) in self.whitelist
             )
             # Run search pipeline using the filtered HMMs
             cpus = 0 if self.cpus is None else self.cpus
@@ -149,7 +149,7 @@ class PyHMMER(DomainAnnotator):
                     for domain in hit.domains.reported:
                         # extract name and get InterPro metadata about hit
                         raw_acc = domain.alignment.hmm_accession or domain.alignment.hmm_name
-                        accession = self.hmm.relabel(raw_acc.decode('utf-8'))
+                        accession = self.hmm.relabel(raw_acc)
                         entry = interpro.by_accession.get(accession)
 
                         # extract coordinates
