@@ -5,7 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.1...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.2...master
+
+## [v0.10.2] - 2026-01-24
+[v0.10.2]: https://github.com/zellerlab/GECCO/compare/v0.10.1...v0.10.2
+
+### Changed
+- Bump `pyhmmer` dependency to `v0.12.0`.
+- Use SPDX license qualifier in `pyproject.toml`.
+
 
 ## [v0.10.1] - 2025-11-26
 [v0.10.1]: https://github.com/zellerlab/GECCO/compare/v0.10.0...v0.10.1
