@@ -1,6 +1,7 @@
 """Algorithm to smooth contiguous gene cluster predictions into single regions.
 """
 
+import copy
 import collections.abc
 import itertools
 import functools
@@ -70,12 +71,14 @@ class ClusterRefiner:
 
     def __init__(
         self,
+        *,
         threshold: float = 0.8,
         criterion: str = "gecco",
         n_cds: int = 5,
         n_biopfams: int = 5,
         average_threshold: float = 0.6,
         edge_distance: int = 0,
+        trim: bool = True,
     ) -> None:
         """Create a new `ClusterRefiner` instance.
 
@@ -97,6 +100,11 @@ class ClusterRefiner:
                 gene cluster must be located (it may start at an edge, but must 
                 span for longer than ``edge_distance``), in number of annotated 
                 genes (*only when the criterion is* ``gecco``).
+            trim (`bool`): If set to `True` (the default), raw segments 
+                predicted by a `~gecco.crf.ClusterCRF` will be post-processed
+                to exclude genes on cluster edges which have no domain 
+                annotation. Set to `False` to retain all genes as predicted
+                by the CRF.
 
         """
         self.threshold = threshold
@@ -105,6 +113,7 @@ class ClusterRefiner:
         self.n_biopfams = n_biopfams
         self.average_threshold = average_threshold
         self.edge_distance = edge_distance
+        self.trim = trim
 
     def iter_clusters(self, genes: List[Gene]) -> Iterator[Cluster]:
         """Find all clusters in a table of CRF predictions.
@@ -119,7 +128,8 @@ class ClusterRefiner:
 
         """
         for seq, cluster in self._iter_clusters(genes):
-            trimmed = self._trim_cluster(cluster)
+            if self.trim:
+                cluster = self._trim_cluster(cluster)
             if self._validate_cluster(seq, cluster):
                 yield cluster
         #
@@ -157,11 +167,17 @@ class ClusterRefiner:
     def _trim_cluster(self, cluster: Cluster) -> Cluster:
         """Remove unannotated proteins from the cluster edges.
         """
-        while cluster.genes and not cluster.genes[0].protein.domains:
-            cluster.genes.pop(0)
-        while cluster.genes and not cluster.genes[-1].protein.domains:
-            cluster.genes.pop()
-        return cluster
+        genes = cluster.genes.copy()
+        while genes and not genes[0].protein.domains:
+            genes.pop(0)
+        while genes and not genes[-1].protein.domains:
+            genes.pop()
+        return Cluster(
+            cluster.id, 
+            genes, 
+            cluster.type, 
+            cluster.type_probabilities
+        )
 
     def _iter_clusters(
         self,
