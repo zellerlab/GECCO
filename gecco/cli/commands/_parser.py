@@ -306,6 +306,28 @@ def configure_group_cluster_detection(
             "of false positives on small contigs."
         ),
     )
+
+    if defaults.get("--trim", True):
+        group.add_argument(
+            "--no-trim",
+            action="store_false",
+            dest="trim",
+            help=(
+                "Disable trimming genes lacking domain annotations from gene "
+                "clusters predicted by the internal CRF model."
+            ),
+        )
+    else:
+        group.add_argument(
+            "--trim",
+            action="store_true",
+            dest="trim",
+            help=(
+                "Enable trimming genes lacking domain annotations from gene "
+                "clusters predicted by the internal CRF model."
+            ),
+        )
+
     return group
 
 

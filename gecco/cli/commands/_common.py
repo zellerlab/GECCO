@@ -589,12 +589,17 @@ def extract_clusters(
     postproc: str,
     cds: int,
     edge_distance: int,
+    trim: bool,
 ) -> List["Cluster"]:
     from ...refine import ClusterRefiner
 
     logger.info("Extracting", "predicted clusters", level=1)
     refiner = ClusterRefiner(
-        threshold=threshold, criterion=postproc, n_cds=cds, edge_distance=edge_distance
+        threshold=threshold,
+        criterion=postproc,
+        n_cds=cds,
+        edge_distance=edge_distance,
+        trim=trim,
     )
 
     with logger.progress() as progress:

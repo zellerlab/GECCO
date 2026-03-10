@@ -106,6 +106,7 @@ def run(
         postproc=args.postproc,
         cds=args.cds,
         edge_distance=args.edge_distance,
+        trim=args.trim,
     )
     if clusters:
         logger.success("Found", len(clusters), "potential gene clusters", level=1)
