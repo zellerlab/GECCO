@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.2...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.3...master
+
+
+## [v0.10.3] - 2026-03-10
+[v0.10.3]: https://github.com/zellerlab/GECCO/compare/v0.10.2...v0.10.3
+
+### Added
+- `--no-trim` CLI flag to disable cluster trimming.
+
+### Changed
+- Allow disabling predicted cluster trimming in `ClusterRefiner`.
+
 
 ## [v0.10.2] - 2026-01-24
 [v0.10.2]: https://github.com/zellerlab/GECCO/compare/v0.10.1...v0.10.2
