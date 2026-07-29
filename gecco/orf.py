@@ -8,10 +8,12 @@ import os
 import queue
 import tempfile
 import typing
+import warnings
 from multiprocessing.pool import Pool, ThreadPool
 from multiprocessing.sharedctypes import Value
 from typing import Callable, Iterable, Iterator, List, Optional, Tuple, Type, Union
 
+import BCBio.GFF
 import Bio.SeqIO
 import pyrodigal
 from Bio.Seq import Seq
@@ -177,6 +179,69 @@ class CDSFinder(ORFFinder):
                     prot_seq = Seq(feature.qualifiers["translation"][0])
                 else:
                     prot_seq = feature.location.extract(record.seq).translate(table=tt)
+                # get the gene name
+                if self.locus_tag in feature.qualifiers:
+                    protein = Protein(id=feature.qualifiers[self.locus_tag][0], seq=prot_seq)
+                else:
+                    protein = Protein(id=f"{record.id}_{i+1}", seq=prot_seq)
+                # check IDs are unique
+                if protein.id in ids:
+                    raise ValueError(f"Duplicate gene identifier found in {record.id!r}: {protein.id!r}")
+                ids.add(protein.id)
+                # wrap the gene into a Gene
+                yield Gene(
+                    source=record,
+                    start=feature.location.start + 1,
+                    end=feature.location.end,
+                    strand=Strand(feature.location.strand),
+                    protein=protein,
+                )
+                genes_found += 1
+            _progress(record, genes_found)
+
+
+class GFFFinder(ORFFinder):
+    """An `ORFFinder` that extracts CDS annotations from a GFF table.
+    """
+
+    def __init__(
+        self,
+        gff_file: pathlib.Path,
+        feature: str = "CDS",
+        translation_table: int = 11,
+        locus_tag: str = "ID",
+    ):
+        self.feature = feature
+        self.translation_table = translation_table
+        self.locus_tag = locus_tag
+
+        parser = BCBio.GFF.GFFParser()
+        self.records = {
+            record.id: record
+            for record in parser.parse(gff_file)
+        }
+
+    def find_genes(
+        self,
+        records: Iterable[SeqRecord],
+        progress: Optional[Callable[[SeqRecord, int], None]] = None,
+    ) -> Iterator[Gene]:
+
+        ids = set()
+        _progress = (lambda x,y: None) if progress is None else progress
+
+        for record in records:
+
+            if record.id not in self.records:
+                warnings.warn(f"no annotations found for record {record.id!r}")
+                continue
+
+            genes_found = 0
+            features = filter(lambda feat: feat.type == self.feature, self.records[record.id].features)
+            for i, feature in enumerate(features):
+                # get the gene translation
+                tt = feature.qualifiers.get("transl_table", [self.translation_table])[0]
+                prot_seq = feature.location.extract(record.seq).translate(table=tt)
                 # get the gene name
                 if self.locus_tag in feature.qualifiers:
                     protein = Protein(id=feature.qualifiers[self.locus_tag][0], seq=prot_seq)

@@ -1,0 +1,13 @@
+##gff-version  3
+# Sequence Data: seqnum=1;seqlen=53488;seqhdr="BGC0001737.1"
+# Model Data: version=pyrodigal.v3.7.1;run_type=Metagenomic;model="36|Ralstonia_solanacearum_PSI07|B|66.1|11|1";gc_cont=66.10;transl_table=11;uses_sd=1
+BGC0001737.1	pyrodigal_v3.7.1	CDS	1	1041	152.2	+	0	ID=BGC0001737.1_1;partial=10;start_type=Edge;rbs_motif=None;rbs_spacer=None;gc_cont=0.704;conf=100.00;score=152.21;cscore=148.99;sscore=3.22;rscore=0.00;uscore=3.22;tscore=0.00;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	1038	2015	191.5	+	0	ID=BGC0001737.1_2;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=5-10bp;gc_cont=0.723;conf=99.99;score=191.53;cscore=176.46;sscore=15.07;rscore=10.30;uscore=0.23;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	2015	3703	298.4	+	0	ID=BGC0001737.1_3;partial=00;start_type=ATG;rbs_motif=GGAGG;rbs_spacer=3-4bp;gc_cont=0.729;conf=99.99;score=298.41;cscore=280.19;sscore=18.22;rscore=13.97;uscore=-0.29;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	3700	10212	992.4	+	0	ID=BGC0001737.1_4;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.724;conf=99.99;score=992.42;cscore=977.41;sscore=15.01;rscore=8.88;uscore=1.59;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	10235	15802	849.4	+	0	ID=BGC0001737.1_5;partial=00;start_type=ATG;rbs_motif=AGGAG/GGAGG;rbs_spacer=11-12bp;gc_cont=0.733;conf=99.99;score=849.43;cscore=842.33;sscore=7.09;rscore=0.66;uscore=1.89;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	15799	21366	829.5	+	0	ID=BGC0001737.1_6;partial=00;start_type=ATG;rbs_motif=None;rbs_spacer=None;gc_cont=0.727;conf=99.99;score=829.47;cscore=830.06;sscore=-0.60;rscore=-3.31;uscore=-1.83;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	21383	26956	893.0	+	0	ID=BGC0001737.1_7;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.726;conf=99.99;score=892.97;cscore=885.54;sscore=7.43;rscore=0.72;uscore=2.17;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	26959	42495	2571.8	+	0	ID=BGC0001737.1_8;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.733;conf=99.99;score=2571.81;cscore=2564.51;sscore=7.29;rscore=0.72;uscore=2.03;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	42492	48947	960.3	+	0	ID=BGC0001737.1_9;partial=00;start_type=ATG;rbs_motif=GGA/GAG/AGG;rbs_spacer=5-10bp;gc_cont=0.727;conf=99.99;score=960.33;cscore=957.04;sscore=3.29;rscore=0.72;uscore=-1.97;tscore=4.54;
+BGC0001737.1	pyrodigal_v3.7.1	CDS	48944	53488	753.4	+	0	ID=BGC0001737.1_10;partial=00;start_type=ATG;rbs_motif=GGAG/GAGG;rbs_spacer=5-10bp;gc_cont=0.710;conf=99.99;score=753.39;cscore=741.55;sscore=11.84;rscore=8.88;uscore=-1.59;tscore=4.54;
