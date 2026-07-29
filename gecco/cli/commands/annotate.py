@@ -77,6 +77,7 @@ def run(
         _common.extract_genes(
             logger,
             sequences,
+            gff_file=args.gff_file,
             cds_feature=args.cds_feature,
             locus_tag=args.locus_tag,
             mask=args.mask,

@@ -348,20 +348,31 @@ def extract_genes(
     logger,
     sequences: List["SeqRecord"],
     *,
+    gff_file: Optional[pathlib.Path],
     cds_feature: Optional[str],
     locus_tag: Optional[str],
     mask: bool,
     jobs: int,
 ) -> Iterable["Gene"]:
-    from ...orf import PyrodigalFinder, CDSFinder
+    from ...orf import PyrodigalFinder, CDSFinder, GFFFinder
 
     logger.info("Extracting", "genes from input sequences", level=1)
-    if cds_feature is None:
+
+    kwargs = {}
+    if cds_feature is not None:
+        kwargs['feature'] = cds_feature
+    if locus_tag is not None:
+        kwargs['locus_tag'] = locus_tag
+
+    if gff_file is not None:
+        logger.info("Using", f"GFF features from {str(gff_file)!r}", level=2)
+        orf_finder = GFFFinder(gff_file, **kwargs)
+    elif cds_feature is not None:
+        logger.info("Using", f"record features named {cds_feature!r}", level=2)
+        orf_finder = CDSFinder(**kwargs)
+    else:
         logger.info("Using", "Pyrodigal in metagenomic mode", level=2)
         orf_finder: ORFFinder = PyrodigalFinder(metagenome=True, mask=mask, cpus=jobs)
-    else:
-        logger.info("Using", f"record features named {cds_feature!r}", level=2)
-        orf_finder = CDSFinder(feature=cds_feature, locus_tag=locus_tag)
 
     unit = "contigs" if len(sequences) > 1 else "contig"
 

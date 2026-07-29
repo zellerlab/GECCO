@@ -132,6 +132,12 @@ def configure_group_gene_calling(
             "genes when using the ``--cds-feature`` flag."
         ),
     )
+    group.add_argument(
+        "--gff",
+        dest="gff_file",
+        type=pathlib.Path,
+        help=("The path to a GFF file containing gene annotations.")
+    )
     return group
 
 
