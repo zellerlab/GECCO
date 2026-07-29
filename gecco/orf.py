@@ -5,6 +5,7 @@ import abc
 import io
 import itertools
 import os
+import pathlib
 import queue
 import tempfile
 import typing
