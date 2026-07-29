@@ -5,7 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.10.3...master
+[Unreleased]: https://github.com/zellerlab/GECCO/compare/v0.11.0...master
+
+
+## [v0.11.0] - 2026-07-29
+[v0.11.0]: https://github.com/zellerlab/GECCO/compare/v0.10.3...v0.11.0
+
+### Added
+- `--gff` option to provide gene annotations within a GFF file ([#17](https://github.com/zellerlab/GECCO/issues/17)).
+
+### Changed
+- Require additional `bcbio-gff` library.
 
 
 ## [v0.10.3] - 2026-03-10

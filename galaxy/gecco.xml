@@ -11,7 +11,7 @@
         <edam_operation>operation_0415</edam_operation>
     </edam_operations>
     <requirements>
-        <requirement type="package" version="0.10.3">gecco</requirement>
+        <requirement type="package" version="0.11.0">gecco</requirement>
     </requirements>
     <version_command>gecco --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
