@@ -4,6 +4,7 @@ coverage[toml]
 setuptools >=75.0
 wheel >=0.30
 
+bcbio-gff ~=0.7.0
 biopython ~=1.73
 importlib-metadata >=4.0      ; python_version < '3.10'
 importlib-resources >=5.7     ; python_version < '3.11'
